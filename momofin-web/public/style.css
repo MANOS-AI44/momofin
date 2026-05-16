@@ -1,0 +1,49 @@
+* { box-sizing: border-box; }
+body {
+    margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: #f4f6fa; color: #1a1a1a;
+}
+header {
+    background: #1565C0; color: white; padding: 14px 24px;
+    display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap;
+}
+header h1 { margin: 0; font-size: 22px; }
+nav a { color: rgba(255,255,255,0.85); margin-left: 18px; text-decoration: none; font-size: 14px; }
+nav a:hover, nav a.active { color: white; border-bottom: 2px solid #FFB300; padding-bottom: 4px; }
+
+main { max-width: 1100px; margin: 0 auto; padding: 24px; }
+
+.cards { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 24px; }
+.card {
+    flex: 1 1 200px; background: white; border-radius: 8px; padding: 16px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+}
+.card span { display: block; font-size: 13px; color: #666; }
+.card strong { display: block; font-size: 26px; margin-top: 6px; }
+.card.recu strong { color: #2E7D32; }
+.card.sortie strong { color: #C62828; }
+.card.solde strong { color: #1565C0; }
+
+.day { background: white; border-radius: 8px; padding: 16px; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+.day h2 { margin: 0 0 4px; font-size: 16px; color: #1565C0; text-transform: capitalize; }
+.day-totals { margin: 0 0 12px; color: #555; font-size: 13px; }
+.day-totals strong { color: #000; }
+
+table { width: 100%; border-collapse: collapse; font-size: 14px; }
+th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid #eee; }
+th { color: #555; font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+tr.recu td:nth-child(2) { color: #2E7D32; font-weight: 600; }
+tr.sortie td:nth-child(2) { color: #C62828; font-weight: 600; }
+
+.empty { color: #888; font-style: italic; padding: 18px; text-align: center; }
+
+.form { background: white; padding: 16px; border-radius: 8px; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+.patron-form { display: flex; gap: 8px; flex-wrap: wrap; }
+.form input, .form select { padding: 8px 10px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px; }
+.btn { padding: 8px 14px; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; }
+.btn.primary { background: #1565C0; color: white; }
+.btn-link { background: none; border: none; color: #C62828; cursor: pointer; font-size: 13px; text-decoration: underline; }
+
+footer { text-align: center; padding: 20px; color: #888; font-size: 12px; }
+
+code { background: #f1f3f5; padding: 2px 6px; border-radius: 4px; font-size: 12px; }

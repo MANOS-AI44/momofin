@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths>
+    <files-path name="momofin_pdfs" path="pdfs/"/>
+    <cache-path name="momofin_cache" path="."/>
+    <external-files-path name="external_pdfs" path="."/>
+</paths>

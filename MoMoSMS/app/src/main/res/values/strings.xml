@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">MoMo SMS</string>
+    <string name="welcome">Lecture des SMS Mobile Money…</string>
+    <string name="btn_import">Importer SMS</string>
+    <string name="btn_refresh">Rafraîchir</string>
+    <string name="imported_count">%1$d nouveaux SMS importés.</string>
+    <string name="total_sms">Total : %1$d SMS Mobile Money</string>
+    <string name="perm_read_momo_label">Lire les SMS MoMo</string>
+    <string name="perm_read_momo_desc">Permet à MoMo Fin de lire les SMS Mobile Money stockés par MoMo SMS.</string>
+</resources>

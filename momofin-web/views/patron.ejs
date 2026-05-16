@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>MoMo Fin — PATRON</title>
+    <meta name="theme-color" content="#1565C0">
+    <link rel="manifest" href="/manifest.webmanifest">
+    <link rel="icon" type="image/svg+xml" href="/icon.svg">
+    <link rel="apple-touch-icon" href="/icon-192.svg">
+    <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<header>
+    <h1>MoMo Fin — PATRON</h1>
+    <nav>
+        <a href="/">Transactions</a>
+        <a href="/patron" class="active">PATRON</a>
+        <a href="/devices">Téléphones</a>
+        <a href="/pdf" target="_blank">PDF</a>
+    </nav>
+</header>
+<main>
+    <section class="cards">
+        <div class="card recu">
+            <span>Reçu</span>
+            <strong><%= fmt(recu) %></strong>
+        </div>
+        <div class="card sortie">
+            <span>Sortie</span>
+            <strong><%= fmt(sortie) %></strong>
+        </div>
+        <div class="card solde">
+            <span>Total (Reçu − Sortie)</span>
+            <strong><%= fmt(total) %></strong>
+        </div>
+    </section>
+
+    <section class="form">
+        <form method="POST" action="/patron" class="patron-form">
+            <select name="type" required>
+                <option value="RECU">Reçu</option>
+                <option value="SORTIE">Sortie</option>
+            </select>
+            <input type="number" step="0.01" name="amount" placeholder="Montant" required />
+            <input type="text" name="note" placeholder="Note (facultatif)" />
+            <button class="btn primary" type="submit">Ajouter</button>
+        </form>
+    </section>
+
+    <section>
+        <table>
+            <thead>
+                <tr><th>Date</th><th>Type</th><th>Montant</th><th>Note</th><th></th></tr>
+            </thead>
+            <tbody>
+            <% if (entries.length === 0) { %>
+                <tr><td colspan="5" class="empty">Aucune entrée.</td></tr>
+            <% } %>
+            <% entries.forEach(function(e) { %>
+                <tr class="<%= e.type === 'RECU' ? 'recu' : 'sortie' %>">
+                    <td><%= new Date(e.ts).toLocaleString('fr-FR') %></td>
+                    <td><%= e.type === 'RECU' ? 'Reçu' : 'Sortie' %></td>
+                    <td><strong><%= fmt(e.amount) %></strong></td>
+                    <td><%= e.note || '—' %></td>
+                    <td>
+                        <form method="POST" action="/patron/<%= e.id %>/delete" onsubmit="return confirm('Supprimer cette entrée ?')">
+                            <button class="btn-link" type="submit">Supprimer</button>
+                        </form>
+                    </td>
+                </tr>
+            <% }); %>
+            </tbody>
+        </table>
+    </section>
+</main>
+</body>
+</html>

@@ -1,0 +1,17 @@
+# Android
+**/build/
+**/.gradle/
+**/local.properties
+**/.idea/
+**/captures/
+**/*.iml
+**/.cxx/
+
+# Node
+**/node_modules/
+**/.env
+**/*.log
+
+# OS
+.DS_Store
+Thumbs.db

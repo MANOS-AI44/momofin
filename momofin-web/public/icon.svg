@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="96" fill="#1565C0"/>
+  <rect x="120" y="128" width="272" height="256" rx="16" fill="#FFFFFF"/>
+  <rect x="148" y="170" width="216" height="20" rx="4" fill="#1565C0"/>
+  <rect x="148" y="208" width="216" height="20" rx="4" fill="#1565C0"/>
+  <rect x="148" y="246" width="140" height="20" rx="4" fill="#1565C0"/>
+  <rect x="298" y="246" width="66" height="20" rx="4" fill="#FFB300"/>
+  <rect x="148" y="296" width="216" height="40" rx="6" fill="#2E7D32"/>
+  <text x="256" y="324" font-family="Arial,sans-serif" font-size="22" font-weight="bold" fill="white" text-anchor="middle">MoMo Fin</text>
+</svg>

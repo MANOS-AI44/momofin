@@ -1,0 +1,34 @@
+{
+    "$schema": "https://railway.app/templates.schema.json",
+    "name": "MoMo Fin",
+    "description": "Backend Express + PostgreSQL pour MoMo Fin : tableau de bord, API SMS, génération PDF, page de téléchargement APK.",
+    "services": [
+        {
+            "name": "momofin-web",
+            "source": {
+                "type": "github",
+                "repo": "MANOS-AI44/momofin",
+                "branch": "main",
+                "rootDirectory": "momofin-web"
+            },
+            "variables": {
+                "ADMIN_PASSWORD": {
+                    "description": "Mot de passe pour accéder au tableau de bord (laissez vide pour libre accès)",
+                    "default": ""
+                },
+                "GITHUB_REPO": {
+                    "description": "Votre dépôt GitHub (ex. votre-login/momofin) — pour les liens APK",
+                    "default": "MANOS-AI44/momofin"
+                },
+                "GITHUB_RELEASE_TAG": {
+                    "description": "Tag de la release contenant les APK",
+                    "default": "latest"
+                }
+            }
+        },
+        {
+            "name": "postgres",
+            "image": "postgres:16-alpine"
+        }
+    ]
+}

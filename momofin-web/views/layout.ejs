@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>MoMo Fin — <%= typeof page === 'string' ? page : 'Tableau de bord' %></title>
+    <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<header>
+    <h1>MoMo Fin</h1>
+    <nav>
+        <a href="/">Transactions</a>
+        <a href="/patron">PATRON</a>
+        <a href="/devices">Téléphones</a>
+        <a href="/pdf" target="_blank">PDF</a>
+    </nav>
+</header>
+<main>
+    <%- body %>
+</main>
+<footer>
+    <small>MoMo Fin Web · <%= new Date().getFullYear() %></small>
+</footer>
+</body>
+</html>

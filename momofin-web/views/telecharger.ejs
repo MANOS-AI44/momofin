@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>MoMo Fin — Télécharger</title>
+    <meta name="theme-color" content="#1565C0">
+    <link rel="manifest" href="/manifest.webmanifest">
+    <link rel="icon" type="image/svg+xml" href="/icon.svg">
+    <link rel="apple-touch-icon" href="/icon-192.svg">
+    <link rel="stylesheet" href="/style.css">
+    <style>
+        .hero { text-align:center; padding:36px 16px 24px; }
+        .hero h1 { font-size:32px; margin:0; color:#1565C0; }
+        .hero p { color:#555; margin:8px 0 0; }
+        .dl-grid { display:grid; gap:18px; grid-template-columns:1fr; max-width:680px; margin:24px auto; padding:0 16px; }
+        @media (min-width: 720px) { .dl-grid { grid-template-columns: 1fr 1fr; } }
+        .dl-card {
+            background:white; border-radius:12px; padding:22px;
+            box-shadow:0 2px 8px rgba(0,0,0,0.08); text-align:center;
+        }
+        .dl-card .icon { font-size:48px; line-height:1; margin-bottom:8px; }
+        .dl-card h2 { margin:0 0 6px; font-size:20px; color:#1a1a1a; }
+        .dl-card p { color:#666; font-size:14px; margin:0 0 16px; min-height:42px; }
+        .dl-btn {
+            display:inline-block; padding:14px 22px; background:#1565C0; color:white;
+            text-decoration:none; border-radius:8px; font-weight:600; font-size:15px;
+            transition:background 0.2s; width:100%; box-sizing:border-box;
+        }
+        .dl-btn:hover { background:#0D47A1; }
+        .dl-btn.alt { background:#2E7D32; }
+        .dl-btn.alt:hover { background:#1B5E20; }
+        .dl-btn.web { background:#FFB300; color:#000; }
+        .dl-btn.web:hover { background:#FF8F00; }
+        .dl-btn.disabled { background:#bbb; cursor:not-allowed; pointer-events:none; }
+        .install-info {
+            max-width:680px; margin:0 auto 32px; padding:18px; background:#fff8e1;
+            border-left:4px solid #FFB300; border-radius:6px; color:#5d4037; font-size:14px;
+        }
+        .install-info h3 { margin:0 0 8px; color:#000; font-size:15px; }
+        .install-info ol { margin:6px 0 0 18px; padding:0; }
+        .install-info li { margin-bottom:4px; }
+        .footer-mini { text-align:center; color:#888; font-size:13px; padding:24px; }
+        .footer-mini a { color:#1565C0; }
+    </style>
+</head>
+<body>
+
+<div class="hero">
+    <h1>📱 MoMo Fin</h1>
+    <p>Suivi des transactions Mobile Money — téléchargement direct, sans Play Store.</p>
+</div>
+
+<div class="dl-grid">
+    <div class="dl-card">
+        <div class="icon">📨</div>
+        <h2>MoMo SMS</h2>
+        <p>Lit automatiquement les SMS Mobile Money (MTN, Orange, Airtel) sur votre téléphone.</p>
+        <% if (smsApk) { %>
+            <a class="dl-btn" href="<%= smsApk %>">⬇ Télécharger MoMo SMS</a>
+        <% } else { %>
+            <a class="dl-btn disabled" href="#">APK non publié — configurez GITHUB_REPO</a>
+        <% } %>
+    </div>
+
+    <div class="dl-card">
+        <div class="icon">💰</div>
+        <h2>MoMo Fin</h2>
+        <p>Tableau de bord, génération PDF par jour et section PATRON (Reçu / Sortie / Total).</p>
+        <% if (finApk) { %>
+            <a class="dl-btn alt" href="<%= finApk %>">⬇ Télécharger MoMo Fin</a>
+        <% } else { %>
+            <a class="dl-btn disabled" href="#">APK non publié — configurez GITHUB_REPO</a>
+        <% } %>
+    </div>
+
+    <div class="dl-card" style="grid-column: 1 / -1;">
+        <div class="icon">🌐</div>
+        <h2>Version Web (sans installation)</h2>
+        <p>Préférez utiliser MoMo Fin directement depuis votre navigateur ? La version web est installable comme une application sur Android (ajouter à l'écran d'accueil).</p>
+        <a class="dl-btn web" id="btnInstallPwa" href="<%= webAppUrl %>">📲 Ouvrir / Installer la version web</a>
+    </div>
+</div>
+
+<div class="install-info">
+    <h3>Comment installer l'APK sur Android</h3>
+    <ol>
+        <li>Téléchargez l'APK avec les boutons ci-dessus (depuis le navigateur du téléphone)</li>
+        <li>Ouvrez le fichier <code>.apk</code> téléchargé</li>
+        <li>Android demande la permission « <em>Installer des applications inconnues</em> » → activer pour le navigateur</li>
+        <li>Suivre le bouton « Installer » → c'est prêt</li>
+        <li>Installer d'abord <strong>MoMo SMS</strong>, puis <strong>MoMo Fin</strong></li>
+    </ol>
+</div>
+
+<div class="footer-mini">
+    Code source ouvert · <a href="/">Tableau de bord (admin)</a>
+</div>
+
+<script>
+    // Gère le prompt d'installation PWA si disponible
+    let deferredPrompt = null;
+    window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        deferredPrompt = e;
+        const btn = document.getElementById('btnInstallPwa');
+        if (btn) {
+            btn.textContent = '📲 Installer la version web sur l\\'écran d\\'accueil';
+            btn.addEventListener('click', async (ev) => {
+                if (!deferredPrompt) return;
+                ev.preventDefault();
+                deferredPrompt.prompt();
+                await deferredPrompt.userChoice;
+                deferredPrompt = null;
+            });
+        }
+    });
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('/sw.js').catch(() => {});
+    }
+</script>
+
+</body>
+</html>

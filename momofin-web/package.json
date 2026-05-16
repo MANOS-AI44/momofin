@@ -1,0 +1,22 @@
+{
+  "name": "momofin-web",
+  "version": "1.0.0",
+  "description": "Backend web et tableau de bord MoMo Fin — déployable sur Railway",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "init-db": "node lib/initdb.js"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "ejs": "^3.1.9",
+    "pg": "^8.11.3",
+    "pdfkit": "^0.14.0",
+    "dotenv": "^16.3.1",
+    "express-rate-limit": "^7.1.5"
+  }
+}
