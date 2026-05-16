@@ -2,15 +2,13 @@ package com.gerard.momofin
 
 import android.content.Context
 
-/**
- * Préférences pour la synchronisation avec le backend Railway.
- */
 object Settings {
 
     private const val PREF = "momofin_settings"
     private const val K_URL = "railway_url"
     private const val K_TOKEN = "railway_token"
     private const val K_LAST_SYNC = "last_sync_ts"
+    private const val K_ASKED_PERMS = "asked_perms"
 
     fun getUrl(c: Context): String =
         c.getSharedPreferences(PREF, Context.MODE_PRIVATE).getString(K_URL, "") ?: ""
@@ -35,4 +33,17 @@ object Settings {
 
     fun isConfigured(c: Context): Boolean =
         getUrl(c).isNotBlank() && getToken(c).isNotBlank()
+
+    fun hasAskedPermissions(c: Context): Boolean =
+        c.getSharedPreferences(PREF, Context.MODE_PRIVATE).getBoolean(K_ASKED_PERMS, false)
+
+    fun setAskedPermissions(c: Context) {
+        c.getSharedPreferences(PREF, Context.MODE_PRIVATE).edit()
+            .putBoolean(K_ASKED_PERMS, true).apply()
+    }
+
+    fun logout(c: Context) {
+        c.getSharedPreferences(PREF, Context.MODE_PRIVATE).edit()
+            .remove(K_URL).remove(K_TOKEN).remove(K_LAST_SYNC).apply()
+    }
 }

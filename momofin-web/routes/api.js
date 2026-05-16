@@ -9,6 +9,36 @@ const parser = require('../lib/parser');
 // Ping public — utile pour tester que le serveur est joignable
 router.get('/ping', (req, res) => res.json({ ok: true, ts: new Date().toISOString() }));
 
+// === Authentification depuis l'APK (inscription / connexion en direct) ===
+const usersLib = require('../lib/users');
+
+router.post('/auth/inscription', async (req, res) => {
+    try {
+        const { email, password, name } = req.body || {};
+        const { user, deviceToken } = await usersLib.createUser(email, password, name);
+        res.json({ ok: true, token: deviceToken, email: user.email, name: user.name });
+    } catch (err) {
+        let msg = err.message;
+        if (err.code === '23505') msg = 'Cet email est déjà utilisé.';
+        res.status(400).json({ ok: false, error: msg });
+    }
+});
+
+router.post('/auth/connexion', async (req, res) => {
+    try {
+        const { email, password } = req.body || {};
+        const user = await usersLib.authenticate(email, password);
+        if (!user) return res.status(401).json({ ok: false, error: 'Email ou mot de passe incorrect' });
+        const devices = await usersLib.getUserDevices(user.id);
+        let token = devices[0]?.token;
+        if (!token) token = await usersLib.createDevice(user.id, 'Téléphone');
+        res.json({ ok: true, token, email: user.email, name: user.name });
+    } catch (err) {
+        res.status(400).json({ ok: false, error: err.message });
+    }
+});
+
+
 // Auth check — l'APK appelle cet endpoint pour vérifier que son token est valide
 router.get('/whoami', authDevice, (req, res) => {
     res.json({ ok: true, token: req.deviceToken, label: req.deviceLabel });

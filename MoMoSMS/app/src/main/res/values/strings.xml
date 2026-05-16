@@ -8,4 +8,11 @@
     <string name="total_sms">Total : %1$d SMS Mobile Money</string>
     <string name="perm_read_momo_label">Lire les SMS MoMo</string>
     <string name="perm_read_momo_desc">Permet à MoMo Fin de lire les SMS Mobile Money stockés par MoMo SMS.</string>
+
+    <!-- Permissions -->
+    <string name="perm_banner_title">⚠️ Permission SMS requise</string>
+    <string name="perm_banner_message">MoMo SMS a besoin d\'accéder aux SMS et notifications pour fonctionner. Sans cette permission, l\'app ne peut pas lire vos transactions Mobile Money.</string>
+    <string name="perm_btn_settings">Ouvrir les paramètres Android</string>
+    <string name="perm_required_title">Activer l\'accès aux SMS</string>
+    <string name="perm_required_message">L\'accès aux SMS est désactivé. Ouvrez les paramètres Android, puis activez la permission \"SMS\" (et éventuellement \"Notifications\") pour cette application.</string>
 </resources>

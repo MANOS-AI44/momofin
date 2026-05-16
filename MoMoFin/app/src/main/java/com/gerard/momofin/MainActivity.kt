@@ -1,10 +1,12 @@
 package com.gerard.momofin
 
 import android.Manifest
+import android.app.AlertDialog
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Bundle
+import android.view.View
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
@@ -25,7 +27,16 @@ class MainActivity : AppCompatActivity() {
 
     private val permLauncher = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
-    ) { _ -> loadData() }
+    ) { result ->
+        Settings.setAskedPermissions(this)
+        if (result.values.any { !it }) {
+            // L'utilisateur a refusé → afficher la bannière + bouton Paramètres
+            showPermissionBanner()
+        } else {
+            hidePermissionBanner()
+        }
+        loadData()
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -46,7 +57,84 @@ class MainActivity : AppCompatActivity() {
         }
         binding.btnSync.setOnClickListener { syncToRailway() }
 
+        binding.btnOpenAppSettings.setOnClickListener {
+            PermissionHelper.openAppSettings(this)
+        }
+        binding.btnRequestPerms.setOnClickListener {
+            requestPermissions()
+        }
+
         ensurePermissionsAndLoad()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        // Re-vérifier en revenant des paramètres système
+        if (PermissionHelper.hasSmsPermission(this)) {
+            hidePermissionBanner()
+            loadData()
+        } else if (Settings.hasAskedPermissions(this)) {
+            showPermissionBanner()
+        }
+    }
+
+    private fun ensurePermissionsAndLoad() {
+        if (PermissionHelper.hasSmsPermission(this)) {
+            hidePermissionBanner()
+            loadData()
+        } else {
+            requestPermissions()
+        }
+    }
+
+    private fun requestPermissions() {
+        if (PermissionHelper.shouldShowSettings(this)) {
+            // L'utilisateur a déjà refusé → on l'invite à passer par les Paramètres
+            showPermissionBanner()
+            AlertDialog.Builder(this)
+                .setTitle(R.string.perm_required_title)
+                .setMessage(R.string.perm_required_message)
+                .setPositiveButton(R.string.perm_open_settings) { _, _ ->
+                    PermissionHelper.openAppSettings(this)
+                }
+                .setNegativeButton(android.R.string.cancel, null)
+                .show()
+        } else {
+            permLauncher.launch(PermissionHelper.REQUIRED_PERMS)
+        }
+    }
+
+    private fun showPermissionBanner() {
+        binding.bannerPerms.visibility = View.VISIBLE
+    }
+
+    private fun hidePermissionBanner() {
+        binding.bannerPerms.visibility = View.GONE
+    }
+
+    private fun loadData() {
+        CoroutineScope(Dispatchers.IO).launch {
+            val raws = SmsSource.loadAll(this@MainActivity)
+            val txs = raws.map {
+                TransactionParser.parse(
+                    rawId = it.id,
+                    sender = it.sender,
+                    body = it.body,
+                    smsTimestamp = it.timestamp,
+                    operator = it.operator
+                )
+            }
+            withContext(Dispatchers.Main) {
+                current = txs
+                adapter.submit(txs)
+                val recu = txs.filter { it.type == TxType.RECU }.sumOf { it.amount }
+                val sortie = txs.filter { it.type == TxType.SORTIE }.sumOf { it.amount }
+                binding.txtSummary.text = getString(
+                    R.string.summary_format,
+                    txs.size, recu, sortie, recu - sortie
+                )
+            }
+        }
     }
 
     private fun syncToRailway() {
@@ -78,52 +166,6 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    override fun onResume() {
-        super.onResume()
-        loadData()
-    }
-
-    private fun ensurePermissionsAndLoad() {
-        // On demande READ_SMS comme fallback si MoMo SMS n'est pas installé.
-        val perms = mutableListOf<String>()
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_SMS)
-            != PackageManager.PERMISSION_GRANTED
-        ) perms.add(Manifest.permission.READ_SMS)
-
-        val momoPerm = "com.gerard.momosms.READ_MOMO"
-        if (ContextCompat.checkSelfPermission(this, momoPerm)
-            != PackageManager.PERMISSION_GRANTED
-        ) perms.add(momoPerm)
-
-        if (perms.isEmpty()) loadData()
-        else permLauncher.launch(perms.toTypedArray())
-    }
-
-    private fun loadData() {
-        CoroutineScope(Dispatchers.IO).launch {
-            val raws = SmsSource.loadAll(this@MainActivity)
-            val txs = raws.map {
-                TransactionParser.parse(
-                    rawId = it.id,
-                    sender = it.sender,
-                    body = it.body,
-                    smsTimestamp = it.timestamp,
-                    operator = it.operator
-                )
-            }
-            withContext(Dispatchers.Main) {
-                current = txs
-                adapter.submit(txs)
-                val recu = txs.filter { it.type == TxType.RECU }.sumOf { it.amount }
-                val sortie = txs.filter { it.type == TxType.SORTIE }.sumOf { it.amount }
-                binding.txtSummary.text = getString(
-                    R.string.summary_format,
-                    txs.size, recu, sortie, recu - sortie
-                )
-            }
-        }
-    }
-
     private fun generatePdf() {
         if (current.isEmpty()) {
             Toast.makeText(this, R.string.no_data, Toast.LENGTH_SHORT).show()
@@ -147,11 +189,6 @@ class MainActivity : AppCompatActivity() {
                 } catch (_: Exception) {
                     Toast.makeText(this@MainActivity, R.string.no_pdf_viewer, Toast.LENGTH_LONG).show()
                 }
-                Toast.makeText(
-                    this@MainActivity,
-                    getString(R.string.pdf_saved, file.name),
-                    Toast.LENGTH_LONG
-                ).show()
             }
         }
     }

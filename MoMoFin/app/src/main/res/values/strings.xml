@@ -32,15 +32,15 @@
     <string name="open_pdf">Ouvrir le PDF avec…</string>
     <string name="no_pdf_viewer">Aucun lecteur PDF installé.</string>
 
-    <!-- Synchronisation Railway -->
+    <!-- Paramètres Railway -->
     <string name="btn_sync">Synchroniser</string>
     <string name="btn_settings">Paramètres</string>
     <string name="title_settings">Paramètres Railway</string>
-    <string name="settings_help">Renseignez l\'URL publique de votre instance MoMo Fin Web (Railway) et le token du téléphone obtenu dans la page Téléphones du tableau de bord.</string>
+    <string name="settings_help">Renseignez l\'URL publique de votre instance MoMo Fin Web et le token du téléphone.</string>
     <string name="label_url">URL du serveur</string>
-    <string name="hint_url">https://votre-app.up.railway.app</string>
+    <string name="hint_url">https://momofin-production.up.railway.app</string>
     <string name="label_token">Token du téléphone</string>
-    <string name="hint_token">Collez ici le token créé sur le tableau de bord</string>
+    <string name="hint_token">Collez ici le code copié</string>
     <string name="btn_test">Tester</string>
     <string name="btn_save_settings">Enregistrer</string>
     <string name="settings_required">URL et token requis.</string>
@@ -49,4 +49,33 @@
     <string name="testing">Test en cours…</string>
     <string name="sync_not_configured">Configurez d\'abord l\'URL Railway et le token dans Paramètres.</string>
     <string name="syncing">Synchronisation en cours…</string>
+
+    <!-- Login / Signup -->
+    <string name="signup_title">Créer un compte</string>
+    <string name="login_title">Se connecter</string>
+    <string name="login_help">Créez un compte ou connectez-vous pour que vos transactions Mobile Money soient synchronisées avec votre tableau de bord.</string>
+    <string name="login_label_name">Nom (facultatif)</string>
+    <string name="login_hint_name">Votre nom</string>
+    <string name="login_label_email">Email</string>
+    <string name="login_hint_email">vous@example.com</string>
+    <string name="login_label_password">Mot de passe (6 caractères min.)</string>
+    <string name="login_hint_password">••••••</string>
+    <string name="signup_submit">Créer mon compte</string>
+    <string name="login_submit">Se connecter</string>
+    <string name="signup_switch_to_login">J\'ai déjà un compte → Se connecter</string>
+    <string name="login_switch_to_signup">Pas de compte ? Créer un compte</string>
+    <string name="login_skip">Passer (j\'ai déjà un token)</string>
+    <string name="login_email_invalid">Email invalide.</string>
+    <string name="login_password_short">Mot de passe trop court (6 caractères min.).</string>
+    <string name="login_in_progress">Connexion en cours…</string>
+    <string name="login_success">Connecté ! Synchronisation activée.</string>
+
+    <!-- Permissions SMS -->
+    <string name="perm_banner_title">⚠️ Permission SMS requise</string>
+    <string name="perm_banner_message">MoMo Fin a besoin d\'accéder à vos SMS pour lire les transactions Mobile Money. Sans cette permission, l\'app ne peut pas extraire vos transactions.</string>
+    <string name="perm_btn_ask">Redemander</string>
+    <string name="perm_btn_settings">Ouvrir les paramètres</string>
+    <string name="perm_required_title">Activer l\'accès aux SMS</string>
+    <string name="perm_required_message">L\'accès aux SMS est désactivé. Ouvrez les paramètres Android de l\'application et activez la permission \"SMS\" pour que MoMo Fin puisse lire vos transactions.</string>
+    <string name="perm_open_settings">Ouvrir les paramètres</string>
 </resources>

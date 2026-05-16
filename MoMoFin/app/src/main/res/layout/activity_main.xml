@@ -27,6 +27,60 @@
             android:textSize="12sp"/>
     </LinearLayout>
 
+    <!-- Bannière permissions SMS — visible si refusées -->
+    <LinearLayout
+        android:id="@+id/bannerPerms"
+        android:orientation="vertical"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="14dp"
+        android:layout_marginTop="10dp"
+        android:background="#FFF3E0"
+        android:visibility="gone">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:textColor="#E65100"
+            android:text="@string/perm_banner_title"/>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:textSize="12sp"
+            android:textColor="#5d4037"
+            android:text="@string/perm_banner_message"/>
+
+        <LinearLayout
+            android:orientation="horizontal"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp">
+
+            <Button
+                android:id="@+id/btnRequestPerms"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:text="@string/perm_btn_ask"
+                android:textSize="12sp"/>
+
+            <Button
+                android:id="@+id/btnOpenAppSettings"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="6dp"
+                android:text="@string/perm_btn_settings"
+                android:backgroundTint="#E65100"
+                android:textColor="#FFFFFF"
+                android:textSize="12sp"/>
+        </LinearLayout>
+    </LinearLayout>
+
     <TextView
         android:id="@+id/txtSummary"
         android:layout_width="match_parent"

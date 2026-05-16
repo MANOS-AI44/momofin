@@ -13,6 +13,44 @@
         android:textStyle="bold"
         android:text="@string/app_name"/>
 
+    <!-- Bannière permissions SMS -->
+    <LinearLayout
+        android:id="@+id/bannerPerms"
+        android:orientation="vertical"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="14dp"
+        android:layout_marginTop="10dp"
+        android:background="#FFF3E0"
+        android:visibility="gone">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:textColor="#E65100"
+            android:text="@string/perm_banner_title"/>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:textSize="12sp"
+            android:textColor="#5d4037"
+            android:text="@string/perm_banner_message"/>
+
+        <Button
+            android:id="@+id/btnOpenAppSettings"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="@string/perm_btn_settings"
+            android:backgroundTint="#E65100"
+            android:textColor="#FFFFFF"
+            android:textSize="12sp"/>
+    </LinearLayout>
+
     <TextView
         android:id="@+id/txtStatus"
         android:layout_width="match_parent"
