@@ -1,5 +1,4 @@
 // Couche d'accès PostgreSQL.
-// Railway fournit DATABASE_URL automatiquement quand on ajoute le plugin PostgreSQL.
 const { Pool } = require('pg');
 
 const pool = new Pool({
@@ -12,6 +11,33 @@ const pool = new Pool({
 async function init() {
     const client = await pool.connect();
     try {
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS users (
+                id BIGSERIAL PRIMARY KEY,
+                email TEXT UNIQUE NOT NULL,
+                password_hash TEXT NOT NULL,
+                name TEXT,
+                created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+            );
+        `);
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS sessions (
+                token TEXT PRIMARY KEY,
+                user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                expires_at TIMESTAMPTZ NOT NULL,
+                created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+            );
+        `);
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS devices (
+                token TEXT PRIMARY KEY,
+                label TEXT,
+                user_id BIGINT REFERENCES users(id) ON DELETE CASCADE,
+                created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+            );
+        `);
+        // Migration : ajouter user_id à devices si table déjà existante sans la colonne
+        await client.query(`ALTER TABLE devices ADD COLUMN IF NOT EXISTS user_id BIGINT REFERENCES users(id) ON DELETE CASCADE;`);
         await client.query(`
             CREATE TABLE IF NOT EXISTS transactions (
                 id BIGSERIAL PRIMARY KEY,
@@ -39,24 +65,16 @@ async function init() {
                 created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
             );
         `);
-        await client.query(`
-            CREATE TABLE IF NOT EXISTS devices (
-                token TEXT PRIMARY KEY,
-                label TEXT,
-                created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-            );
-        `);
         await client.query(`CREATE INDEX IF NOT EXISTS idx_tx_ts ON transactions(ts DESC);`);
         await client.query(`CREATE INDEX IF NOT EXISTS idx_patron_ts ON patron_entries(ts DESC);`);
+        await client.query(`CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user_id);`);
 
-        // Token par défaut si aucune device n'est inscrite (premier démarrage)
         const { rows } = await client.query('SELECT COUNT(*)::int AS n FROM devices');
         if (rows[0].n === 0 && process.env.DEFAULT_DEVICE_TOKEN) {
             await client.query(
                 'INSERT INTO devices (token, label) VALUES ($1, $2) ON CONFLICT DO NOTHING',
                 [process.env.DEFAULT_DEVICE_TOKEN, 'Téléphone par défaut']
             );
-            console.log('Device par défaut inscrite.');
         }
     } finally {
         client.release();

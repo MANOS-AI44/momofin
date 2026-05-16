@@ -5,8 +5,7 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "dev": "node --watch server.js",
-    "init-db": "node lib/initdb.js"
+    "dev": "node --watch server.js"
   },
   "engines": {
     "node": ">=18.0.0"
@@ -17,6 +16,8 @@
     "pg": "^8.11.3",
     "pdfkit": "^0.14.0",
     "dotenv": "^16.3.1",
-    "express-rate-limit": "^7.1.5"
+    "express-rate-limit": "^7.1.5",
+    "bcryptjs": "^2.4.3",
+    "cookie-parser": "^1.4.6"
   }
 }

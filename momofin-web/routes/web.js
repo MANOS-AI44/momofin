@@ -29,6 +29,7 @@ router.get('/telecharger', (req, res) => {
         : null;
 
     res.render('telecharger', {
+        user: req.user || null,
         repo,
         smsApk: localSms || (base ? `${base}/MoMoSMS-debug.apk` : null),
         finApk: localFin || (base ? `${base}/MoMoFin-debug.apk` : null),

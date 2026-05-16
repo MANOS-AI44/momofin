@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Créer un compte — MoMo Fin</title>
+    <meta name="theme-color" content="#1565C0">
+    <link rel="manifest" href="/manifest.webmanifest">
+    <link rel="icon" type="image/svg+xml" href="/icon.svg">
+    <link rel="stylesheet" href="/style.css">
+    <style>
+        .auth-box { max-width:420px; margin:60px auto; padding:32px; background:white; border-radius:12px; box-shadow:0 2px 10px rgba(0,0,0,0.06); }
+        .auth-box h1 { margin:0 0 6px; color:#1565C0; }
+        .auth-box p.sub { color:#666; margin:0 0 24px; font-size:14px; }
+        .auth-box label { display:block; font-size:13px; color:#444; margin:14px 0 4px; }
+        .auth-box input { width:100%; padding:10px 12px; border:1px solid #ccc; border-radius:6px; font-size:15px; box-sizing:border-box; }
+        .auth-box .btn-submit { width:100%; padding:12px; background:#1565C0; color:white; border:none; border-radius:6px; font-weight:600; font-size:15px; cursor:pointer; margin-top:20px; }
+        .auth-box .btn-submit:hover { background:#0D47A1; }
+        .auth-box .err { background:#ffebee; color:#c62828; padding:10px; border-radius:6px; margin:0 0 16px; font-size:13px; }
+        .auth-box .alt { text-align:center; margin-top:18px; font-size:13px; color:#666; }
+        .auth-box .alt a { color:#1565C0; text-decoration:none; }
+    </style>
+</head>
+<body>
+<div class="auth-box">
+    <h1>Créer un compte</h1>
+    <p class="sub">Quelques secondes — vous recevrez ensuite un code à coller dans l'application MoMo Fin.</p>
+
+    <% if (error) { %><div class="err"><%= error %></div><% } %>
+
+    <form method="POST" action="/inscription">
+        <label for="name">Nom (facultatif)</label>
+        <input type="text" id="name" name="name" value="<%= values.name || '' %>" />
+
+        <label for="email">Email</label>
+        <input type="email" id="email" name="email" required value="<%= values.email || '' %>" />
+
+        <label for="password">Mot de passe (6 caractères min.)</label>
+        <input type="password" id="password" name="password" required minlength="6" />
+
+        <button type="submit" class="btn-submit">Créer mon compte</button>
+    </form>
+
+    <div class="alt">
+        Vous avez déjà un compte ? <a href="/connexion">Se connecter</a>
+    </div>
+    <div class="alt">
+        <a href="/telecharger">← Retour à la page de téléchargement</a>
+    </div>
+</div>
+</body>
+</html>
