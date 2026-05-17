@@ -7,9 +7,11 @@ import android.provider.Telephony
 import androidx.core.content.ContextCompat
 
 /**
- * Lit les SMS Mobile Money depuis deux sources possibles :
- *   1. App MoMo SMS (préférée) via son ContentProvider
- *   2. Boîte SMS du téléphone (fallback) avec permission READ_SMS
+ * Lit les SMS Mobile Money depuis 3 sources, dans l'ordre :
+ *   1. NotificationStore — alimenté par SmsNotificationListener (marche sur Android 13+/14/15/16)
+ *   2. App MoMo SMS via ContentProvider partagé
+ *   3. Boîte SMS du téléphone (fallback) si READ_SMS accordé
+ * Les doublons (même sender + body + timestamp) sont éliminés.
  */
 object SmsSource {
 
@@ -24,7 +26,27 @@ object SmsSource {
     )
 
     fun loadAll(context: Context): List<Raw> {
-        return fromMomoSms(context) ?: fromInbox(context)
+        val all = mutableListOf<Raw>()
+        all.addAll(fromNotifications(context))
+        all.addAll(fromMomoSms(context) ?: emptyList())
+        all.addAll(fromInbox(context))
+
+        // Dédupliquer par signature (sender + body + timestamp à 10s près)
+        val seen = mutableSetOf<String>()
+        val unique = mutableListOf<Raw>()
+        for (r in all.sortedByDescending { it.timestamp }) {
+            val sig = "${r.sender.trim().lowercase()}|${r.body.trim().take(100)}|${r.timestamp / 10_000}"
+            if (seen.add(sig)) unique.add(r)
+        }
+        return unique
+    }
+
+    private fun fromNotifications(context: Context): List<Raw> {
+        return try {
+            NotificationStore(context).all()
+        } catch (_: Exception) {
+            emptyList()
+        }
     }
 
     private fun fromMomoSms(context: Context): List<Raw>? {
@@ -52,9 +74,9 @@ object SmsSource {
                 }
             }
             if (list.isEmpty()) null else list
-        } catch (e: SecurityException) {
+        } catch (_: SecurityException) {
             null
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             null
         }
     }
@@ -72,54 +94,55 @@ object SmsSource {
             Telephony.Sms.DATE,
             Telephony.Sms._ID
         )
-        context.contentResolver.query(
-            Telephony.Sms.Inbox.CONTENT_URI, projection, null, null, "date DESC"
-        )?.use { c ->
-            val iAddr = c.getColumnIndexOrThrow(Telephony.Sms.ADDRESS)
-            val iBody = c.getColumnIndexOrThrow(Telephony.Sms.BODY)
-            val iDate = c.getColumnIndexOrThrow(Telephony.Sms.DATE)
-            val iId = c.getColumnIndexOrThrow(Telephony.Sms._ID)
-            while (c.moveToNext()) {
-                val sender = c.getString(iAddr) ?: continue
-                val body = c.getString(iBody) ?: continue
-                if (!MomoFilter.isMomoSms(sender, body)) continue
-                list.add(
-                    Raw(
-                        id = c.getLong(iId),
-                        sender = sender,
-                        body = body,
-                        timestamp = c.getLong(iDate),
-                        operator = MomoFilter.detectOperator(sender, body)
+        try {
+            context.contentResolver.query(
+                Telephony.Sms.Inbox.CONTENT_URI, projection, null, null, "date DESC"
+            )?.use { c ->
+                val iAddr = c.getColumnIndexOrThrow(Telephony.Sms.ADDRESS)
+                val iBody = c.getColumnIndexOrThrow(Telephony.Sms.BODY)
+                val iDate = c.getColumnIndexOrThrow(Telephony.Sms.DATE)
+                val iId = c.getColumnIndexOrThrow(Telephony.Sms._ID)
+                while (c.moveToNext()) {
+                    val sender = c.getString(iAddr) ?: continue
+                    val body = c.getString(iBody) ?: continue
+                    if (!MomoFilter.isMomoSms(sender, body)) continue
+                    list.add(
+                        Raw(
+                            id = c.getLong(iId),
+                            sender = sender,
+                            body = body,
+                            timestamp = c.getLong(iDate),
+                            operator = MomoFilter.detectOperator(sender, body)
+                        )
                     )
-                )
+                }
             }
+        } catch (_: Exception) {
         }
         return list
     }
 }
 
-/**
- * Filtre embarqué (copie locale du filtre de MoMo SMS) pour le fallback.
- */
 object MomoFilter {
     private val SENDERS = listOf(
         "MoMo", "MTN", "MTN MoMo", "M-Money", "MTNMoMo",
         "Orange", "OrangeMoney", "Orange Money", "OM",
-        "Airtel", "AirtelMoney", "Airtel Money"
+        "Airtel", "AirtelMoney", "Airtel Money",
+        "Moov", "Wave"
     )
     private val KEYWORDS = listOf(
         "momo", "mobile money", "transaction", "received", "sent",
-        "reçu", "envoy", "transfert", "transfer", "ref",
+        "reçu", "recu", "envoy", "transfert", "transfer", "ref",
         "rwf", "xof", "xaf", "ugx", "ghs", "kes", "tzs", "fcfa",
-        "id:", "txn", "txid"
+        "id:", "id transaction", "txn", "txid",
+        "depot", "retrait", "solde"
     )
 
     fun isMomoSms(sender: String?, body: String?): Boolean {
         val s = (sender ?: "").lowercase()
         val b = (body ?: "").lowercase()
         if (SENDERS.any { s.contains(it.lowercase()) }) return true
-        val hits = KEYWORDS.count { b.contains(it) }
-        return hits >= 2
+        return KEYWORDS.count { b.contains(it) } >= 2
     }
 
     fun detectOperator(sender: String?, body: String?): String {
@@ -129,6 +152,8 @@ object MomoFilter {
             s.contains("mtn") || s.contains("momo") || b.contains("momo") -> "MTN"
             s.contains("orange") || b.contains("orange money") -> "Orange"
             s.contains("airtel") -> "Airtel"
+            s.contains("moov") -> "Moov"
+            s.contains("wave") -> "Wave"
             else -> "Autre"
         }
     }

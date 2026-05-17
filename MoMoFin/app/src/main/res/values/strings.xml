@@ -99,4 +99,12 @@
     <string name="folder_total_entree">Entrée : %1$s</string>
     <string name="folder_total_sortie">Sortie : %1$s</string>
     <string name="folder_total_solde">Solde : %1$s</string>
+    <!-- Accès aux notifications (méthode robuste Android 13+/14/15/16) -->
+    <string name="notif_service_label">MoMo Fin — Lecture des notifications SMS</string>
+    <string name="notif_access_title">📢 Activer la lecture des notifications</string>
+    <string name="notif_access_msg">Sur Android 13 et plus récent, Google bloque l\'accès direct aux SMS. La seule méthode fiable est d\'autoriser MoMo Fin à lire les notifications. C\'est gratuit, ça reste sur votre téléphone, et c\'est sans risque.</string>
+    <string name="notif_access_btn">Comment activer ?</string>
+    <string name="notif_access_btn_open">Ouvrir les Paramètres</string>
+    <string name="notif_access_guide_title">📢 Activer l\'accès aux notifications</string>
+    <string name="notif_access_guide_msg">Vous allez être redirigé vers les paramètres Android.\n\n1. Trouvez « MoMo Fin » dans la liste\n2. Activez l\'interrupteur à côté de son nom\n3. Validez « Autoriser » dans la boîte de dialogue\n4. Revenez à l\'application\n\nC\'est tout — vos SMS Mobile Money apparaîtront automatiquement.</string>
 </resources>

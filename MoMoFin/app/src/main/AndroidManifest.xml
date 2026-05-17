@@ -2,14 +2,20 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
-    <!-- Lecture du ContentProvider de l'app MoMo SMS -->
+    <!-- Permissions SMS (anciennes versions Android) -->
     <uses-permission android:name="com.gerard.momosms.READ_MOMO" />
-
-    <!-- Fallback : lecture directe des SMS si MoMo SMS n'est pas installé -->
     <uses-permission android:name="android.permission.READ_SMS" />
     <uses-permission android:name="android.permission.RECEIVE_SMS" />
 
-    <!-- Synchronisation avec le backend Railway -->
+    <!-- Permissions notifications (Android 13+) — pour afficher et pour lire via NotificationListener -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE"
+        tools:ignore="ProtectedPermissions" />
+
+    <!-- Démarrer service en arrière-plan -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+
+    <!-- Réseau pour synchro Railway -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
@@ -20,9 +26,8 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.MoMoFin"
-        tools:targetApi="31">
+        tools:targetApi="34">
 
-        <!-- LoginActivity est le point d'entrée. Elle bascule vers MainActivity si déjà connecté. -->
         <activity
             android:name=".LoginActivity"
             android:exported="true">
@@ -32,23 +37,21 @@
             </intent-filter>
         </activity>
 
-        <activity
-            android:name=".MainActivity"
-            android:exported="false"/>
+        <activity android:name=".MainActivity" android:exported="false"/>
+        <activity android:name=".PatronActivity" android:exported="false" android:label="@string/title_patron"/>
+        <activity android:name=".FolderDetailActivity" android:exported="false"/>
+        <activity android:name=".SettingsActivity" android:exported="false" android:label="@string/title_settings"/>
 
-        <activity
-            android:name=".PatronActivity"
-            android:exported="false"
-            android:label="@string/title_patron"/>
-
-        <activity
-            android:name=".FolderDetailActivity"
-            android:exported="false"/>
-
-        <activity
-            android:name=".SettingsActivity"
-            android:exported="false"
-            android:label="@string/title_settings"/>
+        <!-- NotificationListenerService : lit les SMS via notifications (Android 14/15/16) -->
+        <service
+            android:name=".SmsNotificationListener"
+            android:label="@string/notif_service_label"
+            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.service.notification.NotificationListenerService" />
+            </intent-filter>
+        </service>
 
         <provider
             android:name="androidx.core.content.FileProvider"

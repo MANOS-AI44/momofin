@@ -15,4 +15,5 @@
     <string name="perm_btn_settings">Ouvrir les paramètres Android</string>
     <string name="perm_required_title">Activer l\'accès aux SMS</string>
     <string name="perm_required_message">L\'accès aux SMS est désactivé. Ouvrez les paramètres Android, puis activez la permission \"SMS\" (et éventuellement \"Notifications\") pour cette application.</string>
+    <string name="notif_service_label">MoMo SMS — Lecture des notifications</string>
 </resources>

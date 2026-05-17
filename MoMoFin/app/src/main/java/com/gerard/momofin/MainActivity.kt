@@ -3,14 +3,13 @@ package com.gerard.momofin
 import android.Manifest
 import android.app.AlertDialog
 import android.content.Intent
-import android.content.pm.PackageManager
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.view.View
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.gerard.momofin.databinding.ActivityMainBinding
@@ -27,16 +26,15 @@ class MainActivity : AppCompatActivity() {
 
     private val permLauncher = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
-    ) { result ->
+    ) { _ ->
         Settings.setAskedPermissions(this)
-        if (result.values.any { !it }) {
-            // L'utilisateur a refusé → afficher la bannière + bouton Paramètres
-            showPermissionBanner()
-        } else {
-            hidePermissionBanner()
-        }
+        updateBanners()
         loadData()
     }
+
+    private val postNotifLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { _ -> updateBanners() }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -46,6 +44,8 @@ class MainActivity : AppCompatActivity() {
         adapter = DailyAdapter()
         binding.recycler.layoutManager = LinearLayoutManager(this)
         binding.recycler.adapter = adapter
+
+        binding.txtAndroidVersion.text = "Téléphone : ${PermissionHelper.androidVersionLabel()}"
 
         binding.btnRefresh.setOnClickListener { loadData() }
         binding.btnPdf.setOnClickListener { generatePdf() }
@@ -57,59 +57,67 @@ class MainActivity : AppCompatActivity() {
         }
         binding.btnSync.setOnClickListener { syncToRailway() }
 
+        binding.btnNotifAccess.setOnClickListener {
+            showNotificationAccessGuide()
+        }
         binding.btnOpenAppSettings.setOnClickListener {
             PermissionHelper.openAppSettings(this)
         }
         binding.btnRequestPerms.setOnClickListener {
-            requestPermissions()
+            askSmsPermissions()
         }
 
-        ensurePermissionsAndLoad()
+        // Sur Android 13+, demander POST_NOTIFICATIONS au premier lancement
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            !PermissionHelper.hasPostNotificationsPermission(this)) {
+            postNotifLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+        }
+
+        askSmsPermissions()
+        loadData()
     }
 
     override fun onResume() {
         super.onResume()
-        // Re-vérifier en revenant des paramètres système
+        updateBanners()
+        loadData()
+    }
+
+    private fun askSmsPermissions() {
         if (PermissionHelper.hasSmsPermission(this)) {
-            hidePermissionBanner()
-            loadData()
-        } else if (Settings.hasAskedPermissions(this)) {
-            showPermissionBanner()
+            updateBanners()
+            return
         }
-    }
-
-    private fun ensurePermissionsAndLoad() {
-        if (PermissionHelper.hasSmsPermission(this)) {
-            hidePermissionBanner()
-            loadData()
+        if (PermissionHelper.shouldShowSmsSettings(this)) {
+            updateBanners()
         } else {
-            requestPermissions()
+            permLauncher.launch(PermissionHelper.SMS_PERMS)
         }
     }
 
-    private fun requestPermissions() {
-        if (PermissionHelper.shouldShowSettings(this)) {
-            // L'utilisateur a déjà refusé → on l'invite à passer par les Paramètres
-            showPermissionBanner()
-            AlertDialog.Builder(this)
-                .setTitle(R.string.perm_required_title)
-                .setMessage(R.string.perm_required_message)
-                .setPositiveButton(R.string.perm_open_settings) { _, _ ->
-                    PermissionHelper.openAppSettings(this)
-                }
-                .setNegativeButton(android.R.string.cancel, null)
-                .show()
-        } else {
-            permLauncher.launch(PermissionHelper.REQUIRED_PERMS)
-        }
+    /**
+     * Met à jour la visibilité des bannières :
+     *  - Bannière "Notifications" toujours visible si l'accès n'est PAS accordé (c'est la méthode
+     *    qui marche sur Android 13+/14/15/16)
+     *  - Bannière "SMS" visible uniquement si SMS refusé ET l'accès notifs n'est pas accordé non plus
+     */
+    private fun updateBanners() {
+        val notifOk = PermissionHelper.hasNotificationAccess(this)
+        val smsOk = PermissionHelper.hasSmsPermission(this)
+
+        binding.bannerNotifAccess.visibility = if (notifOk) View.GONE else View.VISIBLE
+        binding.bannerPerms.visibility = if (smsOk || notifOk) View.GONE else View.VISIBLE
     }
 
-    private fun showPermissionBanner() {
-        binding.bannerPerms.visibility = View.VISIBLE
-    }
-
-    private fun hidePermissionBanner() {
-        binding.bannerPerms.visibility = View.GONE
+    private fun showNotificationAccessGuide() {
+        AlertDialog.Builder(this)
+            .setTitle(R.string.notif_access_guide_title)
+            .setMessage(R.string.notif_access_guide_msg)
+            .setPositiveButton(R.string.notif_access_btn_open) { _, _ ->
+                PermissionHelper.openNotificationListenerSettings(this)
+            }
+            .setNegativeButton(R.string.cancel, null)
+            .show()
     }
 
     private fun loadData() {
