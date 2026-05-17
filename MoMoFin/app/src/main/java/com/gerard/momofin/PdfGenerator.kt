@@ -128,11 +128,11 @@ object PdfGenerator {
         val folders = folderStore?.allFolders() ?: emptyList()
         if (folders.isNotEmpty()) {
             newPageIfNeeded(40f)
-            canvas.drawText("Section PATRON — Mes Dossiers", MARGIN.toFloat(), y, h2)
+            canvas.drawText("Mes Carnets", MARGIN.toFloat(), y, h2)
             y += 16f
             for (folder in folders) {
                 newPageIfNeeded(50f)
-                canvas.drawText("📁 ${folder.name}", MARGIN.toFloat(), y, Paint().apply { textSize = 12f; isFakeBoldText = true })
+                canvas.drawText("📓 ${folder.name}", MARGIN.toFloat(), y, Paint().apply { textSize = 12f; isFakeBoldText = true })
                 y += 14f
                 val entries = folderStore!!.entries(folder.id)
                 var fEntree = 0.0

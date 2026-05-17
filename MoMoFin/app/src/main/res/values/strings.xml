@@ -4,9 +4,9 @@
     <string name="loading">Chargement des transactions…</string>
     <string name="btn_refresh">Rafraîchir</string>
     <string name="btn_pdf">Exporter PDF</string>
-    <string name="btn_patron">PATRON</string>
-    <string name="btn_patron_big">💼 PATRON — Comptabilité (Reçu / Sortie / Total)</string>
-    <string name="title_patron">PATRON</string>
+    <string name="btn_patron">Mes Carnets</string>
+    <string name="btn_patron_big">📓 Mes Carnets</string>
+    <string name="title_patron">Mes Carnets</string>
     <string name="patron_help">Saisissez manuellement les entrées et sorties d\'argent. Le total est la différence entre Reçu et Sortie.</string>
     <string name="btn_recu">Reçu</string>
     <string name="btn_sortie">Sortie</string>
@@ -21,7 +21,7 @@
     <string name="delete_entry">Supprimer cette entrée ?</string>
     <string name="delete_entry_msg">Voulez-vous vraiment supprimer cette entrée de %1$s ?</string>
     <string name="invalid_amount">Montant invalide.</string>
-    <string name="total_patron">Total PATRON</string>
+    <string name="total_patron">Total Carnet</string>
     <string name="total_patron_msg">Reçu : %1$s\nSortie : %2$s\n\nTotal (Reçu − Sortie) : %3$s</string>
     <string name="txt_total_recu">Reçu : %1$s</string>
     <string name="txt_total_sortie">Sortie : %1$s</string>
@@ -79,22 +79,22 @@
     <string name="perm_required_title">Activer l\'accès aux SMS</string>
     <string name="perm_required_message">L\'accès aux SMS est désactivé. Ouvrez les paramètres Android de l\'application et activez la permission \"SMS\" pour que MoMo Fin puisse lire vos transactions.</string>
     <string name="perm_open_settings">Ouvrir les paramètres</string>
-    <!-- Dossiers PATRON -->
-    <string name="title_patron_folders">💼 PATRON — Mes Dossiers</string>
+    <!-- Mes Carnets -->
+    <string name="title_patron_folders">📓 Mes Carnets</string>
     <string name="patron_folders_help">Créez un dossier par activité ou personne (ex. "Gérard", "Maison", "Boutique"). Chaque dossier garde ses propres entrées et sorties.</string>
-    <string name="btn_new_folder">+ Nouveau dossier</string>
-    <string name="folder_new_title">Nouveau dossier</string>
-    <string name="folder_hint_name">Nom du dossier (ex. Gérard)</string>
-    <string name="folder_name_required">Donnez un nom au dossier.</string>
+    <string name="btn_new_folder">+ Nouveau carnet</string>
+    <string name="folder_new_title">Nouveau carnet</string>
+    <string name="folder_hint_name">Nom du carnet (ex. Gérard)</string>
+    <string name="folder_name_required">Donnez un nom au carnet.</string>
     <string name="create">Créer</string>
-    <string name="no_folders">Aucun dossier. Créez-en un pour commencer.</string>
-    <string name="folder_tap_to_open">Touchez pour ouvrir · appui long pour supprimer</string>
-    <string name="folder_delete_title">Supprimer ce dossier ?</string>
+    <string name="no_folders">Aucun carnet. Créez-en un pour commencer.</string>
+    <string name="folder_tap_to_open">Touchez pour ouvrir le carnet · appui long pour le supprimer</string>
+    <string name="folder_delete_title">Supprimer ce carnet ?</string>
     <string name="folder_delete_msg">Le dossier "%1$s" et toutes ses entrées seront supprimés. Cette action est irréversible.</string>
     <string name="btn_entree">+ Entrée</string>
     <string name="folder_add_entree">Ajouter une Entrée</string>
     <string name="folder_add_sortie">Ajouter une Sortie</string>
-    <string name="folder_total_title">Solde du dossier</string>
+    <string name="folder_total_title">Solde du carnet</string>
     <string name="folder_total_msg">Entrée : %1$s\nSortie : %2$s\n\nSolde (Entrée − Sortie) : %3$s</string>
     <string name="folder_total_entree">Entrée : %1$s</string>
     <string name="folder_total_sortie">Sortie : %1$s</string>
