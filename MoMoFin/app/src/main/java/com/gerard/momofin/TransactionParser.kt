@@ -7,40 +7,28 @@ import java.util.regex.Pattern
 
 object TransactionParser {
 
-    private val CURRENCY = "(RWF|XOF|XAF|UGX|GHS|KES|TZS|FCFA|CFA|USD|EUR)"
+    // F en fin (Côte d'Ivoire) + autres devises
+    private val CURRENCY = "(RWF|XOF|XAF|UGX|GHS|KES|TZS|FCFA|CFA|USD|EUR|F(?![a-zA-Z]))"
 
     private val AMOUNT_PATTERN = Pattern.compile(
         "(?:^|[^A-Za-z0-9])([0-9][0-9 ,\\.]{0,15})\\s*$CURRENCY",
         Pattern.CASE_INSENSITIVE
     )
-    private val AMOUNT_PATTERN_2 = Pattern.compile(
-        "$CURRENCY\\s*([0-9][0-9 ,\\.]{0,15})",
-        Pattern.CASE_INSENSITIVE
-    )
 
+    // ID Transaction / Transaction ID / Ref... (autorise points et tirets)
     private val REF_PATTERNS = listOf(
-        Pattern.compile("(?:Financial Transaction Id|Transaction Id|TxId|TXID|Txn Id|Trans\\.? Id)\\s*[:#]?\\s*([A-Z0-9]+)", Pattern.CASE_INSENSITIVE),
-        Pattern.compile("(?:Ref(?:erence|érence)?|Réf)\\.?\\s*[:#]?\\s*([A-Za-z0-9]+)", Pattern.CASE_INSENSITIVE),
-        Pattern.compile("\\bID\\s*[:#]\\s*([A-Za-z0-9]+)", Pattern.CASE_INSENSITIVE),
+        Pattern.compile("(?:ID\\s+Transaction|Transaction\\s+ID|Transaction\\s+Id|Financial Transaction Id|TxId|TXID|Txn Id|Trans\\.? Id)\\s*[:#]?\\s*([A-Za-z0-9][A-Za-z0-9\\.\\-_]{3,40})", Pattern.CASE_INSENSITIVE),
+        Pattern.compile("(?:Ref(?:erence|érence)?|Réf)\\.?\\s*[:#]?\\s*([A-Za-z0-9][A-Za-z0-9\\.\\-_]{3,40})", Pattern.CASE_INSENSITIVE),
+        Pattern.compile("\\bID\\s*[:#]\\s*([A-Za-z0-9][A-Za-z0-9\\.\\-_]{3,40})", Pattern.CASE_INSENSITIVE),
         Pattern.compile("\\b([0-9]{8,16})\\b")
     )
 
-    // Numéro précédé de from/to/de/vers/à : on prend en priorité
     private val PHONE_NEAR_KEYWORD = Pattern.compile(
-        "(?i)(?:from|to|de|vers|à|au|chez)\\s+(?:[^()\\d\\n]{0,40}?)?\\(?\\s*(\\+?\\d[\\d\\s\\-\\.]{6,18}\\d)\\s*\\)?"
+        "(?i)\\b(?:from|to|de|vers|à|au|chez)\\b\\s+(?:le\\s+|la\\s+|du\\s+|des\\s+|aux?\\s+)?(?:[^()\\d\\n]{0,40}?)?\\(?\\s*(\\+?\\d[\\d\\s\\-\\.]{6,18}\\d)\\s*\\)?"
     )
-    // Numéro entre parenthèses : ex. "Jean (07 12 34 56 78)"
-    private val PHONE_IN_PARENS = Pattern.compile(
-        "\\((\\+?\\d[\\d\\s\\-\\.]{6,18}\\d)\\)"
-    )
-    // Numéro avec + (international)
-    private val PHONE_INTL = Pattern.compile(
-        "(\\+\\d[\\d\\s\\-\\.]{6,18}\\d)"
-    )
-    // Fallback : suite de chiffres ressemblant à un téléphone
-    private val PHONE_LOCAL = Pattern.compile(
-        "(?<![\\d])(0\\d[\\d\\s\\-\\.]{6,12}\\d)(?![\\d])"
-    )
+    private val PHONE_IN_PARENS = Pattern.compile("\\((\\+?\\d[\\d\\s\\-\\.]{6,18}\\d)\\)")
+    private val PHONE_INTL = Pattern.compile("(\\+\\d[\\d\\s\\-\\.]{6,18}\\d)")
+    private val PHONE_LOCAL = Pattern.compile("(?<![\\d])(0\\d[\\d\\s\\-\\.]{6,12}\\d)(?![\\d])")
 
     private val DATE_PATTERNS = listOf(
         "dd/MM/yyyy HH:mm:ss",
@@ -56,11 +44,23 @@ object TransactionParser {
 
     private val RECU_KEYWORDS = listOf(
         "received", "you have received", "credited", "credit",
-        "reçu", "vous avez reçu", "crédité"
+        "reçu", "recu", "vous avez reçu", "vous avez recu", "crédité", "credite"
     )
     private val SORTIE_KEYWORDS = listOf(
         "sent", "you have sent", "payment of", "paid", "debited", "withdrawn",
-        "envoyé", "vous avez envoyé", "paiement", "retrait", "débité", "transfert vers"
+        "envoyé", "envoye", "vous avez envoyé", "vous avez envoye",
+        "paiement", "retrait", "débité", "debite",
+        "transfert vers", "depot vers", "dépôt vers"
+    )
+
+    // Mots-clés indiquant que le montant qui suit est le MONTANT principal
+    private val AMOUNT_GOOD_KEYWORDS = listOf(
+        "montant", "recu", "reçu", "envoye", "envoyé",
+        "retrait", "retrait de", "depot vers", "dépôt vers",
+        "payer le montant", "payer", "payez", "transfere", "transféré"
+    )
+    private val AMOUNT_BAD_KEYWORDS = listOf(
+        "solde", "frais", "commission", "nouveau solde", "balance"
     )
 
     fun parse(rawId: Long, sender: String, body: String, smsTimestamp: Long, operator: String): Transaction {
@@ -82,7 +82,7 @@ object TransactionParser {
             operator = operator,
             type = type,
             amount = amount,
-            currency = currency,
+            currency = if (currency == "F") "FCFA" else currency,
             reference = reference,
             phoneNumber = phone,
             timestamp = timestamp,
@@ -92,21 +92,27 @@ object TransactionParser {
     }
 
     private fun extractAmount(body: String): Pair<Double, String> {
-        AMOUNT_PATTERN.matcher(body).let { m ->
-            if (m.find()) {
-                val raw = m.group(1)?.trim() ?: ""
-                val cur = m.group(2)?.uppercase() ?: ""
-                return normalize(raw) to cur
+        // Scanne TOUS les matchs et priorise selon le contexte
+        data class Cand(val amount: Double, val cur: String, val priority: Int, val pos: Int)
+        val cands = mutableListOf<Cand>()
+        val m = AMOUNT_PATTERN.matcher(body)
+        while (m.find()) {
+            val raw = m.group(1)?.trim() ?: continue
+            val cur = m.group(2)?.uppercase() ?: ""
+            val amount = normalize(raw)
+            if (amount <= 0) continue
+            val ctxStart = maxOf(0, m.start() - 30)
+            val ctx = body.substring(ctxStart, m.start()).lowercase()
+            val priority = when {
+                AMOUNT_BAD_KEYWORDS.any { ctx.contains(it) } -> 0
+                AMOUNT_GOOD_KEYWORDS.any { ctx.contains(it) } -> 3
+                else -> 1
             }
+            cands.add(Cand(amount, cur, priority, m.start()))
         }
-        AMOUNT_PATTERN_2.matcher(body).let { m ->
-            if (m.find()) {
-                val cur = m.group(1)?.uppercase() ?: ""
-                val raw = m.group(2)?.trim() ?: ""
-                return normalize(raw) to cur
-            }
-        }
-        return 0.0 to ""
+        // Trier par priorité décroissante puis position croissante (premier match équivalent)
+        val best = cands.sortedWith(compareByDescending<Cand> { it.priority }.thenBy { it.pos }).firstOrNull()
+        return if (best != null) best.amount to best.cur else 0.0 to ""
     }
 
     private fun normalize(raw: String): Double {
@@ -126,14 +132,14 @@ object TransactionParser {
             val m = p.matcher(body)
             if (m.find()) {
                 val g = m.group(1) ?: continue
-                if (g.length in 4..32) return g.uppercase()
+                val trimmed = g.trimEnd('.', ',', ';', ':', '-', '_')
+                if (trimmed.length in 4..40) return trimmed.uppercase()
             }
         }
         return ""
     }
 
     private fun cleanPhone(raw: String): String {
-        // garde + et chiffres, et limite à 8-15 chiffres
         val digitsOnly = raw.replace(Regex("[^\\d+]"), "")
         val justDigits = digitsOnly.replace("+", "")
         if (justDigits.length !in 8..15) return ""
@@ -141,7 +147,6 @@ object TransactionParser {
     }
 
     private fun extractPhone(body: String): String {
-        // Priorité : numéro précédé d'un mot-clé (from, to, de, vers, à)
         for (p in listOf(PHONE_NEAR_KEYWORD, PHONE_IN_PARENS, PHONE_INTL, PHONE_LOCAL)) {
             val m = p.matcher(body)
             while (m.find()) {
