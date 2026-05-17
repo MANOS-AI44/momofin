@@ -64,7 +64,7 @@ class DailyAdapter : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
         fun bind(r: Row.DayHeader) {
             txtDay.text = dfDay.format(Date(r.dayMillis))
                 .replaceFirstChar { it.uppercase() }
-            txtTotals.text = "Reçu : ${nf.format(r.recu)}   •   Sortie : ${nf.format(r.sortie)}   •   Solde : ${nf.format(r.recu - r.sortie)}"
+            txtTotals.text = "Retrait : ${nf.format(r.recu)}   •   Dépôt : ${nf.format(r.sortie)}   •   Solde : ${nf.format(r.recu - r.sortie)}"
         }
     }
 
@@ -79,8 +79,8 @@ class DailyAdapter : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
         fun bind(tx: Transaction) {
             txtTime.text = dfDateTime.format(Date(tx.timestamp))
             txtType.text = when (tx.type) {
-                TxType.RECU -> "REÇU"
-                TxType.SORTIE -> "SORTIE"
+                TxType.RECU -> "RETRAIT"
+                TxType.SORTIE -> "DÉPÔT"
                 TxType.INCONNU -> "—"
             }
             txtType.setBackgroundColor(when (tx.type) {

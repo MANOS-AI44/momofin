@@ -23,7 +23,7 @@ object PdfGenerator {
     fun generateDailyReport(
         context: Context,
         transactions: List<Transaction>,
-        patronEntries: List<PatronEntry> = emptyList()
+        folderStore: FolderStore? = null
     ): File {
         val pdf = PdfDocument()
         val title = Paint().apply { textSize = 18f; isFakeBoldText = true }
@@ -116,7 +116,7 @@ object PdfGenerator {
             y += 12f
             val sumPaint = Paint().apply { textSize = 10f; isFakeBoldText = true }
             canvas.drawText(
-                "Reçu : ${nf.format(dayRecu)}   |   Sortie : ${nf.format(daySortie)}   |   Solde : ${nf.format(dayRecu - daySortie)}",
+                "Retrait : ${nf.format(dayRecu)}   |   Dépôt : ${nf.format(daySortie)}   |   Solde : ${nf.format(dayRecu - daySortie)}",
                 MARGIN.toFloat(), y, sumPaint
             )
             y += 22f
@@ -125,37 +125,42 @@ object PdfGenerator {
             totalSortieGlobal += daySortie
         }
 
-        if (patronEntries.isNotEmpty()) {
-            newPageIfNeeded(60f)
-            canvas.drawText("Section PATRON (Comptabilité)", MARGIN.toFloat(), y, h2)
+        val folders = folderStore?.allFolders() ?: emptyList()
+        if (folders.isNotEmpty()) {
+            newPageIfNeeded(40f)
+            canvas.drawText("Section PATRON — Mes Dossiers", MARGIN.toFloat(), y, h2)
             y += 16f
-            var pRecu = 0.0
-            var pSortie = 0.0
-            for (e in patronEntries) {
-                newPageIfNeeded(14f)
-                val label = if (e.type == TxType.RECU) "Reçu" else "Sortie"
+            for (folder in folders) {
+                newPageIfNeeded(50f)
+                canvas.drawText("📁 ${folder.name}", MARGIN.toFloat(), y, Paint().apply { textSize = 12f; isFakeBoldText = true })
+                y += 14f
+                val entries = folderStore!!.entries(folder.id)
+                var fEntree = 0.0
+                var fSortie = 0.0
+                for (e in entries) {
+                    newPageIfNeeded(12f)
+                    val label = if (e.type == TxType.RECU) "Entrée" else "Sortie"
+                    canvas.drawText(
+                        "  ${dfNow.format(Date(e.timestamp))}   $label   ${nf.format(e.amount)}   ${e.note}",
+                        MARGIN.toFloat(), y, text
+                    )
+                    y += 11f
+                    if (e.type == TxType.RECU) fEntree += e.amount else fSortie += e.amount
+                }
+                y += 4f
                 canvas.drawText(
-                    "${dfNow.format(Date(e.timestamp))}   $label   ${nf.format(e.amount)}   ${e.note}",
-                    MARGIN.toFloat(), y, text
+                    "  Total dossier — Entrée : ${nf.format(fEntree)}   |   Sortie : ${nf.format(fSortie)}   |   Solde : ${nf.format(fEntree - fSortie)}",
+                    MARGIN.toFloat(), y, Paint().apply { textSize = 10f; isFakeBoldText = true; color = 0xFF1565C0.toInt() }
                 )
-                y += 12f
-                if (e.type == TxType.RECU) pRecu += e.amount else pSortie += e.amount
+                y += 18f
             }
-            y += 8f
-            canvas.drawLine(MARGIN.toFloat(), y, (PAGE_W - MARGIN).toFloat(), y, rule)
-            y += 14f
-            canvas.drawText(
-                "Patron — Reçu : ${nf.format(pRecu)}   |   Sortie : ${nf.format(pSortie)}   |   Total : ${nf.format(pRecu - pSortie)}",
-                MARGIN.toFloat(), y, Paint().apply { textSize = 11f; isFakeBoldText = true }
-            )
-            y += 22f
         }
 
         newPageIfNeeded(40f)
         canvas.drawLine(MARGIN.toFloat(), y, (PAGE_W - MARGIN).toFloat(), y, rule)
         y += 16f
         canvas.drawText(
-            "TOTAL GÉNÉRAL — Reçu : ${nf.format(totalRecuGlobal)}   |   Sortie : ${nf.format(totalSortieGlobal)}   |   Solde : ${nf.format(totalRecuGlobal - totalSortieGlobal)}",
+            "TOTAL GÉNÉRAL — Retrait : ${nf.format(totalRecuGlobal)}   |   Dépôt : ${nf.format(totalSortieGlobal)}   |   Solde : ${nf.format(totalRecuGlobal - totalSortieGlobal)}",
             MARGIN.toFloat(), y, Paint().apply { textSize = 12f; isFakeBoldText = true }
         )
 
@@ -189,8 +194,8 @@ object PdfGenerator {
     }
 
     private fun typeLabel(t: TxType): String = when (t) {
-        TxType.RECU -> "Reçu"
-        TxType.SORTIE -> "Sortie"
+        TxType.RECU -> "Retrait"
+        TxType.SORTIE -> "Dépôt"
         TxType.INCONNU -> "—"
     }
 

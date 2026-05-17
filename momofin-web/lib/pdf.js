@@ -77,7 +77,7 @@ function generate(res, transactions, patron = []) {
             const y = doc.y;
             doc.fontSize(9).fillColor('black');
             doc.text(dfDateTime(t.ts), 36, y, { width: 70 });
-            doc.text(t.type === 'RECU' ? 'Reçu' : (t.type === 'SORTIE' ? 'Sortie' : '—'), 110, y, { width: 40 });
+            doc.text(t.type === 'RECU' ? 'Retrait' : (t.type === 'SORTIE' ? 'Dépôt' : '—'), 110, y, { width: 40 });
             doc.text(`${fmtNumber(t.amount)} ${t.currency || ''}`, 155, y, { width: 75 });
             doc.text((t.phone_number || '—').substring(0, 16), 235, y, { width: 95 });
             doc.text((t.reference || '—').substring(0, 22), 335, y, { width: 130 });

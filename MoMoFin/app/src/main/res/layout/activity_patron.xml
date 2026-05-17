@@ -10,95 +10,41 @@
         android:layout_height="wrap_content"
         android:textSize="22sp"
         android:textStyle="bold"
-        android:text="@string/title_patron"/>
+        android:textColor="#1565C0"
+        android:text="@string/title_patron_folders"/>
 
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="4dp"
         android:textSize="13sp"
-        android:text="@string/patron_help"/>
+        android:textColor="#666"
+        android:text="@string/patron_folders_help"/>
 
-    <LinearLayout
-        android:orientation="horizontal"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="12dp">
-
-        <Button
-            android:id="@+id/btnRecu"
-            android:layout_width="0dp"
-            android:layout_weight="1"
-            android:layout_height="wrap_content"
-            android:text="@string/btn_recu"
-            android:backgroundTint="#2E7D32"
-            android:textColor="#FFFFFF"/>
-
-        <Button
-            android:id="@+id/btnSortie"
-            android:layout_width="0dp"
-            android:layout_weight="1"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="6dp"
-            android:text="@string/btn_sortie"
-            android:backgroundTint="#C62828"
-            android:textColor="#FFFFFF"/>
-
-        <Button
-            android:id="@+id/btnTotal"
-            android:layout_width="0dp"
-            android:layout_weight="1"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="6dp"
-            android:text="@string/btn_total"
-            android:backgroundTint="#1565C0"
-            android:textColor="#FFFFFF"/>
-    </LinearLayout>
-
-    <LinearLayout
-        android:orientation="vertical"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:background="#F1F5FB"
-        android:padding="10dp"
-        android:layout_marginTop="12dp">
-
-        <TextView
-            android:id="@+id/txtTotalRecu"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:textColor="#2E7D32"
-            android:textSize="14sp"/>
-
-        <TextView
-            android:id="@+id/txtTotalSortie"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:textColor="#C62828"
-            android:textSize="14sp"/>
-
-        <TextView
-            android:id="@+id/txtTotalFinal"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:textColor="#000000"
-            android:textSize="18sp"
-            android:textStyle="bold"
-            android:layout_marginTop="4dp"/>
-    </LinearLayout>
-
-    <TextView
+    <Button
+        android:id="@+id/btnNewFolder"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="12dp"
-        android:textSize="13sp"
-        android:textStyle="bold"
-        android:text="@string/list_entries"/>
+        android:text="@string/btn_new_folder"
+        android:backgroundTint="#1565C0"
+        android:textColor="#FFFFFF"/>
+
+    <TextView
+        android:id="@+id/txtEmpty"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="40dp"
+        android:gravity="center"
+        android:textColor="#888"
+        android:textStyle="italic"
+        android:text="@string/no_folders"
+        android:visibility="gone"/>
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/recycler"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
-        android:layout_marginTop="6dp"/>
+        android:layout_marginTop="12dp"/>
 </LinearLayout>

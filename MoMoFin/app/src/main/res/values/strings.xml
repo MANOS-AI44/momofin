@@ -27,7 +27,7 @@
     <string name="txt_total_sortie">Sortie : %1$s</string>
     <string name="txt_total_final">Total : %1$s</string>
     <string name="list_entries">Historique des saisies</string>
-    <string name="summary_format">%1$d transactions • Reçu %2$,.0f • Sortie %3$,.0f • Solde %4$,.0f</string>
+    <string name="summary_format">%1$d transactions • Retrait %2$,.0f • Dépôt %3$,.0f • Solde %4$,.0f</string>
     <string name="no_data">Aucune transaction à exporter.</string>
     <string name="pdf_saved">PDF enregistré : %1$s</string>
     <string name="open_pdf">Ouvrir le PDF avec…</string>
@@ -79,4 +79,24 @@
     <string name="perm_required_title">Activer l\'accès aux SMS</string>
     <string name="perm_required_message">L\'accès aux SMS est désactivé. Ouvrez les paramètres Android de l\'application et activez la permission \"SMS\" pour que MoMo Fin puisse lire vos transactions.</string>
     <string name="perm_open_settings">Ouvrir les paramètres</string>
+    <!-- Dossiers PATRON -->
+    <string name="title_patron_folders">💼 PATRON — Mes Dossiers</string>
+    <string name="patron_folders_help">Créez un dossier par activité ou personne (ex. "Gérard", "Maison", "Boutique"). Chaque dossier garde ses propres entrées et sorties.</string>
+    <string name="btn_new_folder">+ Nouveau dossier</string>
+    <string name="folder_new_title">Nouveau dossier</string>
+    <string name="folder_hint_name">Nom du dossier (ex. Gérard)</string>
+    <string name="folder_name_required">Donnez un nom au dossier.</string>
+    <string name="create">Créer</string>
+    <string name="no_folders">Aucun dossier. Créez-en un pour commencer.</string>
+    <string name="folder_tap_to_open">Touchez pour ouvrir · appui long pour supprimer</string>
+    <string name="folder_delete_title">Supprimer ce dossier ?</string>
+    <string name="folder_delete_msg">Le dossier "%1$s" et toutes ses entrées seront supprimés. Cette action est irréversible.</string>
+    <string name="btn_entree">+ Entrée</string>
+    <string name="folder_add_entree">Ajouter une Entrée</string>
+    <string name="folder_add_sortie">Ajouter une Sortie</string>
+    <string name="folder_total_title">Solde du dossier</string>
+    <string name="folder_total_msg">Entrée : %1$s\nSortie : %2$s\n\nSolde (Entrée − Sortie) : %3$s</string>
+    <string name="folder_total_entree">Entrée : %1$s</string>
+    <string name="folder_total_sortie">Sortie : %1$s</string>
+    <string name="folder_total_solde">Solde : %1$s</string>
 </resources>

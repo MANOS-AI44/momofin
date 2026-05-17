@@ -172,8 +172,7 @@ class MainActivity : AppCompatActivity() {
             return
         }
         CoroutineScope(Dispatchers.IO).launch {
-            val patronEntries = PatronStore(this@MainActivity).all()
-            val file = PdfGenerator.generateDailyReport(this@MainActivity, current, patronEntries)
+            val file = PdfGenerator.generateDailyReport(this@MainActivity, current, FolderStore(this@MainActivity))
             val uri: Uri = FileProvider.getUriForFile(
                 this@MainActivity,
                 "${applicationContext.packageName}.fileprovider",
