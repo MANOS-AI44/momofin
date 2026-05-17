@@ -107,4 +107,7 @@
     <string name="notif_access_btn_open">Ouvrir les Paramètres</string>
     <string name="notif_access_guide_title">📢 Activer l\'accès aux notifications</string>
     <string name="notif_access_guide_msg">Vous allez être redirigé vers les paramètres Android.\n\n1. Trouvez « MoMo Fin » dans la liste\n2. Activez l\'interrupteur à côté de son nom\n3. Validez « Autoriser » dans la boîte de dialogue\n4. Revenez à l\'application\n\nC\'est tout — vos SMS Mobile Money apparaîtront automatiquement.</string>
+    <string name="btn_pick_date">Choisir date</string>
+    <string name="date_all">Toutes les dates</string>
+    <string name="no_data_for_date">Aucune transaction pour cette date.</string>
 </resources>

@@ -2,6 +2,11 @@ package com.gerard.momofin
 
 import android.Manifest
 import android.app.AlertDialog
+import android.app.DatePickerDialog
+import java.text.SimpleDateFormat
+import java.util.Calendar
+import java.util.Date
+import java.util.Locale
 import android.content.Intent
 import android.net.Uri
 import android.os.Build
@@ -23,6 +28,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
     private lateinit var adapter: DailyAdapter
     private var current: List<Transaction> = emptyList()
+    private var filterDayMillis: Long? = null
 
     private val permLauncher = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
@@ -56,6 +62,13 @@ class MainActivity : AppCompatActivity() {
             startActivity(Intent(this, SettingsActivity::class.java))
         }
         binding.btnSync.setOnClickListener { syncToRailway() }
+
+        binding.btnPickDate.setOnClickListener { pickDate() }
+        binding.btnClearDate.setOnClickListener {
+            filterDayMillis = null
+            refreshDateUi()
+            renderList()
+        }
 
         binding.btnNotifAccess.setOnClickListener {
             showNotificationAccessGuide()
@@ -120,6 +133,43 @@ class MainActivity : AppCompatActivity() {
             .show()
     }
 
+    
+    private fun pickDate() {
+        val c = Calendar.getInstance()
+        filterDayMillis?.let { c.timeInMillis = it }
+        DatePickerDialog(this, { _, y, m, d ->
+            val cal = Calendar.getInstance().apply {
+                set(y, m, d, 0, 0, 0); set(Calendar.MILLISECOND, 0)
+            }
+            filterDayMillis = cal.timeInMillis
+            refreshDateUi()
+            renderList()
+        }, c.get(Calendar.YEAR), c.get(Calendar.MONTH), c.get(Calendar.DAY_OF_MONTH)).show()
+    }
+
+    private fun refreshDateUi() {
+        val df = SimpleDateFormat("EEEE dd MMMM yyyy", Locale.FRENCH)
+        if (filterDayMillis != null) {
+            binding.txtSelectedDate.text = "Date : " + df.format(Date(filterDayMillis!!))
+                .replaceFirstChar { it.uppercase() }
+            binding.btnClearDate.visibility = View.VISIBLE
+        } else {
+            binding.txtSelectedDate.text = getString(R.string.date_all)
+            binding.btnClearDate.visibility = View.GONE
+        }
+    }
+
+    private fun renderList() {
+        val list = if (filterDayMillis == null) current
+                   else current.filter { TransactionParser.dayKey(it.timestamp) == filterDayMillis }
+        adapter.submit(list)
+        val recu = list.filter { it.type == TxType.RECU }.sumOf { it.amount }
+        val sortie = list.filter { it.type == TxType.SORTIE }.sumOf { it.amount }
+        binding.txtSummary.text = getString(
+            R.string.summary_format, list.size, recu, sortie, recu - sortie
+        )
+    }
+
     private fun loadData() {
         CoroutineScope(Dispatchers.IO).launch {
             val raws = SmsSource.loadAll(this@MainActivity)
@@ -134,13 +184,8 @@ class MainActivity : AppCompatActivity() {
             }
             withContext(Dispatchers.Main) {
                 current = txs
-                adapter.submit(txs)
-                val recu = txs.filter { it.type == TxType.RECU }.sumOf { it.amount }
-                val sortie = txs.filter { it.type == TxType.SORTIE }.sumOf { it.amount }
-                binding.txtSummary.text = getString(
-                    R.string.summary_format,
-                    txs.size, recu, sortie, recu - sortie
-                )
+                refreshDateUi()
+                renderList()
             }
         }
     }
@@ -179,8 +224,17 @@ class MainActivity : AppCompatActivity() {
             Toast.makeText(this, R.string.no_data, Toast.LENGTH_SHORT).show()
             return
         }
+        val filtered = if (filterDayMillis == null) current
+                       else current.filter { TransactionParser.dayKey(it.timestamp) == filterDayMillis }
+        if (filtered.isEmpty()) {
+            Toast.makeText(this, R.string.no_data_for_date, Toast.LENGTH_SHORT).show()
+            return
+        }
         CoroutineScope(Dispatchers.IO).launch {
-            val file = PdfGenerator.generateDailyReport(this@MainActivity, current, FolderStore(this@MainActivity))
+            val file = PdfGenerator.generateDailyReport(
+                this@MainActivity, filtered, FolderStore(this@MainActivity),
+                singleDayMillis = filterDayMillis
+            )
             val uri: Uri = FileProvider.getUriForFile(
                 this@MainActivity,
                 "${applicationContext.packageName}.fileprovider",

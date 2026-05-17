@@ -136,6 +136,52 @@
                 android:textSize="13sp"
                 android:text="@string/loading"/>
 
+            <!-- Filtre par date -->
+            <LinearLayout
+                android:orientation="horizontal"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:padding="10dp"
+                android:background="#E3F2FD"
+                android:gravity="center_vertical">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textSize="20sp"
+                    android:text="📅"/>
+
+                <TextView
+                    android:id="@+id/txtSelectedDate"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:textColor="#0D47A1"
+                    android:text="@string/date_all"/>
+
+                <Button
+                    android:id="@+id/btnPickDate"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/btn_pick_date"
+                    android:textSize="12sp"
+                    android:backgroundTint="#1565C0"
+                    android:textColor="#FFFFFF"/>
+
+                <Button
+                    android:id="@+id/btnClearDate"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="4dp"
+                    android:text="✕"
+                    android:textSize="12sp"
+                    android:visibility="gone"/>
+            </LinearLayout>
+
             <LinearLayout
                 android:orientation="horizontal"
                 android:layout_width="match_parent"
