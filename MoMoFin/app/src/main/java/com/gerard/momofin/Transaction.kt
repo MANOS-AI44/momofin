@@ -8,8 +8,9 @@ data class Transaction(
     val type: TxType,
     val amount: Double,
     val currency: String,
-    val reference: String,        // ID / Référence de la transaction
-    val timestamp: Long,          // heure exacte (préférée : celle parsée du SMS, sinon date du SMS)
+    val reference: String,        // ID / Référence
+    val phoneNumber: String,      // Numéro de l'autre partie
+    val timestamp: Long,
     val rawSender: String,
     val rawBody: String
 )

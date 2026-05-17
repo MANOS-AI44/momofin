@@ -14,19 +14,12 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-/**
- * Génère un PDF imprimable :
- *  - Une section par jour
- *  - Pour chaque jour : tableau (heure, type, montant, référence, opérateur)
- *  - Sous-totaux par jour (Reçu / Sortie / Solde) + total général
- */
 object PdfGenerator {
 
-    private const val PAGE_W = 595   // A4 portrait à 72 dpi
+    private const val PAGE_W = 595
     private const val PAGE_H = 842
-    private const val MARGIN = 36
+    private const val MARGIN = 28
 
-    /** Retourne le File du PDF généré. */
     fun generateDailyReport(
         context: Context,
         transactions: List<Transaction>,
@@ -34,14 +27,15 @@ object PdfGenerator {
     ): File {
         val pdf = PdfDocument()
         val title = Paint().apply { textSize = 18f; isFakeBoldText = true }
-        val h2 = Paint().apply { textSize = 14f; isFakeBoldText = true }
-        val text = Paint().apply { textSize = 10f }
+        val h2 = Paint().apply { textSize = 13f; isFakeBoldText = true }
+        val text = Paint().apply { textSize = 9f }
         val small = Paint().apply { textSize = 9f; color = 0xFF555555.toInt() }
         val rule = Paint().apply { strokeWidth = 0.6f; color = 0xFFBBBBBB.toInt() }
+        val header = Paint().apply { textSize = 9f; isFakeBoldText = true }
 
         val nf = NumberFormat.getNumberInstance(Locale.FRENCH)
         val dfDay = SimpleDateFormat("EEEE dd MMMM yyyy", Locale.FRENCH)
-        val dfTime = SimpleDateFormat("HH:mm:ss", Locale.FRENCH)
+        val dfDateTime = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.FRENCH)
         val dfNow = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.FRENCH)
 
         val grouped = transactions
@@ -54,13 +48,12 @@ object PdfGenerator {
         var canvas = page.canvas
         var y = MARGIN.toFloat()
 
-        // Entête
         canvas.drawText("MoMo Fin — Rapport des transactions", MARGIN.toFloat(), y, title)
         y += 18f
         canvas.drawText("Généré le ${dfNow.format(Date())}", MARGIN.toFloat(), y, small)
-        y += 16f
-        canvas.drawLine(MARGIN.toFloat(), y, (PAGE_W - MARGIN).toFloat(), y, rule)
         y += 14f
+        canvas.drawLine(MARGIN.toFloat(), y, (PAGE_W - MARGIN).toFloat(), y, rule)
+        y += 12f
 
         fun newPageIfNeeded(minRoom: Float) {
             if (y + minRoom > PAGE_H - MARGIN) {
@@ -75,40 +68,42 @@ object PdfGenerator {
         var totalRecuGlobal = 0.0
         var totalSortieGlobal = 0.0
 
+        // Colonnes : Date/heure | Type | Montant | Numéro | Référence | Opér.
+        val xDate = MARGIN.toFloat()
+        val xType = xDate + 95
+        val xAmount = xType + 50
+        val xPhone = xAmount + 90
+        val xRef = xPhone + 110
+        val xOp = xRef + 140
+
         for ((dayMillis, txs) in grouped) {
             newPageIfNeeded(80f)
             canvas.drawText(dfDay.format(Date(dayMillis)).replaceFirstChar { it.uppercase() },
                 MARGIN.toFloat(), y, h2)
-            y += 16f
+            y += 14f
 
-            // Entêtes de colonnes
-            val xHeure = MARGIN.toFloat()
-            val xType = xHeure + 60
-            val xMontant = xType + 70
-            val xRef = xMontant + 110
-            val xOp = xRef + 150
-
-            val header = Paint().apply { textSize = 10f; isFakeBoldText = true }
-            canvas.drawText("Heure", xHeure, y, header)
+            canvas.drawText("Date/Heure", xDate, y, header)
             canvas.drawText("Type", xType, y, header)
-            canvas.drawText("Montant", xMontant, y, header)
+            canvas.drawText("Montant", xAmount, y, header)
+            canvas.drawText("Numéro", xPhone, y, header)
             canvas.drawText("Référence", xRef, y, header)
             canvas.drawText("Opérateur", xOp, y, header)
             y += 4f
             canvas.drawLine(MARGIN.toFloat(), y, (PAGE_W - MARGIN).toFloat(), y, rule)
-            y += 12f
+            y += 11f
 
             var dayRecu = 0.0
             var daySortie = 0.0
 
             for (tx in txs) {
-                newPageIfNeeded(14f)
-                canvas.drawText(dfTime.format(Date(tx.timestamp)), xHeure, y, text)
+                newPageIfNeeded(12f)
+                canvas.drawText(dfDateTime.format(Date(tx.timestamp)), xDate, y, text)
                 canvas.drawText(typeLabel(tx.type), xType, y, text)
-                canvas.drawText("${nf.format(tx.amount)} ${tx.currency}", xMontant, y, text)
-                canvas.drawText(truncate(tx.reference, 22), xRef, y, text)
+                canvas.drawText("${nf.format(tx.amount)} ${tx.currency}", xAmount, y, text)
+                canvas.drawText(truncate(tx.phoneNumber.ifBlank { "—" }, 16), xPhone, y, text)
+                canvas.drawText(truncate(tx.reference.ifBlank { "—" }, 20), xRef, y, text)
                 canvas.drawText(tx.operator, xOp, y, text)
-                y += 13f
+                y += 12f
                 when (tx.type) {
                     TxType.RECU -> dayRecu += tx.amount
                     TxType.SORTIE -> daySortie += tx.amount
@@ -116,7 +111,6 @@ object PdfGenerator {
                 }
             }
 
-            // Sous-total du jour
             y += 4f
             canvas.drawLine(MARGIN.toFloat(), y, (PAGE_W - MARGIN).toFloat(), y, rule)
             y += 12f
@@ -131,10 +125,9 @@ object PdfGenerator {
             totalSortieGlobal += daySortie
         }
 
-        // Section PATRON (saisies manuelles)
         if (patronEntries.isNotEmpty()) {
             newPageIfNeeded(60f)
-            canvas.drawText("Section PATRON (saisies manuelles)", MARGIN.toFloat(), y, h2)
+            canvas.drawText("Section PATRON (Comptabilité)", MARGIN.toFloat(), y, h2)
             y += 16f
             var pRecu = 0.0
             var pSortie = 0.0
@@ -145,7 +138,7 @@ object PdfGenerator {
                     "${dfNow.format(Date(e.timestamp))}   $label   ${nf.format(e.amount)}   ${e.note}",
                     MARGIN.toFloat(), y, text
                 )
-                y += 13f
+                y += 12f
                 if (e.type == TxType.RECU) pRecu += e.amount else pSortie += e.amount
             }
             y += 8f
@@ -158,7 +151,6 @@ object PdfGenerator {
             y += 22f
         }
 
-        // Total général
         newPageIfNeeded(40f)
         canvas.drawLine(MARGIN.toFloat(), y, (PAGE_W - MARGIN).toFloat(), y, rule)
         y += 16f
@@ -169,7 +161,6 @@ object PdfGenerator {
 
         pdf.finishPage(page)
 
-        // Écriture du fichier
         val fileName = "MoMoFin_${SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date())}.pdf"
         val outFile = writePdf(context, pdf, fileName)
         pdf.close()
@@ -177,12 +168,10 @@ object PdfGenerator {
     }
 
     private fun writePdf(context: Context, pdf: PdfDocument, fileName: String): File {
-        // 1. Toujours écrire une copie interne pour FileProvider (Aperçu / Partage)
         val internalDir = File(context.filesDir, "pdfs").apply { mkdirs() }
         val internal = File(internalDir, fileName)
         FileOutputStream(internal).use { pdf.writeTo(it) }
 
-        // 2. Sur API 29+, on enregistre aussi dans Téléchargements via MediaStore
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             val values = ContentValues().apply {
                 put(MediaStore.Downloads.DISPLAY_NAME, fileName)

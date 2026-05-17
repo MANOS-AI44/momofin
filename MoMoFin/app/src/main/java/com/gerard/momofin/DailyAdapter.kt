@@ -3,7 +3,6 @@ package com.gerard.momofin
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import java.text.NumberFormat
@@ -11,10 +10,6 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-/**
- * Affiche les transactions groupées par jour avec sous-totaux.
- * Type d'élément : 0 = entête de jour, 1 = ligne transaction.
- */
 class DailyAdapter : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
 
     sealed class Row {
@@ -25,7 +20,7 @@ class DailyAdapter : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
     private val rows = mutableListOf<Row>()
     private val nf = NumberFormat.getNumberInstance(Locale.FRENCH)
     private val dfDay = SimpleDateFormat("EEEE dd MMMM yyyy", Locale.FRENCH)
-    private val dfTime = SimpleDateFormat("HH:mm:ss", Locale.FRENCH)
+    private val dfDateTime = SimpleDateFormat("dd/MM/yyyy HH:mm:ss", Locale.FRENCH)
 
     fun submit(transactions: List<Transaction>) {
         rows.clear()
@@ -77,19 +72,31 @@ class DailyAdapter : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
         private val txtTime: TextView = v.findViewById(R.id.txtTime)
         private val txtType: TextView = v.findViewById(R.id.txtType)
         private val txtAmount: TextView = v.findViewById(R.id.txtAmount)
+        private val txtPhone: TextView = v.findViewById(R.id.txtPhone)
         private val txtRef: TextView = v.findViewById(R.id.txtRef)
         private val txtOp: TextView = v.findViewById(R.id.txtOperator)
 
         fun bind(tx: Transaction) {
-            txtTime.text = dfTime.format(Date(tx.timestamp))
+            txtTime.text = dfDateTime.format(Date(tx.timestamp))
             txtType.text = when (tx.type) {
-                TxType.RECU -> "Reçu"
-                TxType.SORTIE -> "Sortie"
+                TxType.RECU -> "REÇU"
+                TxType.SORTIE -> "SORTIE"
                 TxType.INCONNU -> "—"
             }
+            txtType.setBackgroundColor(when (tx.type) {
+                TxType.RECU -> 0xFF2E7D32.toInt()
+                TxType.SORTIE -> 0xFFC62828.toInt()
+                TxType.INCONNU -> 0xFF888888.toInt()
+            })
             txtAmount.text = "${nf.format(tx.amount)} ${tx.currency}"
-            txtRef.text = if (tx.reference.isBlank()) "—" else tx.reference
-            txtOp.text = tx.operator
+            txtAmount.setTextColor(when (tx.type) {
+                TxType.RECU -> 0xFF2E7D32.toInt()
+                TxType.SORTIE -> 0xFFC62828.toInt()
+                else -> 0xFF000000.toInt()
+            })
+            txtPhone.text = if (tx.phoneNumber.isBlank()) "📞 —" else "📞 ${tx.phoneNumber}"
+            txtRef.text = if (tx.reference.isBlank()) "Réf. —" else "Réf. ${tx.reference}"
+            txtOp.text = "Opérateur : ${tx.operator}"
         }
     }
 }

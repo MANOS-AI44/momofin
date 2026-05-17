@@ -54,14 +54,15 @@
             </p>
             <table>
                 <thead>
-                    <tr><th>Heure</th><th>Type</th><th>Montant</th><th>Référence</th><th>Opérateur</th></tr>
+                    <tr><th>Date/Heure</th><th>Type</th><th>Montant</th><th>Numéro</th><th>Référence</th><th>Opérateur</th></tr>
                 </thead>
                 <tbody>
                 <% d.list.forEach(function(t) { %>
                     <tr class="<%= t.type === 'RECU' ? 'recu' : (t.type === 'SORTIE' ? 'sortie' : '') %>">
-                        <td><%= new Date(t.ts).toLocaleTimeString('fr-FR') %></td>
+                        <td><%= new Date(t.ts).toLocaleString('fr-FR') %></td>
                         <td><%= t.type === 'RECU' ? 'Reçu' : (t.type === 'SORTIE' ? 'Sortie' : '—') %></td>
                         <td><strong><%= fmt(t.amount) %></strong> <%= t.currency || '' %></td>
+                        <td><%= t.phone_number || '—' %></td>
                         <td><%= t.reference || '—' %></td>
                         <td><%= t.operator || '' %></td>
                     </tr>

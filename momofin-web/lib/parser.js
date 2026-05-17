@@ -79,6 +79,27 @@ function extractReference(body) {
     return '';
 }
 
+
+function extractPhone(body) {
+    const patterns = [
+        /(?:from|to|de|vers|à|au|chez)\s+(?:[^()\d\n]{0,40}?)?\(?\s*(\+?\d[\d\s\-\.]{6,18}\d)\s*\)?/i,
+        /\((\+?\d[\d\s\-\.]{6,18}\d)\)/,
+        /(\+\d[\d\s\-\.]{6,18}\d)/,
+        /(?<![\d])(0\d[\d\s\-\.]{6,12}\d)(?![\d])/
+    ];
+    for (const p of patterns) {
+        const m = body.match(p);
+        if (m && m[1]) {
+            const digitsOnly = m[1].replace(/[^\d+]/g, '');
+            const justDigits = digitsOnly.replace(/\+/g, '');
+            if (justDigits.length >= 8 && justDigits.length <= 15) {
+                return digitsOnly.startsWith('+') ? digitsOnly : justDigits;
+            }
+        }
+    }
+    return '';
+}
+
 function extractDate(body) {
     const m = body.match(/(\d{2,4}[/-]\d{2}[/-]\d{2,4}\s+\d{1,2}:\d{2}(?::\d{2})?)/);
     if (!m) return null;
@@ -104,9 +125,10 @@ function parse(sender, body, smsTimestamp) {
 
     const { amount, currency } = extractAmount(body || '');
     const reference = extractReference(body || '');
+    const phone_number = extractPhone(body || '');
     const ts = extractDate(body || '') || new Date(smsTimestamp || Date.now()).toISOString();
 
-    return { operator, type, amount, currency, reference, ts };
+    return { operator, type, amount, currency, reference, phone_number, ts };
 }
 
 module.exports = { parse, isMomoSms, detectOperator };

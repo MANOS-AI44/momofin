@@ -1,58 +1,100 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:orientation="vertical"
-    android:padding="12dp"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
+    <!-- Contenu principal scrollable -->
     <LinearLayout
-        android:orientation="horizontal"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:gravity="center_vertical">
-
-        <TextView
-            android:layout_width="0dp"
-            android:layout_weight="1"
-            android:layout_height="wrap_content"
-            android:textSize="22sp"
-            android:textStyle="bold"
-            android:text="@string/app_name"/>
-
-        <Button
-            android:id="@+id/btnSettings"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/btn_settings"
-            android:textSize="12sp"/>
-    </LinearLayout>
-
-    <!-- Bannière permissions SMS — visible si refusées -->
-    <LinearLayout
-        android:id="@+id/bannerPerms"
         android:orientation="vertical"
+        android:padding="12dp"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:padding="14dp"
-        android:layout_marginTop="10dp"
-        android:background="#FFF3E0"
-        android:visibility="gone">
+        android:layout_height="0dp"
+        android:layout_weight="1">
 
-        <TextView
+        <LinearLayout
+            android:orientation="horizontal"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:textSize="14sp"
-            android:textStyle="bold"
-            android:textColor="#E65100"
-            android:text="@string/perm_banner_title"/>
+            android:gravity="center_vertical">
 
-        <TextView
+            <TextView
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:textSize="22sp"
+                android:textStyle="bold"
+                android:text="@string/app_name"/>
+
+            <Button
+                android:id="@+id/btnSettings"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/btn_settings"
+                android:textSize="12sp"/>
+        </LinearLayout>
+
+        <!-- Bannière permissions -->
+        <LinearLayout
+            android:id="@+id/bannerPerms"
+            android:orientation="vertical"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:textSize="12sp"
-            android:textColor="#5d4037"
-            android:text="@string/perm_banner_message"/>
+            android:padding="14dp"
+            android:layout_marginTop="10dp"
+            android:background="#FFF3E0"
+            android:visibility="gone">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                android:textColor="#E65100"
+                android:text="@string/perm_banner_title"/>
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:textSize="12sp"
+                android:textColor="#5d4037"
+                android:text="@string/perm_banner_message"/>
+
+            <LinearLayout
+                android:orientation="horizontal"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp">
+
+                <Button
+                    android:id="@+id/btnRequestPerms"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="wrap_content"
+                    android:text="@string/perm_btn_ask"
+                    android:textSize="12sp"/>
+
+                <Button
+                    android:id="@+id/btnOpenAppSettings"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="6dp"
+                    android:text="@string/perm_btn_settings"
+                    android:backgroundTint="#E65100"
+                    android:textColor="#FFFFFF"
+                    android:textSize="12sp"/>
+            </LinearLayout>
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/txtSummary"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:textSize="13sp"
+            android:text="@string/loading"/>
 
         <LinearLayout
             android:orientation="horizontal"
@@ -61,79 +103,48 @@
             android:layout_marginTop="8dp">
 
             <Button
-                android:id="@+id/btnRequestPerms"
+                android:id="@+id/btnRefresh"
                 android:layout_width="0dp"
                 android:layout_weight="1"
                 android:layout_height="wrap_content"
-                android:text="@string/perm_btn_ask"
-                android:textSize="12sp"/>
+                android:text="@string/btn_refresh"/>
 
             <Button
-                android:id="@+id/btnOpenAppSettings"
+                android:id="@+id/btnPdf"
                 android:layout_width="0dp"
                 android:layout_weight="1"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="6dp"
-                android:text="@string/perm_btn_settings"
-                android:backgroundTint="#E65100"
-                android:textColor="#FFFFFF"
-                android:textSize="12sp"/>
+                android:text="@string/btn_pdf"/>
+
+            <Button
+                android:id="@+id/btnSync"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="6dp"
+                android:text="@string/btn_sync"
+                android:backgroundTint="#2E7D32"
+                android:textColor="#FFFFFF"/>
         </LinearLayout>
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/recycler"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:layout_marginTop="10dp"/>
     </LinearLayout>
 
-    <TextView
-        android:id="@+id/txtSummary"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="6dp"
-        android:textSize="13sp"
-        android:text="@string/loading"/>
-
-    <LinearLayout
-        android:orientation="horizontal"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp">
-
-        <Button
-            android:id="@+id/btnRefresh"
-            android:layout_width="0dp"
-            android:layout_weight="1"
-            android:layout_height="wrap_content"
-            android:text="@string/btn_refresh"/>
-
-        <Button
-            android:id="@+id/btnPdf"
-            android:layout_width="0dp"
-            android:layout_weight="1"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="6dp"
-            android:text="@string/btn_pdf"/>
-
-        <Button
-            android:id="@+id/btnSync"
-            android:layout_width="0dp"
-            android:layout_weight="1"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="6dp"
-            android:text="@string/btn_sync"
-            android:backgroundTint="#2E7D32"
-            android:textColor="#FFFFFF"/>
-    </LinearLayout>
-
+    <!-- BOUTON PATRON STICKY EN BAS — toujours visible -->
     <Button
         android:id="@+id/btnPatron"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="6dp"
-        android:text="@string/btn_patron"
+        android:layout_height="64dp"
+        android:text="@string/btn_patron_big"
+        android:textSize="18sp"
+        android:textStyle="bold"
         android:backgroundTint="#FFB300"
-        android:textColor="#000000"/>
-
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/recycler"
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
-        android:layout_marginTop="10dp"/>
+        android:textColor="#000000"
+        android:elevation="8dp"/>
 </LinearLayout>

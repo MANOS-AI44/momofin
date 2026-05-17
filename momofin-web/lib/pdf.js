@@ -23,6 +23,11 @@ function dfTime(iso) {
     return new Date(iso).toLocaleTimeString('fr-FR');
 }
 
+function dfDateTime(iso) {
+    const d = new Date(iso);
+    return d.toLocaleDateString('fr-FR') + ' ' + d.toLocaleTimeString('fr-FR').substring(0,5);
+}
+
 /**
  * @param {WritableStream} res — flux de sortie (HTTP response)
  * @param {Array} transactions — [{ ts, type, amount, currency, reference, operator }]
@@ -56,11 +61,12 @@ function generate(res, transactions, patron = []) {
         // Entêtes
         const yStart = doc.y;
         doc.fontSize(10).fillColor('#333');
-        doc.text('Heure', 36, yStart);
-        doc.text('Type', 100, yStart);
-        doc.text('Montant', 160, yStart);
-        doc.text('Référence', 260, yStart);
-        doc.text('Opérateur', 430, yStart);
+        doc.text('Date/Heure', 36, yStart);
+        doc.text('Type', 110, yStart);
+        doc.text('Montant', 155, yStart);
+        doc.text('Numéro', 235, yStart);
+        doc.text('Référence', 335, yStart);
+        doc.text('Opérateur', 470, yStart);
         doc.moveDown(0.5);
         doc.moveTo(36, doc.y).lineTo(559, doc.y).strokeColor('#bbb').stroke();
         doc.moveDown(0.3);
@@ -70,11 +76,12 @@ function generate(res, transactions, patron = []) {
             if (doc.y > 760) { doc.addPage(); }
             const y = doc.y;
             doc.fontSize(9).fillColor('black');
-            doc.text(dfTime(t.ts), 36, y, { width: 60 });
-            doc.text(t.type === 'RECU' ? 'Reçu' : (t.type === 'SORTIE' ? 'Sortie' : '—'), 100, y, { width: 55 });
-            doc.text(`${fmtNumber(t.amount)} ${t.currency || ''}`, 160, y, { width: 95 });
-            doc.text((t.reference || '—').substring(0, 30), 260, y, { width: 165 });
-            doc.text(t.operator || '', 430, y, { width: 100 });
+            doc.text(dfDateTime(t.ts), 36, y, { width: 70 });
+            doc.text(t.type === 'RECU' ? 'Reçu' : (t.type === 'SORTIE' ? 'Sortie' : '—'), 110, y, { width: 40 });
+            doc.text(`${fmtNumber(t.amount)} ${t.currency || ''}`, 155, y, { width: 75 });
+            doc.text((t.phone_number || '—').substring(0, 16), 235, y, { width: 95 });
+            doc.text((t.reference || '—').substring(0, 22), 335, y, { width: 130 });
+            doc.text(t.operator || '', 470, y, { width: 80 });
             doc.moveDown(0.8);
             if (t.type === 'RECU') recu += Number(t.amount);
             else if (t.type === 'SORTIE') sortie += Number(t.amount);

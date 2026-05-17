@@ -5,6 +5,7 @@
     <string name="btn_refresh">Rafraîchir</string>
     <string name="btn_pdf">Exporter PDF</string>
     <string name="btn_patron">PATRON</string>
+    <string name="btn_patron_big">💼 PATRON — Comptabilité (Reçu / Sortie / Total)</string>
     <string name="title_patron">PATRON</string>
     <string name="patron_help">Saisissez manuellement les entrées et sorties d\'argent. Le total est la différence entre Reçu et Sortie.</string>
     <string name="btn_recu">Reçu</string>

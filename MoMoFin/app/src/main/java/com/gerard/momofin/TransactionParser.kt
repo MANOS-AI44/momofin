@@ -2,25 +2,13 @@ package com.gerard.momofin
 
 import java.text.SimpleDateFormat
 import java.util.Calendar
-import java.util.Date
 import java.util.Locale
 import java.util.regex.Pattern
 
-/**
- * Parser multi-opérateur pour SMS Mobile Money.
- *
- * Extrait :
- *  - Type (Reçu / Sortie)
- *  - Montant + Devise
- *  - Référence / ID de transaction
- *  - Date + heure (depuis le corps si présent, sinon depuis le timestamp du SMS)
- */
 object TransactionParser {
 
-    // Devises courantes en Afrique francophone et anglophone
     private val CURRENCY = "(RWF|XOF|XAF|UGX|GHS|KES|TZS|FCFA|CFA|USD|EUR)"
 
-    // Montant : 1,000.50 / 1.000,50 / 100000 / 100 000
     private val AMOUNT_PATTERN = Pattern.compile(
         "(?:^|[^A-Za-z0-9])([0-9][0-9 ,\\.]{0,15})\\s*$CURRENCY",
         Pattern.CASE_INSENSITIVE
@@ -30,15 +18,30 @@ object TransactionParser {
         Pattern.CASE_INSENSITIVE
     )
 
-    // Référence / ID — formats courants
     private val REF_PATTERNS = listOf(
         Pattern.compile("(?:Financial Transaction Id|Transaction Id|TxId|TXID|Txn Id|Trans\\.? Id)\\s*[:#]?\\s*([A-Z0-9]+)", Pattern.CASE_INSENSITIVE),
         Pattern.compile("(?:Ref(?:erence|érence)?|Réf)\\.?\\s*[:#]?\\s*([A-Za-z0-9]+)", Pattern.CASE_INSENSITIVE),
         Pattern.compile("\\bID\\s*[:#]\\s*([A-Za-z0-9]+)", Pattern.CASE_INSENSITIVE),
-        Pattern.compile("\\b([0-9]{8,16})\\b") // suite numérique longue (fallback)
+        Pattern.compile("\\b([0-9]{8,16})\\b")
     )
 
-    // Date/heure dans le corps : 16/05/2026 14:32 / 2026-05-16 14:32:01 / 16-05-2026 14:32
+    // Numéro précédé de from/to/de/vers/à : on prend en priorité
+    private val PHONE_NEAR_KEYWORD = Pattern.compile(
+        "(?i)(?:from|to|de|vers|à|au|chez)\\s+(?:[^()\\d\\n]{0,40}?)?\\(?\\s*(\\+?\\d[\\d\\s\\-\\.]{6,18}\\d)\\s*\\)?"
+    )
+    // Numéro entre parenthèses : ex. "Jean (07 12 34 56 78)"
+    private val PHONE_IN_PARENS = Pattern.compile(
+        "\\((\\+?\\d[\\d\\s\\-\\.]{6,18}\\d)\\)"
+    )
+    // Numéro avec + (international)
+    private val PHONE_INTL = Pattern.compile(
+        "(\\+\\d[\\d\\s\\-\\.]{6,18}\\d)"
+    )
+    // Fallback : suite de chiffres ressemblant à un téléphone
+    private val PHONE_LOCAL = Pattern.compile(
+        "(?<![\\d])(0\\d[\\d\\s\\-\\.]{6,12}\\d)(?![\\d])"
+    )
+
     private val DATE_PATTERNS = listOf(
         "dd/MM/yyyy HH:mm:ss",
         "dd/MM/yyyy HH:mm",
@@ -71,6 +74,7 @@ object TransactionParser {
 
         val (amount, currency) = extractAmount(body)
         val reference = extractReference(body)
+        val phone = extractPhone(body)
         val timestamp = extractDate(body) ?: smsTimestamp
 
         return Transaction(
@@ -80,6 +84,7 @@ object TransactionParser {
             amount = amount,
             currency = currency,
             reference = reference,
+            phoneNumber = phone,
             timestamp = timestamp,
             rawSender = sender,
             rawBody = body
@@ -105,7 +110,6 @@ object TransactionParser {
     }
 
     private fun normalize(raw: String): Double {
-        // "1,000.50" -> 1000.50 / "1.000,50" -> 1000.50 / "1 000" -> 1000
         val cleaned = raw.replace(" ", "")
         val withDotDecimal = when {
             cleaned.count { it == ',' } == 1 && cleaned.indexOf(',') > cleaned.indexOf('.') ->
@@ -128,6 +132,27 @@ object TransactionParser {
         return ""
     }
 
+    private fun cleanPhone(raw: String): String {
+        // garde + et chiffres, et limite à 8-15 chiffres
+        val digitsOnly = raw.replace(Regex("[^\\d+]"), "")
+        val justDigits = digitsOnly.replace("+", "")
+        if (justDigits.length !in 8..15) return ""
+        return if (digitsOnly.startsWith("+")) "+$justDigits" else justDigits
+    }
+
+    private fun extractPhone(body: String): String {
+        // Priorité : numéro précédé d'un mot-clé (from, to, de, vers, à)
+        for (p in listOf(PHONE_NEAR_KEYWORD, PHONE_IN_PARENS, PHONE_INTL, PHONE_LOCAL)) {
+            val m = p.matcher(body)
+            while (m.find()) {
+                val raw = m.group(1) ?: continue
+                val clean = cleanPhone(raw)
+                if (clean.isNotEmpty()) return clean
+            }
+        }
+        return ""
+    }
+
     private fun extractDate(body: String): Long? {
         val m = DATE_REGEX.matcher(body)
         if (!m.find()) return null
@@ -143,7 +168,6 @@ object TransactionParser {
         return null
     }
 
-    /** Retourne le début du jour (00:00:00) pour grouper. */
     fun dayKey(timestamp: Long): Long {
         val c = Calendar.getInstance()
         c.timeInMillis = timestamp

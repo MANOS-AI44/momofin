@@ -48,6 +48,7 @@ object RailwayClient {
                     .put("amount", t.amount)
                     .put("currency", t.currency)
                     .put("reference", t.reference)
+                    .put("phone_number", t.phoneNumber)
                     .put("ts", ISO.format(Date(t.timestamp)))
                 arr.put(o)
             }

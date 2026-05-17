@@ -106,7 +106,7 @@ router.post('/patron/:id/delete', async (req, res) => {
 // Génération PDF (avec ou sans le pwd dans la requête)
 router.get('/pdf', async (req, res) => {
     const { rows: tx } = await pool.query(
-        'SELECT operator, type, amount, currency, reference, ts FROM transactions ORDER BY ts DESC'
+        'SELECT operator, type, amount, currency, reference, phone_number, ts FROM transactions ORDER BY ts DESC'
     );
     const { rows: patronList } = await pool.query(
         'SELECT type, amount, note, ts FROM patron_entries ORDER BY ts DESC'
@@ -138,7 +138,7 @@ router.post('/devices/:token/delete', async (req, res) => {
 
 async function loadDays() {
     const { rows } = await pool.query(
-        `SELECT operator, type, amount, currency, reference, ts
+        `SELECT operator, type, amount, currency, reference, phone_number, ts
          FROM transactions ORDER BY ts DESC LIMIT 2000`
     );
     const grouped = new Map();
