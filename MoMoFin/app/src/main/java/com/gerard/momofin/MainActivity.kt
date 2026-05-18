@@ -280,14 +280,15 @@ class MainActivity : AppCompatActivity() {
             val url = Settings.getUrl(this@MainActivity)
             val token = Settings.getToken(this@MainActivity)
             val res = RailwayClient.syncTransactions(url, token, current)
+            // Pousser aussi les dossiers Mes Comptes vers le serveur
+            val folderStore = FolderStore(this@MainActivity)
+            val resF = RailwayClient.syncFolders(url, token, folderStore)
             withContext(Dispatchers.Main) {
                 binding.btnSync.isEnabled = true
                 if (res.ok) Settings.setLastSync(this@MainActivity, System.currentTimeMillis())
-                Toast.makeText(
-                    this@MainActivity,
-                    (if (res.ok) "✅ " else "❌ ") + res.message,
-                    Toast.LENGTH_LONG
-                ).show()
+                val combined = (if (res.ok) "✅ " else "❌ ") + res.message +
+                               "\n" + (if (resF.ok) "✅ " else "⚠️ ") + resF.message
+                Toast.makeText(this@MainActivity, combined, Toast.LENGTH_LONG).show()
                 loadData()
             }
         }

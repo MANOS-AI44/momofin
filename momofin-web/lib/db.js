@@ -73,6 +73,32 @@ async function init() {
             );
         `);
         await client.query(`
+            CREATE TABLE IF NOT EXISTS folders (
+                id BIGSERIAL PRIMARY KEY,
+                device_id TEXT NOT NULL,
+                client_id TEXT,
+                name TEXT NOT NULL,
+                created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                UNIQUE(device_id, client_id)
+            );
+        `);
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS folder_entries (
+                id BIGSERIAL PRIMARY KEY,
+                folder_id BIGINT NOT NULL REFERENCES folders(id) ON DELETE CASCADE,
+                device_id TEXT NOT NULL,
+                client_id TEXT,
+                type TEXT NOT NULL CHECK (type IN ('RECU','SORTIE')),
+                amount NUMERIC(18,2) NOT NULL,
+                note TEXT,
+                ts TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                UNIQUE(folder_id, client_id)
+            );
+        `);
+        await client.query(`CREATE INDEX IF NOT EXISTS idx_folders_device ON folders(device_id);`);
+        await client.query(`CREATE INDEX IF NOT EXISTS idx_folder_entries_folder ON folder_entries(folder_id);`);
+        await client.query(`
             CREATE TABLE IF NOT EXISTS patron_entries (
                 id BIGSERIAL PRIMARY KEY,
                 device_id TEXT NOT NULL,

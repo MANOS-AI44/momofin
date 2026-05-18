@@ -66,6 +66,43 @@ object RailwayClient {
         }
     }
 
+
+    /** Pousse tous les dossiers Mes Comptes (folders + entries) vers le serveur.
+     *  Le serveur REPLACE la totalite des folders du device avec le payload (idempotent). */
+    fun syncFolders(baseUrl: String, token: String, store: FolderStore): Result {
+        return try {
+            val arr = JSONArray()
+            for (f in store.allFolders()) {
+                val entriesArr = JSONArray()
+                for (e in store.entries(f.id)) {
+                    entriesArr.put(JSONObject()
+                        .put("client_id", e.id.toString())
+                        .put("type", e.type.name)
+                        .put("amount", e.amount)
+                        .put("note", e.note)
+                        .put("ts", ISO.format(Date(e.timestamp)))
+                    )
+                }
+                arr.put(JSONObject()
+                    .put("client_id", f.id.toString())
+                    .put("name", f.name)
+                    .put("created_at", ISO.format(Date(f.createdAt)))
+                    .put("entries", entriesArr)
+                )
+            }
+            val body = JSONObject().put("folders", arr).toString()
+            val (code, resp) = httpPost("$baseUrl/api/folders/sync", token, body)
+            if (code in 200..299) {
+                val j = JSONObject(resp)
+                Result(true, "Comptes synchronises : ${j.optInt("folders", 0)} dossiers, ${j.optInt("entries", 0)} saisies.")
+            } else {
+                Result(false, "HTTP $code — $resp")
+            }
+        } catch (e: Exception) {
+            Result(false, "Erreur reseau folders : ${e.message}")
+        }
+    }
+
     private fun httpGet(url: String, token: String): Pair<Int, String> {
         val conn = (URL(url).openConnection() as HttpURLConnection).apply {
             requestMethod = "GET"

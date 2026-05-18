@@ -1,0 +1,44 @@
+<%- include('_layout_head', { pageTitle: 'Mes Comptes — MoMo Fin', activeNav: 'comptes', user: user }) %>
+
+<h1>📓 Mes Comptes (saisies manuelles de mes assistants)</h1>
+<p class="subtitle">Tous les dossiers crees dans l'app par vos assistants apparaissent ici.</p>
+
+<% if (groups.length === 0) { %>
+    <p class="empty">Aucun dossier n'a encore ete cree. Demandez a vos assistants d'ajouter des comptes dans l'app (bouton 📓 Mes Comptes) et de synchroniser.</p>
+<% } %>
+
+<% groups.forEach(function(g) { %>
+    <section class="panel">
+        <h2>🏪 <%= g.label %> <span style="color:#1565C0; letter-spacing:2px; font-size:14px;">(<%= g.code %>)</span></h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Dossier</th>
+                    <th style="text-align:center;">Nb saisies</th>
+                    <th style="text-align:right;">Total Entrée</th>
+                    <th style="text-align:right;">Total Sortie</th>
+                    <th style="text-align:right;">Solde</th>
+                    <th>Créé le</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+            <% g.folders.forEach(function(f) { %>
+                <tr>
+                    <td><strong><%= f.name %></strong></td>
+                    <td style="text-align:center;"><%= f.nb_entries %></td>
+                    <td style="text-align:right; color:#059669;"><strong><%= fmt(f.total_entree) %></strong></td>
+                    <td style="text-align:right; color:#DC2626;"><strong><%= fmt(f.total_sortie) %></strong></td>
+                    <td style="text-align:right;"><strong style="color:<%= f.solde >= 0 ? '#059669' : '#DC2626' %>;"><%= fmt(f.solde) %></strong></td>
+                    <td style="color:#6B7280; font-size:12px;"><%= new Date(f.created_at).toLocaleDateString('fr-FR') %></td>
+                    <td style="text-align:right;">
+                        <a href="/comptes/<%= f.id %>" class="btn primary" style="padding:6px 12px; font-size:13px; text-decoration:none;">📊 Voir</a>
+                    </td>
+                </tr>
+            <% }); %>
+            </tbody>
+        </table>
+    </section>
+<% }); %>
+
+<%- include('_layout_foot') %>

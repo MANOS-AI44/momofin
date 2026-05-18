@@ -234,4 +234,77 @@ router.delete('/devices/:token', authDevice, async (req, res) => {
 });
 
 
+
+// === Sync des dossiers Mes Comptes (folders) — push depuis l'app ===
+// Body: { folders: [{ client_id, name, created_at, entries: [{ client_id, type, amount, note, ts }] }] }
+// Strategie : REPLACE complet pour ce device (suppression + insertion). Idempotent.
+router.post('/folders/sync', authDevice, async (req, res) => {
+    const { folders } = req.body || {};
+    if (!Array.isArray(folders)) return res.status(400).json({ error: 'folders array attendu' });
+    const client = await req.pool.connect ? req.pool : require('../lib/db').pool;
+    const conn = await client.connect();
+    try {
+        await conn.query('BEGIN');
+        // Supprimer tous les folders du device (cascade supprime les entries)
+        await conn.query('DELETE FROM folders WHERE device_id = $1', [req.deviceToken]);
+        let nbFolders = 0, nbEntries = 0;
+        for (const f of folders) {
+            const cid = String(f.client_id || '');
+            if (!cid || !f.name) continue;
+            const fr = await conn.query(
+                `INSERT INTO folders (device_id, client_id, name, created_at, updated_at)
+                 VALUES ($1, $2, $3, COALESCE($4::timestamptz, NOW()), NOW())
+                 RETURNING id`,
+                [req.deviceToken, cid, String(f.name).substring(0, 200),
+                 f.created_at ? new Date(f.created_at).toISOString() : null]
+            );
+            const folderId = fr.rows[0].id;
+            nbFolders++;
+            for (const e of (f.entries || [])) {
+                if (!['RECU','SORTIE'].includes(e.type)) continue;
+                const amt = Number(e.amount);
+                if (!isFinite(amt) || amt <= 0) continue;
+                await conn.query(
+                    `INSERT INTO folder_entries (folder_id, device_id, client_id, type, amount, note, ts)
+                     VALUES ($1, $2, $3, $4, $5, $6, COALESCE($7::timestamptz, NOW()))`,
+                    [folderId, req.deviceToken, String(e.client_id || ''),
+                     e.type, amt, String(e.note || '').substring(0, 500),
+                     e.ts ? new Date(e.ts).toISOString() : null]
+                );
+                nbEntries++;
+            }
+        }
+        await conn.query('COMMIT');
+        res.json({ ok: true, folders: nbFolders, entries: nbEntries });
+    } catch (err) {
+        await conn.query('ROLLBACK');
+        console.error('Sync folders error:', err);
+        res.status(500).json({ error: err.message });
+    } finally {
+        conn.release();
+    }
+});
+
+// GET /api/folders : liste les folders du device authentifie (pour pull si besoin)
+router.get('/folders', authDevice, async (req, res) => {
+    const { pool } = require('../lib/db');
+    const { rows: folders } = await pool.query(
+        `SELECT id, client_id, name, created_at FROM folders
+         WHERE device_id = $1 ORDER BY created_at DESC`,
+        [req.deviceToken]
+    );
+    const { rows: entries } = await pool.query(
+        `SELECT folder_id, client_id, type, amount, note, ts FROM folder_entries
+         WHERE device_id = $1 ORDER BY ts DESC`,
+        [req.deviceToken]
+    );
+    const byFolder = new Map();
+    for (const e of entries) {
+        if (!byFolder.has(e.folder_id)) byFolder.set(e.folder_id, []);
+        byFolder.get(e.folder_id).push(e);
+    }
+    res.json(folders.map(f => ({ ...f, entries: byFolder.get(f.id) || [] })));
+});
+
+
 module.exports = router;

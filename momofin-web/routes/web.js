@@ -563,5 +563,57 @@ function effectiveOperator(tx) {
     return stored || 'Autre';
 }
 
+
+// Vue admin : tous les Mes Comptes (folders) de tous les assistants
+router.get('/comptes', adminOnly, async (req, res) => {
+    const { rows: folders } = await pool.query(
+        `SELECT f.id, f.name, f.created_at, f.device_id,
+                d.label AS device_label, d.code AS device_code,
+                COUNT(e.id)                                       AS nb_entries,
+                COALESCE(SUM(CASE WHEN e.type='RECU' THEN e.amount END), 0)   AS total_entree,
+                COALESCE(SUM(CASE WHEN e.type='SORTIE' THEN e.amount END), 0) AS total_sortie
+         FROM folders f
+         JOIN devices d ON d.token = f.device_id AND d.user_id = $1
+         LEFT JOIN folder_entries e ON e.folder_id = f.id
+         GROUP BY f.id, f.name, f.created_at, f.device_id, d.label, d.code
+         ORDER BY d.label, f.created_at DESC`,
+        [req.user.id]
+    );
+    // Regrouper par device
+    const byDevice = new Map();
+    for (const f of folders) {
+        if (!byDevice.has(f.device_id)) {
+            byDevice.set(f.device_id, { label: f.device_label, code: f.device_code, folders: [] });
+        }
+        byDevice.get(f.device_id).folders.push({
+            id: f.id, name: f.name, created_at: f.created_at,
+            nb_entries: Number(f.nb_entries),
+            total_entree: Number(f.total_entree),
+            total_sortie: Number(f.total_sortie),
+            solde: Number(f.total_entree) - Number(f.total_sortie)
+        });
+    }
+    res.render('comptes', { user: req.user, groups: [...byDevice.values()], fmt });
+});
+
+router.get('/comptes/:id', adminOnly, async (req, res) => {
+    const { rows: frows } = await pool.query(
+        `SELECT f.id, f.name, f.created_at, d.label AS device_label, d.code AS device_code
+         FROM folders f
+         JOIN devices d ON d.token = f.device_id AND d.user_id = $1
+         WHERE f.id = $2`, [req.user.id, req.params.id]
+    );
+    if (frows.length === 0) return res.status(404).send('Dossier introuvable.');
+    const folder = frows[0];
+    const { rows: entries } = await pool.query(
+        `SELECT id, type, amount, note, ts FROM folder_entries
+         WHERE folder_id = $1 ORDER BY ts DESC`, [folder.id]
+    );
+    const totalE = entries.filter(e => e.type === 'RECU').reduce((s, e) => s + Number(e.amount), 0);
+    const totalS = entries.filter(e => e.type === 'SORTIE').reduce((s, e) => s + Number(e.amount), 0);
+    res.render('compte-detail', { user: req.user, folder, entries, totalE, totalS, solde: totalE - totalS, fmt });
+});
+
+
 module.exports = router;
 module.exports.effectiveOperator = effectiveOperator;

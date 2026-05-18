@@ -32,9 +32,15 @@
             <a href="/points" class="<%= (typeof activeNav !== 'undefined' && activeNav === 'points') ? 'active' : '' %>">
                 <span class="nav-icon">📈</span> MES POINTS
             </a>
-            <a href="/patron" class="<%= (typeof activeNav !== 'undefined' && activeNav === 'patron') ? 'active' : '' %>">
-                <span class="nav-icon">📓</span> Mes Comptes
-            </a>
+            <% if (typeof user !== 'undefined' && user && user.isSubAccount) { %>
+                <a href="/patron" class="<%= (typeof activeNav !== 'undefined' && activeNav === 'patron') ? 'active' : '' %>">
+                    <span class="nav-icon">📓</span> Mes Comptes
+                </a>
+            <% } else { %>
+                <a href="/comptes" class="<%= (typeof activeNav !== 'undefined' && activeNav === 'comptes') ? 'active' : '' %>">
+                    <span class="nav-icon">📓</span> Mes Comptes
+                </a>
+            <% } %>
             <% if (typeof user === 'undefined' || !user || !user.isSubAccount) { %>
             <a href="/devices" class="<%= (typeof activeNav !== 'undefined' && activeNav === 'devices') ? 'active' : '' %>">
                 <span class="nav-icon">📱</span> Mes Appareils

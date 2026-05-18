@@ -1,0 +1,46 @@
+<%- include('_layout_head', { pageTitle: folder.name + ' — Mes Comptes', activeNav: 'comptes', user: user }) %>
+
+<h1>📓 <%= folder.name %></h1>
+<p class="subtitle">
+    🏪 <strong><%= folder.device_label %></strong>
+    <span style="color:#1565C0; letter-spacing:2px;">(<%= folder.device_code %>)</span>
+    &nbsp;·&nbsp;
+    Cree le <%= new Date(folder.created_at).toLocaleDateString('fr-FR') %>
+    &nbsp;·&nbsp;
+    <a href="/comptes" style="color:#6B7280;">← Retour</a>
+</p>
+
+<section class="panel" style="background:#F9FAFB;">
+    <h3>🧮 Totaux du dossier</h3>
+    <p style="font-size:16px;">
+        <strong style="color:#059669;">Entrée : <%= fmt(totalE) %></strong>
+         &nbsp;·&nbsp;
+        <strong style="color:#DC2626;">Sortie : <%= fmt(totalS) %></strong>
+         &nbsp;·&nbsp;
+        <strong style="color:<%= solde >= 0 ? '#059669' : '#DC2626' %>;">Solde : <%= fmt(solde) %></strong>
+    </p>
+</section>
+
+<% if (entries.length === 0) { %>
+    <p class="empty">Aucune saisie dans ce dossier.</p>
+<% } else { %>
+    <section class="panel">
+        <table>
+            <thead>
+                <tr><th>Date</th><th>Type</th><th style="text-align:right;">Montant</th><th>Note</th></tr>
+            </thead>
+            <tbody>
+            <% entries.forEach(function(e) { %>
+                <tr>
+                    <td><%= new Date(e.ts).toLocaleString('fr-FR') %></td>
+                    <td><span class="badge <%= e.type === 'RECU' ? 'recu' : 'sortie' %>"><%= e.type === 'RECU' ? 'Entrée' : 'Sortie' %></span></td>
+                    <td style="text-align:right;"><strong><%= fmt(e.amount) %></strong></td>
+                    <td><%= e.note || '' %></td>
+                </tr>
+            <% }); %>
+            </tbody>
+        </table>
+    </section>
+<% } %>
+
+<%- include('_layout_foot') %>
