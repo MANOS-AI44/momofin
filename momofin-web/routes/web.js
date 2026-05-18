@@ -98,7 +98,33 @@ router.get('/', protect, async (req, res) => {
     const days = await loadDays(req.user, from, to);
     const totals = sumTotals(days);
     const accountName = req.user.isSubAccount ? `${req.user.deviceLabel} (sous-compte)` : (req.user.name || req.user.email.split('@')[0]);
-    res.render('index', { user: req.user, days, totals, fmt, from, to, accountName });
+
+    // Pour l'admin : totaux par appareil sur la periode choisie
+    let deviceTotals = [];
+    if (!req.user.isSubAccount) {
+        const conds = ['d.user_id = $1']; const args = [req.user.id];
+        if (from) { args.push(from.toISOString()); conds.push(`(t.ts IS NULL OR t.ts >= $${args.length})`); }
+        if (to)   { args.push(to.toISOString());   conds.push(`(t.ts IS NULL OR t.ts <= $${args.length})`); }
+        const { rows } = await pool.query(
+            `SELECT d.token, d.label, d.code, d.created_at,
+                    COALESCE(SUM(CASE WHEN t.type='RECU'   THEN t.amount END), 0) AS recu,
+                    COALESCE(SUM(CASE WHEN t.type='SORTIE' THEN t.amount END), 0) AS sortie,
+                    COUNT(t.id) AS nb_tx
+             FROM devices d
+             LEFT JOIN transactions t ON t.device_id = d.token
+              AND ${conds.slice(1).length ? conds.slice(1).join(' AND ') : 'TRUE'}
+             WHERE d.user_id = $1
+             GROUP BY d.token, d.label, d.code, d.created_at
+             ORDER BY d.created_at DESC`,
+            args
+        );
+        deviceTotals = rows.map(r => ({
+            token: r.token, label: r.label, code: r.code,
+            recu: Number(r.recu), sortie: Number(r.sortie), nb_tx: Number(r.nb_tx)
+        }));
+    }
+
+    res.render('index', { user: req.user, days, totals, fmt, from, to, accountName, deviceTotals });
 });
 
 function parseRange(q) {

@@ -22,6 +22,40 @@
     </form>
 </section>
 
+<% if (typeof deviceTotals !== 'undefined' && deviceTotals && deviceTotals.length > 0) { %>
+    <section class="panel">
+        <h2>📱 Mes appareils (<%= deviceTotals.length %>)</h2>
+        <p class="subtitle">Cliquez sur un appareil pour voir ses transactions sur la période choisie.</p>
+        <table>
+            <thead>
+                <tr>
+                    <th>Boutique</th>
+                    <th>Code</th>
+                    <th style="text-align:right;">Nb transactions</th>
+                    <th style="text-align:right;">Total Retrait</th>
+                    <th style="text-align:right;">Total Dépôt</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+            <% deviceTotals.forEach(function(d) { %>
+                <tr>
+                    <td><strong><%= d.label || '—' %></strong></td>
+                    <td><strong style="color:#1565C0; letter-spacing:2px;"><%= d.code || '—' %></strong></td>
+                    <td style="text-align:right;"><%= d.nb_tx %></td>
+                    <td style="text-align:right; color:#059669;"><strong><%= fmt(d.recu) %></strong></td>
+                    <td style="text-align:right; color:#DC2626;"><strong><%= fmt(d.sortie) %></strong></td>
+                    <td style="text-align:right;">
+                        <a href="/devices/<%= d.token %>/transactions<%= from ? ('?from=' + from.toISOString().substring(0,10) + '&to=' + (to ? to.toISOString().substring(0,10) : '')) : '' %>"
+                           class="btn primary" style="padding:6px 12px; font-size:13px; text-decoration:none;">📊 Voir</a>
+                    </td>
+                </tr>
+            <% }); %>
+            </tbody>
+        </table>
+    </section>
+<% } %>
+
 <% if (days.length === 0) { %>
     <p class="empty">Aucune transaction reçue pour l'instant. Synchronisez depuis l'APK MoMo Fin.</p>
 <% } %>
