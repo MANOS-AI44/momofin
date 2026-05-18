@@ -5,6 +5,16 @@ const { pool } = require('./db');
 
 const SESSION_DAYS = 30;
 
+function shortCode() {
+    // 6 caractères majuscules + chiffres (sans 0/O/1/I pour lisibilité)
+    const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    let out = '';
+    for (let i = 0; i < 6; i++) {
+        out += alphabet[Math.floor(Math.random() * alphabet.length)];
+    }
+    return out;
+}
+
 function randomToken(length = 40) {
     return crypto.randomBytes(length).toString('base64url').slice(0, length);
 }
@@ -24,11 +34,12 @@ async function createUser(email, password, name) {
 
     // Génère automatiquement un token de device personnel
     const deviceToken = randomToken(40);
+    const deviceCode = shortCode();
     await pool.query(
-        `INSERT INTO devices (token, label, user_id) VALUES ($1, $2, $3)`,
-        [deviceToken, name || cleanEmail, user.id]
+        `INSERT INTO devices (token, label, user_id, code) VALUES ($1, $2, $3, $4)`,
+        [deviceToken, name || cleanEmail, user.id, deviceCode]
     );
-    return { user, deviceToken };
+    return { user, deviceToken, deviceCode };
 }
 
 async function authenticate(email, password) {
@@ -71,7 +82,7 @@ async function endSession(sessionToken) {
 
 async function getUserDevices(userId) {
     const { rows } = await pool.query(
-        `SELECT token, label, created_at FROM devices WHERE user_id = $1 ORDER BY created_at DESC`,
+        `SELECT token, label, code, created_at FROM devices WHERE user_id = $1 ORDER BY created_at DESC`,
         [userId]
     );
     return rows;
@@ -79,11 +90,21 @@ async function getUserDevices(userId) {
 
 async function createDevice(userId, label) {
     const token = randomToken(40);
+    const code = shortCode();
     await pool.query(
-        `INSERT INTO devices (token, label, user_id) VALUES ($1, $2, $3)`,
-        [token, label || 'Téléphone', userId]
+        `INSERT INTO devices (token, label, user_id, code) VALUES ($1, $2, $3, $4)`,
+        [token, label || 'Téléphone', userId, code]
     );
-    return token;
+    return { token, code };
+}
+
+async function deviceByCode(code) {
+    const clean = (code || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+    const { rows } = await pool.query(
+        'SELECT token, label, user_id FROM devices WHERE code = $1',
+        [clean]
+    );
+    return rows[0] || null;
 }
 
 async function deleteDevice(userId, deviceToken) {
@@ -111,6 +132,7 @@ async function attachUser(req, res, next) {
 }
 
 module.exports = {
+    deviceByCode,
     createUser, authenticate, startSession, getSessionUser, endSession,
     getUserDevices, createDevice, deleteDevice,
     requireUser, attachUser, randomToken

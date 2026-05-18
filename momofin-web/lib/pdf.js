@@ -33,11 +33,22 @@ function dfDateTime(iso) {
  * @param {Array} transactions — [{ ts, type, amount, currency, reference, operator }]
  * @param {Array} patron — [{ ts, type, amount, note }]
  */
-function generate(res, transactions, patron = []) {
+function generate(res, transactions, patron = [], meta = {}) {
     const doc = new PDFDocument({ size: 'A4', margin: 36 });
     doc.pipe(res);
 
-    doc.fontSize(18).text('MoMo Fin — Rapport des transactions', { align: 'left' });
+    const account = meta.accountName || 'MoMo Fin';
+    const fmtFR = d => d ? new Date(d).toLocaleDateString('fr-FR') : null;
+    let titleLine;
+    if (meta.from && meta.to) {
+        titleLine = `Transactions chez ${account} — du ${fmtFR(meta.from)} au ${fmtFR(meta.to)}`;
+    } else if (meta.from) {
+        titleLine = `Transactions chez ${account} — depuis le ${fmtFR(meta.from)}`;
+    } else {
+        titleLine = `Transactions chez ${account}`;
+    }
+    doc.fontSize(16).fillColor('#1565C0').text(titleLine, { align: 'left' });
+    doc.fillColor('black');
     doc.fontSize(9).fillColor('#555').text(`Généré le ${new Date().toLocaleString('fr-FR')}`);
     doc.moveDown();
     doc.fillColor('black');

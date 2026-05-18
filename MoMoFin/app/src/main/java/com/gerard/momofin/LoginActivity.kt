@@ -14,7 +14,7 @@ import kotlinx.coroutines.withContext
 class LoginActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityLoginBinding
-    private enum class State { CHOICE, SIGNUP, LOGIN }
+    private enum class State { CHOICE, SIGNUP, LOGIN, CODE }
     private var state = State.CHOICE
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -42,6 +42,9 @@ class LoginActivity : AppCompatActivity() {
         binding.btnLoginSubmit.setOnClickListener { doLogin() }
         binding.btnGotoLogin.setOnClickListener { showLogin() }
         binding.btnGotoSignup.setOnClickListener { showSignup() }
+        binding.btnChoiceCode.setOnClickListener { showCodeEntry() }
+        binding.btnBackCode.setOnClickListener { showChoice() }
+        binding.btnCodeSubmit.setOnClickListener { doClaimCode() }
 
         showChoice()
     }
@@ -51,6 +54,7 @@ class LoginActivity : AppCompatActivity() {
         binding.layoutChoice.visibility = View.VISIBLE
         binding.layoutSignup.visibility = View.GONE
         binding.layoutLogin.visibility = View.GONE
+        binding.layoutCode.visibility = View.GONE
     }
 
     private fun showSignup() {
@@ -58,6 +62,15 @@ class LoginActivity : AppCompatActivity() {
         binding.layoutChoice.visibility = View.GONE
         binding.layoutSignup.visibility = View.VISIBLE
         binding.layoutLogin.visibility = View.GONE
+        binding.layoutCode.visibility = View.GONE
+    }
+
+    private fun showCodeEntry() {
+        state = State.CODE
+        binding.layoutChoice.visibility = View.GONE
+        binding.layoutSignup.visibility = View.GONE
+        binding.layoutLogin.visibility = View.GONE
+        binding.layoutCode.visibility = View.VISIBLE
     }
 
     private fun showLogin() {
@@ -65,6 +78,7 @@ class LoginActivity : AppCompatActivity() {
         binding.layoutChoice.visibility = View.GONE
         binding.layoutSignup.visibility = View.GONE
         binding.layoutLogin.visibility = View.VISIBLE
+        binding.layoutCode.visibility = View.GONE
     }
 
     override fun onBackPressed() {
@@ -98,6 +112,30 @@ class LoginActivity : AppCompatActivity() {
                     finish()
                 } else {
                     binding.txtSignupStatus.text = "❌ ${r.message}"
+                }
+            }
+        }
+    }
+
+    private fun doClaimCode() {
+        val code = binding.edtCode.text.toString().trim().uppercase()
+        if (code.length < 4) {
+            Toast.makeText(this, "Code invalide", Toast.LENGTH_SHORT).show(); return
+        }
+        binding.btnCodeSubmit.isEnabled = false
+        binding.txtCodeStatus.text = getString(R.string.login_in_progress)
+        val url = Settings.getUrl(this).ifBlank { AuthClient.defaultUrl() }
+        CoroutineScope(Dispatchers.IO).launch {
+            val r = AuthClient.claimCode(url, code)
+            withContext(Dispatchers.Main) {
+                binding.btnCodeSubmit.isEnabled = true
+                if (r.ok && !r.token.isNullOrBlank()) {
+                    Settings.save(this@LoginActivity, url, r.token)
+                    Toast.makeText(this@LoginActivity, R.string.login_success, Toast.LENGTH_LONG).show()
+                    startActivity(Intent(this@LoginActivity, MainActivity::class.java))
+                    finish()
+                } else {
+                    binding.txtCodeStatus.text = "❌ ${r.message}"
                 }
             }
         }

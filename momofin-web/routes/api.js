@@ -15,12 +15,23 @@ const usersLib = require('../lib/users');
 router.post('/auth/inscription', async (req, res) => {
     try {
         const { email, password, name } = req.body || {};
-        const { user, deviceToken } = await usersLib.createUser(email, password, name);
-        res.json({ ok: true, token: deviceToken, email: user.email, name: user.name });
+        const { user, deviceToken, deviceCode } = await usersLib.createUser(email, password, name);
+        res.json({ ok: true, token: deviceToken, code: deviceCode, email: user.email, name: user.name });
     } catch (err) {
         let msg = err.message;
         if (err.code === '23505') msg = 'Cet email est déjà utilisé.';
         res.status(400).json({ ok: false, error: msg });
+    }
+});
+
+router.post('/auth/code', async (req, res) => {
+    try {
+        const { code } = req.body || {};
+        const d = await usersLib.deviceByCode(code);
+        if (!d) return res.status(404).json({ ok: false, error: 'Code introuvable ou expiré' });
+        res.json({ ok: true, token: d.token, label: d.label });
+    } catch (err) {
+        res.status(400).json({ ok: false, error: err.message });
     }
 });
 

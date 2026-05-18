@@ -22,6 +22,11 @@ object AuthClient {
         return post("$baseUrl/api/auth/inscription", body)
     }
 
+    fun claimCode(baseUrl: String, code: String): Result {
+        val body = JSONObject().put("code", code.trim().uppercase()).toString()
+        return post("$baseUrl/api/auth/code", body)
+    }
+
     fun login(baseUrl: String, email: String, password: String): Result {
         val body = JSONObject()
             .put("email", email)

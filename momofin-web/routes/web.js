@@ -68,10 +68,35 @@ router.use(authAdmin);
 
 // Dashboard principal — liste regroupée par jour
 router.get('/', async (req, res) => {
-    const days = await loadDays();
+    const { from, to } = parseRange(req.query);
+    const days = await loadDays(from, to);
     const totals = sumTotals(days);
-    res.render('index', { days, totals, fmt });
+    const accountName = await getAccountName();
+    res.render('index', { days, totals, fmt, from, to, accountName });
 });
+
+function parseRange(q) {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    let from = null, to = null;
+    if (q.preset === 'today') { from = today; to = new Date(today.getTime() + 86400000 - 1); }
+    else if (q.preset === 'week') { from = new Date(today.getTime() - 6 * 86400000); to = new Date(today.getTime() + 86400000 - 1); }
+    else if (q.preset === 'month') { from = new Date(today.getFullYear(), today.getMonth(), 1); to = new Date(today.getFullYear(), today.getMonth() + 1, 1, 0, 0, -1); }
+    else if (q.preset === 'year') { from = new Date(today.getFullYear(), 0, 1); to = new Date(today.getFullYear() + 1, 0, 1, 0, 0, -1); }
+    else {
+        if (q.from) from = new Date(q.from);
+        if (q.to) { to = new Date(q.to); to.setHours(23, 59, 59); }
+    }
+    return { from, to };
+}
+
+async function getAccountName() {
+    // Premier utilisateur = nom de compte par défaut (admin)
+    try {
+        const { rows } = await pool.query('SELECT name, email FROM users ORDER BY id ASC LIMIT 1');
+        return rows[0]?.name || rows[0]?.email?.split('@')[0] || 'MoMo Fin';
+    } catch (_) { return 'MoMo Fin'; }
+}
 
 // Section PATRON
 router.get('/patron', async (req, res) => {
@@ -105,15 +130,25 @@ router.post('/patron/:id/delete', async (req, res) => {
 
 // Génération PDF (avec ou sans le pwd dans la requête)
 router.get('/pdf', async (req, res) => {
+    const { from, to } = parseRange(req.query);
+    const conds = []; const args = [];
+    if (from) { args.push(from.toISOString()); conds.push(`ts >= $${args.length}`); }
+    if (to) { args.push(to.toISOString()); conds.push(`ts <= $${args.length}`); }
+    const where = conds.length ? 'WHERE ' + conds.join(' AND ') : '';
     const { rows: tx } = await pool.query(
-        'SELECT operator, type, amount, currency, reference, phone_number, ts FROM transactions ORDER BY ts DESC'
+        `SELECT operator, type, amount, currency, reference, phone_number, ts FROM transactions ${where} ORDER BY ts DESC`,
+        args
     );
-    const { rows: patronList } = await pool.query(
-        'SELECT type, amount, note, ts FROM patron_entries ORDER BY ts DESC'
-    );
+    const accountName = await getAccountName();
+    const fmtDate = d => d ? d.toISOString().substring(0, 10) : null;
+    const filename = (() => {
+        const safe = accountName.replace(/[^A-Za-z0-9_-]/g, '_');
+        if (from && to) return `${safe}_du_${fmtDate(from)}_au_${fmtDate(to)}.pdf`;
+        return `${safe}_${Date.now()}.pdf`;
+    })();
     res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `inline; filename="MoMoFin_${Date.now()}.pdf"`);
-    pdf.generate(res, tx, patronList);
+    res.setHeader('Content-Disposition', `inline; filename="${filename}"`);
+    pdf.generate(res, tx, [], { accountName, from, to });
 });
 
 // Page Devices : créer / lister les tokens d'appariement avec les APK
@@ -136,10 +171,15 @@ router.post('/devices/:token/delete', async (req, res) => {
 
 // --- Helpers ---
 
-async function loadDays() {
+async function loadDays(from, to) {
+    const conds = []; const args = [];
+    if (from) { args.push(from.toISOString()); conds.push(`ts >= $${args.length}`); }
+    if (to) { args.push(to.toISOString()); conds.push(`ts <= $${args.length}`); }
+    const where = conds.length ? 'WHERE ' + conds.join(' AND ') : '';
     const { rows } = await pool.query(
         `SELECT operator, type, amount, currency, reference, phone_number, ts
-         FROM transactions ORDER BY ts DESC LIMIT 2000`
+         FROM transactions ${where} ORDER BY ts DESC LIMIT 5000`,
+        args
     );
     const grouped = new Map();
     for (const r of rows) {

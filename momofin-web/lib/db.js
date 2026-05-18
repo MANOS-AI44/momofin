@@ -38,6 +38,7 @@ async function init() {
         `);
         // Migration : ajouter user_id à devices si table déjà existante sans la colonne
         await client.query(`ALTER TABLE devices ADD COLUMN IF NOT EXISTS user_id BIGINT REFERENCES users(id) ON DELETE CASCADE;`);
+        await client.query(`ALTER TABLE devices ADD COLUMN IF NOT EXISTS code TEXT UNIQUE;`);
         await client.query(`ALTER TABLE transactions ADD COLUMN IF NOT EXISTS phone_number TEXT;`);
         await client.query(`
             CREATE TABLE IF NOT EXISTS daily_points (

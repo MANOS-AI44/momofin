@@ -10,6 +10,27 @@
     <link rel="icon" type="image/svg+xml" href="/icon.svg">
     <link rel="apple-touch-icon" href="/icon-192.svg">
     <link rel="stylesheet" href="/style.css">
+    <style>
+        .filter-bar { background:white; padding:14px; border-radius:8px; margin-bottom:16px; box-shadow:0 1px 3px rgba(0,0,0,0.06); }
+        .filter-bar h3 { margin:0 0 10px; color:#1565C0; font-size:14px; }
+        .filter-row { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+        .filter-row label { font-size:12px; color:#666; }
+        .filter-row input[type=date] { padding:6px 8px; border:1px solid #ccc; border-radius:6px; font-size:13px; }
+        .preset-btn { padding:6px 12px; background:#E3F2FD; color:#1565C0; border:1px solid #BBDEFB; border-radius:20px; cursor:pointer; font-size:12px; text-decoration:none; }
+        .preset-btn.active { background:#1565C0; color:white; }
+        .action-btns { display:flex; gap:8px; margin-top:10px; flex-wrap:wrap; }
+        .action-btn { padding:10px 16px; border-radius:6px; border:none; cursor:pointer; font-weight:600; font-size:13px; text-decoration:none; display:inline-block; }
+        .action-btn.print { background:#FFB300; color:#000; }
+        .action-btn.pdf { background:#C62828; color:white; }
+        .account-name { color:#1565C0; font-weight:bold; }
+        @media print {
+            header, .filter-bar, .action-btns, footer, nav { display:none !important; }
+            body { background:white; }
+            main { max-width:none; padding:0; }
+            .day { box-shadow:none; border:1px solid #ddd; page-break-inside:avoid; }
+            .cards { page-break-inside:avoid; }
+        }
+    </style>
     <script defer>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(() => {}));
@@ -27,6 +48,28 @@
     </nav>
 </header>
 <main>
+
+    <section class="filter-bar">
+        <h3>📅 Période <% if (typeof accountName !== 'undefined') { %>— Compte : <span class="account-name"><%= accountName %></span><% } %></h3>
+        <div class="filter-row">
+            <% var p = (typeof from === 'undefined' || !from) ? 'all' : ''; %>
+            <a href="/" class="preset-btn <%= p==='all' ? 'active' : '' %>">Tout</a>
+            <a href="/?preset=today" class="preset-btn">Aujourd'hui</a>
+            <a href="/?preset=week" class="preset-btn">7 derniers jours</a>
+            <a href="/?preset=month" class="preset-btn">Ce mois</a>
+            <a href="/?preset=year" class="preset-btn">Cette année</a>
+        </div>
+        <form method="GET" action="/" class="filter-row" style="margin-top:12px;">
+            <label>Du <input type="date" name="from" value="<%= from ? from.toISOString().substring(0,10) : '' %>"></label>
+            <label>Au <input type="date" name="to" value="<%= to ? to.toISOString().substring(0,10) : '' %>"></label>
+            <button type="submit" class="action-btn" style="background:#1565C0;color:white;">Filtrer</button>
+        </form>
+        <div class="action-btns">
+            <button onclick="window.print()" class="action-btn print">🖨️ Imprimer cette page</button>
+            <a href="/pdf<%= (typeof from !== 'undefined' && from) ? ('?from=' + from.toISOString().substring(0,10) + '&to=' + (to ? to.toISOString().substring(0,10) : '')) : '' %>" target="_blank" class="action-btn pdf">📄 Télécharger PDF</a>
+        </div>
+    </section>
+
     <section class="cards">
         <div class="card recu">
             <span>Total Retrait</span>

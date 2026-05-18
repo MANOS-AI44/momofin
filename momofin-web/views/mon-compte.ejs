@@ -100,13 +100,14 @@
 </div>
 
 <script>
-function copyToken(idx, btn) {
-    var t = document.getElementById('tok-' + idx).textContent;
+function copyText(id, btn) {
+    var t = document.getElementById(id).textContent.trim();
     navigator.clipboard.writeText(t).then(function() {
+        var old = btn.textContent;
         btn.textContent = '✓ Copié !';
         btn.classList.add('ok');
         setTimeout(function() {
-            btn.textContent = 'Copier';
+            btn.textContent = old;
             btn.classList.remove('ok');
         }, 2000);
     });
