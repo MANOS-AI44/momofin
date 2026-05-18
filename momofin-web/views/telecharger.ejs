@@ -30,7 +30,7 @@
             background:#1565C0; color:white; text-decoration:none; border-radius:6px;
             font-weight:600;
         }
-        .dl-grid { display:grid; gap:18px; grid-template-columns:1fr; max-width:680px; margin:24px auto; padding:0 16px; }
+        .dl-grid { display:grid; gap:18px; grid-template-columns:1fr; max-width:560px; max-width:680px; margin:24px auto; padding:0 16px; }
         @media (min-width: 720px) { .dl-grid { grid-template-columns: 1fr 1fr; } }
         .dl-card { background:white; border-radius:12px; padding:22px; box-shadow:0 2px 8px rgba(0,0,0,0.08); text-align:center; }
         .dl-card .icon { font-size:48px; line-height:1; margin-bottom:8px; }
@@ -77,35 +77,7 @@
 <% } %>
 
 <div class="dl-grid">
-    <div class="dl-card">
-        <div class="icon">📨</div>
-        <h2>MoMo SMS</h2>
-        <p>Lit automatiquement les SMS Mobile Money (MTN, Orange, Airtel) sur votre téléphone.</p>
-        <% if (smsApk) { %>
-            <a class="dl-btn" href="<%= smsApk %>">⬇ Télécharger MoMo SMS</a>
-        <% } else { %>
-            <a class="dl-btn disabled" href="#">APK indisponible</a>
-        <% } %>
-    </div>
-
-    <div class="dl-card">
-        <div class="icon">💰</div>
-        <h2>MoMo Fin</h2>
-        <p>Tableau de bord, génération PDF par jour et section PATRON (Reçu / Sortie / Total).</p>
-        <% if (finApk) { %>
-            <a class="dl-btn alt" href="<%= finApk %>">⬇ Télécharger MoMo Fin</a>
-        <% } else { %>
-            <a class="dl-btn disabled" href="#">APK indisponible</a>
-        <% } %>
-    </div>
-
-    <div class="dl-card" style="grid-column: 1 / -1;">
-        <div class="icon">🌐</div>
-        <h2>Version Web (sans installation)</h2>
-        <p>Préférez utiliser MoMo Fin directement depuis votre navigateur ? La version web est installable comme une application sur Android.</p>
-        <a class="dl-btn web" id="btnInstallPwa" href="<%= webAppUrl %>">📲 Ouvrir / Installer la version web</a>
-    </div>
-</div>
+    
 
 <div class="install-info">
     <h3>Comment installer et activer</h3>

@@ -1,4 +1,4 @@
-name: Build APKs
+name: Build APK
 
 on:
   push:
@@ -11,10 +11,6 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        project: [ MoMoSMS, MoMoFin ]
     steps:
       - uses: actions/checkout@v4
 
@@ -35,55 +31,39 @@ jobs:
           gradle-version: 8.5
 
       - name: Generate Gradle wrapper
-        working-directory: ${{ matrix.project }}
+        working-directory: MoMoFin
         run: gradle wrapper --gradle-version 8.5
 
       - name: Build debug APK
-        working-directory: ${{ matrix.project }}
+        working-directory: MoMoFin
         run: |
           chmod +x ./gradlew
           ./gradlew assembleDebug --no-daemon --stacktrace
 
       - name: Rename APK
-        working-directory: ${{ matrix.project }}/app/build/outputs/apk/debug
-        run: |
-          mv app-debug.apk ${{ matrix.project }}-debug.apk
+        working-directory: MoMoFin/app/build/outputs/apk/debug
+        run: mv app-debug.apk MoMoFin-debug.apk
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.project }}-debug-apk
-          path: ${{ matrix.project }}/app/build/outputs/apk/debug/*.apk
+          name: MoMoFin-debug-apk
+          path: MoMoFin/app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
           retention-days: 90
 
-  release:
-    needs: build
-    runs-on: ubuntu-latest
-    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
-    steps:
-      - uses: actions/checkout@v4
-      - name: Download all APKs
-        uses: actions/download-artifact@v4
-        with:
-          path: artifacts
-      - name: Move APKs to root
-        run: |
-          mkdir -p release-apks
-          find artifacts -name "*.apk" -exec cp {} release-apks/ \;
-          ls -la release-apks/
       - name: Create or update release "latest"
+        if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
         uses: softprops/action-gh-release@v2
         with:
           tag_name: latest
-          name: "Dernière compilation des APK"
+          name: "Dernière compilation"
           body: |
-            APK compilés automatiquement à partir du commit ${{ github.sha }}.
+            APK MoMo Fin compilé automatiquement à partir du commit ${{ github.sha }}.
 
-            - **MoMoSMS-debug.apk** — lit les SMS Mobile Money
-            - **MoMoFin-debug.apk** — extraction, PDF, PATRON, synchro Railway
+            **MoMoFin-debug.apk** — application tout-en-un (SMS + notifications + tableau de bord + comptes + points)
 
-            Téléchargez directement ci-dessous, copiez sur votre téléphone Android et installez.
-          files: release-apks/*.apk
+            Téléchargez et installez sur votre téléphone Android.
+          files: MoMoFin/app/build/outputs/apk/debug/MoMoFin-debug.apk
           prerelease: false
           make_latest: true

@@ -55,6 +55,7 @@ class SettingsActivity : AppCompatActivity() {
                 Toast.LENGTH_LONG).show()
         }
 
+        binding.btnImportInbox.setOnClickListener { doImportInbox() }
         binding.btnReset.setOnClickListener { confirmReset() }
     }
 
@@ -72,6 +73,25 @@ class SettingsActivity : AppCompatActivity() {
             withContext(Dispatchers.Main) {
                 binding.btnTest.isEnabled = true
                 binding.txtResult.text = if (r.ok) "✅ ${r.message}" else "❌ ${r.message}"
+            }
+        }
+    }
+
+    private fun doImportInbox() {
+        Toast.makeText(this, "Importation en cours…", Toast.LENGTH_SHORT).show()
+        CoroutineScope(Dispatchers.IO).launch {
+            val count = SmsSource.importInbox(this@SettingsActivity)
+            withContext(Dispatchers.Main) {
+                val msg = when {
+                    count < 0 -> "Permission SMS refusée. Activez-la dans les Paramètres Android."
+                    count == 0 -> "Aucun SMS Mobile Money trouvé dans la boîte."
+                    else -> "✅ $count SMS Mobile Money importés depuis la boîte."
+                }
+                AlertDialog.Builder(this@SettingsActivity)
+                    .setTitle("Importation terminée")
+                    .setMessage(msg)
+                    .setPositiveButton(android.R.string.ok, null)
+                    .show()
             }
         }
     }

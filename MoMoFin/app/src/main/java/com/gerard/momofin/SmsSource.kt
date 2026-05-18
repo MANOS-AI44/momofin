@@ -2,20 +2,15 @@ package com.gerard.momofin
 
 import android.content.Context
 import android.content.pm.PackageManager
-import android.net.Uri
 import android.provider.Telephony
 import androidx.core.content.ContextCompat
 
 /**
- * Lit les SMS Mobile Money depuis 3 sources, dans l'ordre :
- *   1. NotificationStore — alimenté par SmsNotificationListener (marche sur Android 13+/14/15/16)
- *   2. App MoMo SMS via ContentProvider partagé
- *   3. Boîte SMS du téléphone (fallback) si READ_SMS accordé
- * Les doublons (même sender + body + timestamp) sont éliminés.
+ * Lit les SMS Mobile Money depuis 2 sources, dédoublonnés automatiquement :
+ *   1. NotificationStore — alimenté par SmsNotificationListener + SmsReceiver
+ *   2. Boîte SMS du téléphone (fallback) si READ_SMS accordé
  */
 object SmsSource {
-
-    private val MOMO_SMS_URI: Uri = Uri.parse("content://com.gerard.momosms.provider/sms")
 
     data class Raw(
         val id: Long,
@@ -28,10 +23,8 @@ object SmsSource {
     fun loadAll(context: Context): List<Raw> {
         val all = mutableListOf<Raw>()
         all.addAll(fromNotifications(context))
-        all.addAll(fromMomoSms(context) ?: emptyList())
         all.addAll(fromInbox(context))
 
-        // Dédupliquer par signature (sender + body + timestamp à 10s près)
         val seen = mutableSetOf<String>()
         val unique = mutableListOf<Raw>()
         for (r in all.sortedByDescending { it.timestamp }) {
@@ -42,43 +35,43 @@ object SmsSource {
     }
 
     private fun fromNotifications(context: Context): List<Raw> {
-        return try {
-            NotificationStore(context).all()
-        } catch (_: Exception) {
-            emptyList()
-        }
+        return try { NotificationStore(context).all() } catch (_: Exception) { emptyList() }
     }
 
-    private fun fromMomoSms(context: Context): List<Raw>? {
-        return try {
-            val list = mutableListOf<Raw>()
+    /**
+     * Importe les SMS de la boîte SMS du téléphone et les enregistre dans NotificationStore.
+     * Utile pour récupérer les SMS reçus AVANT l'installation de l'app.
+     * Renvoie le nombre de SMS importés.
+     */
+    fun importInbox(context: Context): Int {
+        if (ContextCompat.checkSelfPermission(
+                context, android.Manifest.permission.READ_SMS
+            ) != PackageManager.PERMISSION_GRANTED
+        ) return -1
+
+        val store = NotificationStore(context)
+        var inserted = 0
+        val projection = arrayOf(
+            Telephony.Sms.ADDRESS, Telephony.Sms.BODY, Telephony.Sms.DATE, Telephony.Sms._ID
+        )
+        try {
             context.contentResolver.query(
-                MOMO_SMS_URI, null, null, null, "timestamp DESC"
+                Telephony.Sms.Inbox.CONTENT_URI, projection, null, null, "date DESC"
             )?.use { c ->
-                if (c.count == 0) return@use
-                val iId = c.getColumnIndex("_id")
-                val iAddr = c.getColumnIndex("sender")
-                val iBody = c.getColumnIndex("body")
-                val iTs = c.getColumnIndex("timestamp")
-                val iOp = c.getColumnIndex("operator")
+                val iAddr = c.getColumnIndexOrThrow(Telephony.Sms.ADDRESS)
+                val iBody = c.getColumnIndexOrThrow(Telephony.Sms.BODY)
+                val iDate = c.getColumnIndexOrThrow(Telephony.Sms.DATE)
                 while (c.moveToNext()) {
-                    list.add(
-                        Raw(
-                            id = if (iId >= 0) c.getLong(iId) else 0L,
-                            sender = if (iAddr >= 0) c.getString(iAddr) ?: "" else "",
-                            body = if (iBody >= 0) c.getString(iBody) ?: "" else "",
-                            timestamp = if (iTs >= 0) c.getLong(iTs) else 0L,
-                            operator = if (iOp >= 0) c.getString(iOp) ?: "" else ""
-                        )
-                    )
+                    val sender = c.getString(iAddr) ?: continue
+                    val body = c.getString(iBody) ?: continue
+                    if (!MomoFilter.isMomoSms(sender, body)) continue
+                    val op = MomoFilter.detectOperator(sender, body)
+                    if (store.insert(sender, body, c.getLong(iDate), op) > 0) inserted++
                 }
             }
-            if (list.isEmpty()) null else list
-        } catch (_: SecurityException) {
-            null
-        } catch (_: Exception) {
-            null
-        }
+        } catch (_: Exception) {}
+        store.close()
+        return inserted
     }
 
     private fun fromInbox(context: Context): List<Raw> {
@@ -89,10 +82,7 @@ object SmsSource {
 
         val list = mutableListOf<Raw>()
         val projection = arrayOf(
-            Telephony.Sms.ADDRESS,
-            Telephony.Sms.BODY,
-            Telephony.Sms.DATE,
-            Telephony.Sms._ID
+            Telephony.Sms.ADDRESS, Telephony.Sms.BODY, Telephony.Sms.DATE, Telephony.Sms._ID
         )
         try {
             context.contentResolver.query(
@@ -106,19 +96,14 @@ object SmsSource {
                     val sender = c.getString(iAddr) ?: continue
                     val body = c.getString(iBody) ?: continue
                     if (!MomoFilter.isMomoSms(sender, body)) continue
-                    list.add(
-                        Raw(
-                            id = c.getLong(iId),
-                            sender = sender,
-                            body = body,
-                            timestamp = c.getLong(iDate),
-                            operator = MomoFilter.detectOperator(sender, body)
-                        )
-                    )
+                    list.add(Raw(
+                        id = c.getLong(iId), sender = sender, body = body,
+                        timestamp = c.getLong(iDate),
+                        operator = MomoFilter.detectOperator(sender, body)
+                    ))
                 }
             }
-        } catch (_: Exception) {
-        }
+        } catch (_: Exception) {}
         return list
     }
 }
@@ -128,7 +113,7 @@ object MomoFilter {
         "MoMo", "MTN", "MTN MoMo", "M-Money", "MTNMoMo",
         "Orange", "OrangeMoney", "Orange Money", "OM",
         "Airtel", "AirtelMoney", "Airtel Money",
-        "Moov", "Wave"
+        "Moov", "Wave", "djamo", "Yas"
     )
     private val KEYWORDS = listOf(
         "momo", "mobile money", "transaction", "received", "sent",
@@ -154,6 +139,7 @@ object MomoFilter {
             s.contains("airtel") -> "Airtel"
             s.contains("moov") -> "Moov"
             s.contains("wave") -> "Wave"
+            s.contains("djamo") -> "djamo"
             else -> "Autre"
         }
     }
