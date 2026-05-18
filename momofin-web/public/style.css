@@ -161,8 +161,20 @@ table tr:hover td { background: #F9FAFB; }
 
 /* ============ Print ============ */
 @media print {
-    .sidebar, .filter-bar, .form, .btn, .btn-link, .footer-mini { display: none !important; }
-    .app-main { padding: 0; }
-    body { background: white; }
-    .panel, .day, .card { box-shadow: none; border: 1px solid #ddd; page-break-inside: avoid; }
+    /* Cacher la sidebar, la barre du haut et tous les controles interactifs */
+    .sidebar, .filter-bar, .filter-row, .form, .btn, .btn-link, .footer-mini, .print-hide { display: none !important; }
+    .app-main { padding: 0; margin: 0; }
+    body { background: white; margin: 0; }
+    /* Compacter les panels pour gagner de la place */
+    .panel { box-shadow: none; border: none; padding: 6px 0; margin: 0 0 6px 0; page-break-inside: avoid; }
+    .panel h1, .panel h2, .panel h3 { margin: 4px 0; }
+    .day { box-shadow: none; border: 1px solid #ddd; page-break-inside: avoid; margin-bottom: 8px; }
+    .card { box-shadow: none; border: 1px solid #ddd; page-break-inside: avoid; }
+    /* Titre principal compact */
+    h1 { font-size: 18px; margin: 0 0 4px 0; }
+    .subtitle { margin: 0 0 8px 0; font-size: 11px; }
+    /* Eviter les double-margins */
+    section { margin-bottom: 4px; }
+    table { font-size: 10px; }
+    table th, table td { padding: 3px 4px; }
 }

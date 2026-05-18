@@ -28,7 +28,7 @@ function phoneOpColor(op) {
     <a href="/devices" style="color:#6B7280;">← Retour aux appareils</a>
 </p>
 
-<section class="panel">
+<section class="panel print-hide">
     <h3>📅 Période</h3>
     <div class="filter-bar">
         <% var pAll = (typeof from === 'undefined' || !from) ? 'active' : ''; %>
@@ -46,7 +46,7 @@ function phoneOpColor(op) {
     </form>
 </section>
 
-<section class="panel">
+<section class="panel print-hide">
     <h3>📋 Type de transaction</h3>
     <%
         function qs(extra) {
