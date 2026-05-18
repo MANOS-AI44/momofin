@@ -36,6 +36,38 @@
     </section>
 <% }); %>
 
+
+<section class="panel">
+    <h2>🎨 Logo de mon compte</h2>
+    <p style="color:#6B7280; font-size:13px; margin:0 0 14px;">Votre logo apparaît automatiquement dans les PDF générés, sur le site et sur la page de téléchargement.</p>
+
+    <% if (user.hasLogo) { %>
+        <div style="text-align:center; margin-bottom:14px;">
+            <img src="<%= user.logoUrl %>?t=<%= Date.now() %>" alt="Logo actuel" style="max-width:200px; max-height:200px; border:1px solid #E5E7EB; border-radius:8px; padding:8px; background:white;"/>
+        </div>
+        <form method="POST" action="/mon-compte/logo/supprimer" onsubmit="return confirm('Supprimer le logo actuel ?')" style="text-align:center;">
+            <button type="submit" class="btn-link">🗑️ Supprimer le logo actuel</button>
+        </form>
+        <hr style="margin:14px 0; border:none; border-top:1px solid #E5E7EB;"/>
+    <% } %>
+
+    <form method="POST" action="/mon-compte/logo" enctype="multipart/form-data" class="filter-row">
+        <input type="file" name="logo" accept="image/png,image/jpeg,image/svg+xml,image/webp" required style="flex:1;min-width:200px;"/>
+        <button type="submit" class="btn primary">📤 Téléverser un logo</button>
+    </form>
+
+    <p style="color:#9CA3AF; font-size:11px; margin-top:8px;">
+        Formats acceptés : PNG, JPG, SVG, WebP &nbsp;·&nbsp; Taille max : 2 MB &nbsp;·&nbsp; Conseil : image carrée (ex. 512×512)
+    </p>
+
+    <% if (typeof query !== 'undefined' && query.logo_ok) { %>
+        <p style="color:#059669; margin-top:10px;">✅ Logo téléversé avec succès !</p>
+    <% } %>
+    <% if (typeof query !== 'undefined' && query.logo_error) { %>
+        <p style="color:#DC2626; margin-top:10px;">❌ Erreur lors du téléversement (format invalide ou trop volumineux).</p>
+    <% } %>
+</section>
+
 <section class="panel">
     <h2>+ Nouveau code (nouvelle boutique)</h2>
     <form method="POST" action="/mon-compte/nouveau-token" class="filter-row">

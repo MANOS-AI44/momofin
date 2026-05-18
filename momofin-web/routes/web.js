@@ -10,10 +10,17 @@ const pdf = require('../lib/pdf');
 // Routes PUBLIQUES (pas de mot de passe) — page de téléchargement APK
 // =====================================================================
 
-router.get('/telecharger', (req, res) => {
+router.get('/telecharger', async (req, res) => {
     const fs = require('fs');
     const path = require('path');
     const localDir = path.join(__dirname, '..', 'public', 'apks');
+
+    // Récupérer le logo du premier user (= admin) pour l'afficher publiquement
+    let logoUrl = null;
+    try {
+        const { rows } = await pool.query('SELECT id FROM users WHERE logo_data IS NOT NULL ORDER BY id ASC LIMIT 1');
+        if (rows[0]) logoUrl = `/logo/${rows[0].id}`;
+    } catch (_) {}
 
     // Priorité 1 : APK hébergés localement dans public/apks/
     const localSms = fs.existsSync(path.join(localDir, 'MoMoSMS-debug.apk'))
@@ -30,6 +37,7 @@ router.get('/telecharger', (req, res) => {
 
     res.render('telecharger', {
         user: req.user || null,
+        logoUrl,
         repo,
         
         finApk: localFin || (base ? `${base}/MoMoFin-debug.apk` : null),
@@ -155,7 +163,13 @@ router.get('/pdf', protect, async (req, res) => {
     })();
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `inline; filename="${filename}"`);
-    pdf.generate(res, tx, [], { accountName, from, to });
+    // Récupérer le logo de l'utilisateur si présent
+    let logoBuffer = null;
+    try {
+        const { rows: lrows } = await pool.query('SELECT logo_data FROM users WHERE id = $1', [req.user.id]);
+        if (lrows[0]?.logo_data) logoBuffer = lrows[0].logo_data;
+    } catch (_) {}
+    pdf.generate(res, tx, [], { accountName, from, to, logoBuffer });
 });
 
 // Page Devices : créer / lister les tokens d'appariement avec les APK

@@ -47,7 +47,20 @@ function generate(res, transactions, patron = [], meta = {}) {
     } else {
         titleLine = `Transactions chez ${account}`;
     }
-    doc.fontSize(16).fillColor('#1565C0').text(titleLine, { align: 'left' });
+
+    // Header avec logo (si fourni)
+    if (meta.logoBuffer) {
+        try {
+            doc.image(meta.logoBuffer, 36, 36, { fit: [60, 60] });
+            doc.fontSize(16).fillColor('#1565C0').text(titleLine, 110, 50, { align: 'left' });
+            doc.moveDown(2);
+        } catch (e) {
+            // Logo invalide → fallback texte seul
+            doc.fontSize(16).fillColor('#1565C0').text(titleLine, { align: 'left' });
+        }
+    } else {
+        doc.fontSize(16).fillColor('#1565C0').text(titleLine, { align: 'left' });
+    }
     doc.fillColor('black');
     doc.fontSize(9).fillColor('#555').text(`Généré le ${new Date().toLocaleString('fr-FR')}`);
     doc.moveDown();

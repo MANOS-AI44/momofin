@@ -68,7 +68,8 @@ async function getSessionUser(sessionToken) {
     if (!sessionToken) return null;
     const { rows } = await pool.query(
         `SELECT u.id, u.email, u.name, s.device_token,
-                (SELECT label FROM devices WHERE token = s.device_token) AS device_label
+                (SELECT label FROM devices WHERE token = s.device_token) AS device_label,
+                (u.logo_data IS NOT NULL) AS has_logo
          FROM sessions s JOIN users u ON s.user_id = u.id
          WHERE s.token = $1 AND s.expires_at > NOW()`,
         [sessionToken]
@@ -79,7 +80,9 @@ async function getSessionUser(sessionToken) {
         id: r.id, email: r.email, name: r.name,
         deviceToken: r.device_token,
         deviceLabel: r.device_label,
-        isSubAccount: !!r.device_token
+        isSubAccount: !!r.device_token,
+        hasLogo: !!r.has_logo,
+        logoUrl: r.has_logo ? `/logo/${r.id}` : null
     };
 }
 

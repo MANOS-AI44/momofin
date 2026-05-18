@@ -40,6 +40,8 @@ async function init() {
         await client.query(`ALTER TABLE devices ADD COLUMN IF NOT EXISTS user_id BIGINT REFERENCES users(id) ON DELETE CASCADE;`);
         await client.query(`ALTER TABLE devices ADD COLUMN IF NOT EXISTS code TEXT UNIQUE;`);
         await client.query(`ALTER TABLE sessions ADD COLUMN IF NOT EXISTS device_token TEXT REFERENCES devices(token) ON DELETE CASCADE;`);
+        await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS logo_data BYTEA;`);
+        await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS logo_mime TEXT;`);
         await client.query(`ALTER TABLE transactions ADD COLUMN IF NOT EXISTS phone_number TEXT;`);
         await client.query(`
             CREATE TABLE IF NOT EXISTS daily_points (

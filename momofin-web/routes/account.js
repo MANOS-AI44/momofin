@@ -2,6 +2,17 @@
 const express = require('express');
 const router = express.Router();
 const users = require('../lib/users');
+const multer = require('multer');
+const { pool } = require('../lib/db');
+
+const upload = multer({
+    storage: multer.memoryStorage(),
+    limits: { fileSize: 2 * 1024 * 1024 }, // 2 MB
+    fileFilter: (req, file, cb) => {
+        const allowed = ['image/png','image/jpeg','image/jpg','image/svg+xml','image/webp'];
+        cb(null, allowed.includes(file.mimetype));
+    }
+});
 
 // Affiche la page inscription
 router.get('/inscription', (req, res) => {
@@ -70,6 +81,38 @@ router.post('/connexion-code', async (req, res) => {
     }
 });
 
+// === Logo personnalisé ===
+router.post('/mon-compte/logo', users.requireUser, upload.single('logo'), async (req, res) => {
+    if (!req.file) return res.redirect('/mon-compte?logo_error=1');
+    try {
+        await pool.query(
+            'UPDATE users SET logo_data = $1, logo_mime = $2 WHERE id = $3',
+            [req.file.buffer, req.file.mimetype, req.user.id]
+        );
+        res.redirect('/mon-compte?logo_ok=1');
+    } catch (err) {
+        res.redirect('/mon-compte?logo_error=2');
+    }
+});
+
+router.post('/mon-compte/logo/supprimer', users.requireUser, async (req, res) => {
+    await pool.query('UPDATE users SET logo_data = NULL, logo_mime = NULL WHERE id = $1', [req.user.id]);
+    res.redirect('/mon-compte');
+});
+
+// Servir le logo (public — pour intégrer dans PDFs, mails, partage)
+router.get('/logo/:userId', async (req, res) => {
+    const { rows } = await pool.query(
+        'SELECT logo_data, logo_mime FROM users WHERE id = $1', [req.params.userId]
+    );
+    if (rows.length === 0 || !rows[0].logo_data) {
+        return res.status(404).send('Pas de logo');
+    }
+    res.setHeader('Content-Type', rows[0].logo_mime || 'image/png');
+    res.setHeader('Cache-Control', 'public, max-age=300'); // 5 min
+    res.send(rows[0].logo_data);
+});
+
 router.get('/deconnexion', async (req, res) => {
     await users.endSession(req.cookies?.session);
     res.clearCookie('session');
@@ -81,6 +124,7 @@ router.get('/mon-compte', users.requireUser, async (req, res) => {
     res.render('mon-compte', {
         user: req.user,
         devices,
+        query: req.query,
         bienvenue: req.query.bienvenue === '1'
     });
 });

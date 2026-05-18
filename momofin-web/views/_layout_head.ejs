@@ -18,7 +18,11 @@
 <div class="app-shell">
     <aside class="sidebar">
         <div class="brand">
-            <span class="logo">💰</span>
+            <% if (typeof user !== 'undefined' && user && user.hasLogo) { %>
+                <img src="<%= user.logoUrl %>" alt="Logo" style="width:36px; height:36px; object-fit:contain; border-radius:6px; background:white; padding:3px;"/>
+            <% } else { %>
+                <span class="logo">💰</span>
+            <% } %>
             <span class="name">MoMo Fin</span>
         </div>
         <nav>
