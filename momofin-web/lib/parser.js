@@ -66,13 +66,20 @@ function isMomoSms(sender, body) {
 }
 
 function detectOperator(sender, body) {
-    const s = (sender || '').toLowerCase();
+    const s = (sender || '').toLowerCase().trim();
     const b = (body || '').toLowerCase();
-    if (s.includes('mobilemoney') || s.includes('mtn') || s.includes('momo') || b.includes('mtn momo')) return 'MTN';
-    if (s.includes('moovmoney') || s.includes('moov') || b.includes('moov money') || b.includes('flooz')) return 'Moov';
-    if (s.includes('orange') || b.includes('orange money')) return 'Orange';
-    // Orange shortcodes commencent souvent par +454 — detecter via signatures Orange du body
+    // === ORANGE === (sender exact +454 ou variantes Orange)
+    if (s === '+454' || s === '454' || s.startsWith('+454') || s.includes('orange'))   return 'Orange';
+    if (b.includes('orange money')) return 'Orange';
+    // Signatures Orange dans le body (sender numerique)
     if (/id\s+transaction[:\s]+c[io]\d/i.test(body) || /vigilance\s+arnaque/i.test(body)) return 'Orange';
+    // === MTN === (MobileMoney = MTN en Cote d'Ivoire)
+    if (s.includes('mobilemoney') || s.includes('mobile money') || s.includes('mtn') || s.includes('momo') || s === 'mm')   return 'MTN';
+    if (b.includes('mtn momo') || b.includes('mtn mobile money')) return 'MTN';
+    // === MOOV ===
+    if (s.includes('moovmoney') || s.includes('moov money') || s.includes('moov') || s.includes('flooz')) return 'MOOV';
+    if (b.includes('moov money') || b.includes('flooz')) return 'MOOV';
+    // Autres
     if (s.includes('airtel')) return 'Airtel';
     if (s.includes('wave') || b.includes('wave')) return 'Wave';
     return 'Autre';

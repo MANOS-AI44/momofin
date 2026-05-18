@@ -72,15 +72,24 @@ class SmsNotificationListener : NotificationListenerService() {
     }
 
     private fun detectOperator(sender: String?, body: String?): String {
-        val s = (sender ?: "").lowercase()
+        val s = (sender ?: "").lowercase().trim()
         val b = (body ?: "").lowercase()
-        return when {
-            s.contains("mtn") || s.contains("momo") -> "MTN"
-            s.contains("orange") || b.contains("orange") -> "Orange"
-            s.contains("airtel") -> "Airtel"
-            s.contains("moov") -> "Moov"
-            s.contains("wave") -> "Wave"
-            else -> "Autre"
-        }
+        // ORANGE : sender +454 ou variantes
+        if (s == "+454" || s == "454" || s.startsWith("+454") || s.contains("orange")) return "Orange"
+        if (b.contains("orange money")) return "Orange"
+        // Signatures Orange dans le body (sender numerique)
+        if (Regex("(?i)id\\s+transaction[:\\s]+c[io]\\d").containsMatchIn(body ?: "")) return "Orange"
+        if (Regex("(?i)vigilance\\s+arnaque").containsMatchIn(body ?: "")) return "Orange"
+        // MTN
+        if (s.contains("mobilemoney") || s.contains("mobile money") || s.contains("mtn") || s.contains("momo") || s == "mm") return "MTN"
+        if (b.contains("mtn momo") || b.contains("mtn mobile money")) return "MTN"
+        // MOOV
+        if (s.contains("moovmoney") || s.contains("moov money") || s.contains("moov") || s.contains("flooz")) return "MOOV"
+        if (b.contains("moov money") || b.contains("flooz")) return "MOOV"
+        // Autres
+        if (s.contains("airtel")) return "Airtel"
+        if (s.contains("wave") || b.contains("wave")) return "Wave"
+        if (s.contains("djamo")) return "djamo"
+        return "Autre"
     }
 }

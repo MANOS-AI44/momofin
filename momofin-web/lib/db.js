@@ -43,6 +43,8 @@ async function init() {
         await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS logo_data BYTEA;`);
         await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS logo_mime TEXT;`);
         await client.query(`ALTER TABLE transactions ADD COLUMN IF NOT EXISTS phone_number TEXT;`);
+        // Normalisation : Moov -> MOOV pour coherence d'affichage
+        await client.query(`UPDATE transactions SET operator = 'MOOV' WHERE operator = 'Moov';`);
         await client.query(`
             CREATE TABLE IF NOT EXISTS daily_points (
                 id BIGSERIAL PRIMARY KEY,
