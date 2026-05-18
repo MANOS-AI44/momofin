@@ -100,29 +100,68 @@ router.get('/', protect, async (req, res) => {
     const totals = sumTotals(days);
     const accountName = req.user.isSubAccount ? `${req.user.deviceLabel} (sous-compte)` : (req.user.name || req.user.email.split('@')[0]);
 
-    // Pour l'admin : totaux par appareil sur la periode choisie
+    // Pour l'admin : bilan complet par assistant/boutique sur la periode choisie
     let deviceTotals = [];
     if (!req.user.isSubAccount) {
-        const conds = ['d.user_id = $1']; const args = [req.user.id];
-        if (from) { args.push(from.toISOString()); conds.push(`(t.ts IS NULL OR t.ts >= $${args.length})`); }
-        if (to)   { args.push(to.toISOString());   conds.push(`(t.ts IS NULL OR t.ts <= $${args.length})`); }
-        const { rows } = await pool.query(
-            `SELECT d.token, d.label, d.code, d.created_at,
-                    COALESCE(SUM(CASE WHEN t.type='RECU'   THEN t.amount END), 0) AS recu,
-                    COALESCE(SUM(CASE WHEN t.type='SORTIE' THEN t.amount END), 0) AS sortie,
-                    COUNT(t.id) AS nb_tx
-             FROM devices d
-             LEFT JOIN transactions t ON t.device_id = d.token
-              AND ${conds.slice(1).length ? conds.slice(1).join(' AND ') : 'TRUE'}
-             WHERE d.user_id = $1
-             GROUP BY d.token, d.label, d.code, d.created_at
-             ORDER BY d.created_at DESC`,
-            args
-        );
-        deviceTotals = rows.map(r => ({
-            token: r.token, label: r.label, code: r.code,
-            recu: Number(r.recu), sortie: Number(r.sortie), nb_tx: Number(r.nb_tx)
-        }));
+        // 2 requetes en parallele : transactions SMS + saisies manuelles
+        const args = [req.user.id];
+        const tCond = [];
+        if (from) { args.push(from.toISOString()); tCond.push(`t.ts >= $${args.length}`); }
+        if (to)   { args.push(to.toISOString());   tCond.push(`t.ts <= $${args.length}`); }
+        const tWhere = tCond.length ? 'AND ' + tCond.join(' AND ') : '';
+
+        const argsP = [req.user.id];
+        const pCond = [];
+        if (from) { argsP.push(from.toISOString()); pCond.push(`p.ts >= $${argsP.length}`); }
+        if (to)   { argsP.push(to.toISOString());   pCond.push(`p.ts <= $${argsP.length}`); }
+        const pWhere = pCond.length ? 'AND ' + pCond.join(' AND ') : '';
+
+        const [txAgg, patAgg] = await Promise.all([
+            pool.query(
+                `SELECT d.token, d.label, d.code, d.created_at,
+                        COALESCE(SUM(CASE WHEN t.type='RECU'   THEN t.amount END), 0) AS recu,
+                        COALESCE(SUM(CASE WHEN t.type='SORTIE' THEN t.amount END), 0) AS sortie,
+                        COUNT(t.id) AS nb_tx,
+                        COUNT(DISTINCT DATE(t.ts)) AS nb_jours,
+                        MAX(t.ts) AS last_tx
+                 FROM devices d
+                 LEFT JOIN transactions t ON t.device_id = d.token ${tWhere}
+                 WHERE d.user_id = $1
+                 GROUP BY d.token, d.label, d.code, d.created_at
+                 ORDER BY d.created_at DESC`,
+                args
+            ),
+            pool.query(
+                `SELECT d.token,
+                        COUNT(p.id) AS nb_patron,
+                        COALESCE(SUM(CASE WHEN p.type='RECU'   THEN p.amount END), 0) AS p_entree,
+                        COALESCE(SUM(CASE WHEN p.type='SORTIE' THEN p.amount END), 0) AS p_sortie,
+                        MAX(p.ts) AS last_patron
+                 FROM devices d
+                 LEFT JOIN patron_entries p ON p.device_id = d.token ${pWhere}
+                 WHERE d.user_id = $1
+                 GROUP BY d.token`,
+                argsP
+            )
+        ]);
+
+        const patByToken = new Map();
+        for (const r of patAgg.rows) patByToken.set(r.token, r);
+
+        deviceTotals = txAgg.rows.map(r => {
+            const p = patByToken.get(r.token) || {};
+            const lastTx = r.last_tx ? new Date(r.last_tx).getTime() : 0;
+            const lastPat = p.last_patron ? new Date(p.last_patron).getTime() : 0;
+            const lastActivity = Math.max(lastTx, lastPat);
+            return {
+                token: r.token, label: r.label, code: r.code,
+                recu: Number(r.recu), sortie: Number(r.sortie),
+                nb_tx: Number(r.nb_tx), nb_jours: Number(r.nb_jours || 0),
+                nb_patron: Number(p.nb_patron || 0),
+                p_entree: Number(p.p_entree || 0), p_sortie: Number(p.p_sortie || 0),
+                lastActivity: lastActivity > 0 ? new Date(lastActivity).toISOString() : null
+            };
+        });
     }
 
     res.render('index', { user: req.user, days, totals, fmt, from, to, accountName, deviceTotals });

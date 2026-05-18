@@ -41,16 +41,32 @@ function phoneOpColor(op) {
 
 <% if (typeof deviceTotals !== 'undefined' && deviceTotals && deviceTotals.length > 0) { %>
     <section class="panel">
-        <h2>📱 Mes appareils (<%= deviceTotals.length %>)</h2>
-        <p class="subtitle">Cliquez sur un appareil pour voir ses transactions sur la période choisie.</p>
+        <h2>👥 Bilan par assistant (<%= deviceTotals.length %>)</h2>
+        <p class="subtitle">Activite de chaque assistant/boutique sur la periode choisie. Cliquez sur un nom pour le detail.</p>
+        <%
+        function relTime(iso) {
+            if (!iso) return '—';
+            var d = new Date(iso); var diff = Date.now() - d.getTime();
+            var mn = Math.floor(diff / 60000);
+            if (mn < 1) return "a l'instant";
+            if (mn < 60) return 'il y a ' + mn + ' min';
+            var h = Math.floor(mn / 60); if (h < 24) return 'il y a ' + h + ' h';
+            var j = Math.floor(h / 24); if (j < 7) return 'il y a ' + j + ' jour' + (j>1?'s':'');
+            return d.toLocaleDateString('fr-FR');
+        }
+        %>
         <table>
             <thead>
                 <tr>
                     <th>Boutique</th>
                     <th>Code</th>
-                    <th style="text-align:right;">Nb transactions</th>
+                    <th style="text-align:center;">SMS captures</th>
+                    <th style="text-align:center;">Jours actifs</th>
+                    <th style="text-align:center;">Saisies manuelles</th>
                     <th style="text-align:right;">Total Retrait</th>
                     <th style="text-align:right;">Total Dépôt</th>
+                    <th style="text-align:right;">Solde</th>
+                    <th>Derniere activite</th>
                     <th></th>
                 </tr>
             </thead>
@@ -59,9 +75,13 @@ function phoneOpColor(op) {
                 <tr>
                     <td><strong><%= d.label || '—' %></strong></td>
                     <td><strong style="color:#1565C0; letter-spacing:2px;"><%= d.code || '—' %></strong></td>
-                    <td style="text-align:right;"><%= d.nb_tx %></td>
+                    <td style="text-align:center;"><strong><%= d.nb_tx %></strong></td>
+                    <td style="text-align:center; color:#6B7280;"><%= d.nb_jours %></td>
+                    <td style="text-align:center; color:#7C3AED;"><strong><%= d.nb_patron %></strong></td>
                     <td style="text-align:right; color:#059669;"><strong><%= fmt(d.recu) %></strong></td>
                     <td style="text-align:right; color:#DC2626;"><strong><%= fmt(d.sortie) %></strong></td>
+                    <td style="text-align:right;"><strong style="color:<%= (d.recu - d.sortie) >= 0 ? '#059669' : '#DC2626' %>;"><%= fmt(d.recu - d.sortie) %></strong></td>
+                    <td style="color:#6B7280; font-size:12px; white-space:nowrap;"><%= relTime(d.lastActivity) %></td>
                     <td style="text-align:right; white-space:nowrap;">
                         <%
                             var devQs = from ? ('?from=' + from.toISOString().substring(0,10) + '&to=' + (to ? to.toISOString().substring(0,10) : '')) : '';
