@@ -2,6 +2,20 @@
 const express = require('express');
 const router = express.Router();
 const users = require('../lib/users');
+
+function adminOnly(req, res, next) {
+    if (!req.user) return res.redirect('/connexion');
+    if (req.user.isSubAccount) {
+        return res.status(403).send(`
+            <html><body style="font-family:sans-serif;padding:40px;text-align:center;">
+                <h2 style="color:#DC2626;">🔒 Accès réservé à l'administrateur</h2>
+                <p>Cette page n'est pas accessible aux sous-comptes.</p>
+                <p><a href="/" style="color:#1565C0;">← Retour au tableau de bord</a></p>
+            </body></html>
+        `);
+    }
+    next();
+}
 const multer = require('multer');
 const { pool } = require('../lib/db');
 
@@ -82,7 +96,7 @@ router.post('/connexion-code', async (req, res) => {
 });
 
 // === Logo personnalisé ===
-router.post('/mon-compte/logo', users.requireUser, upload.single('logo'), async (req, res) => {
+router.post('/mon-compte/logo', adminOnly, upload.single('logo'), async (req, res) => {
     if (!req.file) return res.redirect('/mon-compte?logo_error=1');
     try {
         await pool.query(
@@ -95,7 +109,7 @@ router.post('/mon-compte/logo', users.requireUser, upload.single('logo'), async 
     }
 });
 
-router.post('/mon-compte/logo/supprimer', users.requireUser, async (req, res) => {
+router.post('/mon-compte/logo/supprimer', adminOnly, async (req, res) => {
     await pool.query('UPDATE users SET logo_data = NULL, logo_mime = NULL WHERE id = $1', [req.user.id]);
     res.redirect('/mon-compte');
 });
@@ -119,7 +133,7 @@ router.get('/deconnexion', async (req, res) => {
     res.redirect('/telecharger');
 });
 
-router.get('/mon-compte', users.requireUser, async (req, res) => {
+router.get('/mon-compte', adminOnly, async (req, res) => {
     const devices = await users.getUserDevices(req.user.id);
     res.render('mon-compte', {
         user: req.user,
@@ -129,13 +143,13 @@ router.get('/mon-compte', users.requireUser, async (req, res) => {
     });
 });
 
-router.post('/mon-compte/nouveau-token', users.requireUser, async (req, res) => {
+router.post('/mon-compte/nouveau-token', adminOnly, async (req, res) => {
     const label = (req.body.label || 'Téléphone').trim();
     await users.createDevice(req.user.id, label);
     res.redirect('/mon-compte');
 });
 
-router.post('/mon-compte/revoquer/:token', users.requireUser, async (req, res) => {
+router.post('/mon-compte/revoquer/:token', adminOnly, async (req, res) => {
     await users.deleteDevice(req.user.id, req.params.token);
     res.redirect('/mon-compte');
 });

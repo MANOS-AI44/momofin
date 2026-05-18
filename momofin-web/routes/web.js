@@ -73,6 +73,20 @@ router.get('/manifest.webmanifest', (req, res) => {
 // Au-delà, toutes les routes sont protégées par mot de passe admin
 // =====================================================================
 // Routes protégées : exigent un utilisateur connecté
+function adminOnly(req, res, next) {
+    if (!req.user) return res.redirect('/connexion');
+    if (req.user.isSubAccount) {
+        return res.status(403).send(`
+            <html><body style="font-family:sans-serif;padding:40px;text-align:center;">
+                <h2 style="color:#DC2626;">🔒 Accès réservé à l'administrateur</h2>
+                <p>Cette page n'est pas accessible aux sous-comptes.</p>
+                <p><a href="/" style="color:#1565C0;">← Retour au tableau de bord</a></p>
+            </body></html>
+        `);
+    }
+    next();
+}
+
 function protect(req, res, next) {
     if (!req.user) return res.redirect('/connexion?next=' + encodeURIComponent(req.originalUrl));
     next();
@@ -189,7 +203,7 @@ router.get('/points', protect, async (req, res) => {
     res.render('points', { rows, fmt, user: req.user });
 });
 
-router.get('/devices', protect, async (req, res) => {
+router.get('/devices', adminOnly, async (req, res) => {
     const { rows } = await pool.query(
         'SELECT token, label, code, created_at FROM devices WHERE user_id = $1 ORDER BY created_at DESC',
         [req.user.id]
@@ -197,14 +211,14 @@ router.get('/devices', protect, async (req, res) => {
     res.render('devices', { user: req.user, devices: rows });
 });
 
-router.post('/devices', protect, async (req, res) => {
+router.post('/devices', adminOnly, async (req, res) => {
     const label = (req.body.label || 'Téléphone').trim();
     const users = require('../lib/users');
     await users.createDevice(req.user.id, label);
     res.redirect('/devices');
 });
 
-router.post('/devices/:token/delete', protect, async (req, res) => {
+router.post('/devices/:token/delete', adminOnly, async (req, res) => {
     await pool.query('DELETE FROM devices WHERE token = $1 AND user_id = $2', [req.params.token, req.user.id]);
     res.redirect('/devices');
 });
