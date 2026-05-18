@@ -277,5 +277,14 @@
             android:layout_marginStart="8dp"
             android:text="📊 Mes Points"
             android:textSize="13sp"/>
+        <Button
+            android:id="@+id/btnOpenWeb"
+            style="@style/Btn.Primary"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="52dp"
+            android:layout_marginStart="8dp"
+            android:text="🌐 Site web"
+            android:textSize="13sp"/>
     </LinearLayout>
 </LinearLayout>

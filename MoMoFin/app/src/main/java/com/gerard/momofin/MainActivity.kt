@@ -64,6 +64,18 @@ class MainActivity : AppCompatActivity() {
         binding.btnPoints.setOnClickListener {
             startActivity(Intent(this, PointsActivity::class.java))
         }
+        binding.btnOpenWeb.setOnClickListener {
+            val url = Settings.getUrl(this).ifBlank {
+                Toast.makeText(this, "⚠️ Configurez d'abord l'URL dans Parametres", Toast.LENGTH_LONG).show()
+                startActivity(Intent(this, SettingsActivity::class.java))
+                return@setOnClickListener
+            }
+            try {
+                startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+            } catch (e: Exception) {
+                Toast.makeText(this, "URL invalide : $url", Toast.LENGTH_LONG).show()
+            }
+        }
         binding.btnSettings.setOnClickListener {
             startActivity(Intent(this, SettingsActivity::class.java))
         }
