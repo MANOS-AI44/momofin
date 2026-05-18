@@ -23,7 +23,7 @@
         android:layout_width="match_parent" android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
         android:text="☁️ Récupérer du serveur (multi-téléphones)"
-        android:backgroundTint="#1565C0" android:textColor="#FFFFFF"/>
+        style="@style/Btn.Primary"/>
 
     <TextView
         android:id="@+id/txtEmpty"

@@ -52,24 +52,21 @@
             android:layout_width="0dp" android:layout_weight="1"
             android:layout_height="wrap_content"
             android:text="@string/btn_entree"
-            android:backgroundTint="#2E7D32"
-            android:textColor="#FFFFFF"/>
+            style="@style/Btn.Success"/>
         <Button
             android:id="@+id/btnSortie"
             android:layout_width="0dp" android:layout_weight="1"
             android:layout_height="wrap_content"
             android:layout_marginStart="6dp"
             android:text="@string/btn_sortie"
-            android:backgroundTint="#C62828"
-            android:textColor="#FFFFFF"/>
+            style="@style/Btn.Danger"/>
         <Button
             android:id="@+id/btnTotal"
             android:layout_width="0dp" android:layout_weight="1"
             android:layout_height="wrap_content"
             android:layout_marginStart="6dp"
             android:text="@string/btn_total"
-            android:backgroundTint="#1565C0"
-            android:textColor="#FFFFFF"/>
+            style="@style/Btn.Primary"/>
     </LinearLayout>
 
     <TextView

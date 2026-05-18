@@ -94,8 +94,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginStart="6dp"
                 android:text="@string/btn_save_settings"
-                android:backgroundTint="#1565C0"
-                android:textColor="#FFFFFF"/>
+                style="@style/Btn.Primary"/>
         </LinearLayout>
 
         <TextView
@@ -152,8 +151,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="6dp"
             android:text="📥 Importer les SMS de la boîte"
-            android:backgroundTint="#FFB300"
-            android:textColor="#000000"/>
+            style="@style/Btn.Warning"/>
 
         <Button
             android:id="@+id/btnReset"
@@ -161,8 +159,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="10dp"
             android:text="@string/reset_button"
-            android:backgroundTint="#C62828"
-            android:textColor="#FFFFFF"/>
+            style="@style/Btn.Danger"/>
 
     </LinearLayout>
 </ScrollView>

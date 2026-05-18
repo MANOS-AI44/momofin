@@ -1,8 +1,42 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!-- Brand -->
     <color name="primary">#1565C0</color>
     <color name="primary_dark">#0D47A1</color>
+    <color name="primary_light">#E3F2FD</color>
     <color name="accent">#FFB300</color>
-    <color name="black">#FF000000</color>
-    <color name="white">#FFFFFFFF</color>
+
+    <!-- Status -->
+    <color name="success">#059669</color>
+    <color name="success_dark">#047857</color>
+    <color name="danger">#DC2626</color>
+    <color name="danger_dark">#B91C1C</color>
+    <color name="warning">#F59E0B</color>
+    <color name="purple">#7C3AED</color>
+    <color name="purple_dark">#6D28D9</color>
+
+    <!-- Neutral -->
+    <color name="black">#000000</color>
+    <color name="white">#FFFFFF</color>
+    <color name="text_primary">#111827</color>
+    <color name="text_secondary">#6B7280</color>
+    <color name="text_muted">#9CA3AF</color>
+    <color name="bg_app">#F5F7FA</color>
+    <color name="bg_card">#FFFFFF</color>
+    <color name="border">#E5E7EB</color>
+    <color name="divider">#F3F4F6</color>
+
+    <!-- Badges -->
+    <color name="badge_recu_bg">#D1FAE5</color>
+    <color name="badge_recu_text">#065F46</color>
+    <color name="badge_sortie_bg">#FEE2E2</color>
+    <color name="badge_sortie_text">#991B1B</color>
+
+    <!-- Operator colors -->
+    <color name="op_orange">#FF6F00</color>
+    <color name="op_mtn">#FBC02D</color>
+    <color name="op_moov">#1565C0</color>
+    <color name="op_wave">#00ACC1</color>
+    <color name="op_djamo">#7B1FA2</color>
+    <color name="op_cfa">#2E7D32</color>
 </resources>
