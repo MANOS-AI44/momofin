@@ -438,4 +438,18 @@ router.post('/nettoyer-transactions', adminOnly, async (req, res) => {
 });
 
 
+
+// Operateur effectif : utilise celui stocke, ou le derive du prefixe du numero si 'Autre'/vide
+function effectiveOperator(tx) {
+    const stored = (tx.operator || '').trim();
+    if (stored && stored !== 'Autre') return stored;
+    const phone = String(tx.phone_number || '');
+    const p2 = phone.substring(0, 2);
+    if (p2 === '07' || p2 === '08' || p2 === '09') return 'Orange';
+    if (p2 === '05' || p2 === '04' || p2 === '06') return 'MTN';
+    if (p2 === '01' || p2 === '02' || p2 === '03') return 'MOOV';
+    return stored || 'Autre';
+}
+
 module.exports = router;
+module.exports.effectiveOperator = effectiveOperator;

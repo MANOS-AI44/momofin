@@ -106,7 +106,7 @@ function phoneOpColor(op) {
                         <% if (op) { %><span style="background:<%= phoneOpColor(op) %>; color:white; font-size:10px; padding:2px 6px; border-radius:4px; margin-left:4px;"><%= op %></span><% } %>
                     </td>
                     <td><code><%= t.reference || '—' %></code></td>
-                    <td><%= t.operator || '' %></td>
+                    <td><% var opEff = phoneOp(t.phone_number); %><%= (opEff || t.operator || 'Autre') %></td>
                 </tr>
             <% }); %>
             </tbody>

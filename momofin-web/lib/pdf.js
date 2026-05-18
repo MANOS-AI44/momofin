@@ -107,7 +107,8 @@ function generate(res, transactions, patron = [], meta = {}) {
             const phoneDisplay = (t.phone_number || '—') + (phoneOp ? ` (${phoneOp})` : '');
             doc.text(phoneDisplay.substring(0, 20), 235, y, { width: 95 });
             doc.text((t.reference || '—').substring(0, 22), 335, y, { width: 130 });
-            doc.text(t.operator || '', 470, y, { width: 80 });
+            const effOp = phoneOpFromNum(t.phone_number) || t.operator || '';
+            doc.text(effOp, 470, y, { width: 80 });
             doc.moveDown(0.8);
             if (t.type === 'RECU') recu += Number(t.amount);
             else if (t.type === 'SORTIE') sortie += Number(t.amount);

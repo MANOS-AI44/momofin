@@ -98,7 +98,7 @@ class DailyAdapter : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
             val opSuffix = if (opByNum.isNotEmpty()) " ($opByNum)" else ""
             txtPhone.text = if (tx.phoneNumber.isBlank()) "📞 —" else "📞 ${tx.phoneNumber}$opSuffix"
             txtRef.text = if (tx.reference.isBlank()) "Réf. —" else "Réf. ${tx.reference}"
-            txtOp.text = "Opérateur : ${tx.operator}"
+            txtOp.text = if (TransactionParser.phoneOperator(tx.phoneNumber).isNotEmpty()) TransactionParser.phoneOperator(tx.phoneNumber) else tx.operator
         }
     }
 }

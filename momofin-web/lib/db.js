@@ -47,6 +47,16 @@ async function init() {
         await client.query(`UPDATE transactions
             SET phone_number = SUBSTRING(phone_number FROM 4)
             WHERE phone_number LIKE '225%' AND LENGTH(phone_number) > 10;`);
+        // Migration : re-deriver l'operateur depuis le prefixe du numero pour les anciennes lignes 'Autre'
+        await client.query(`UPDATE transactions SET operator = 'Orange'
+            WHERE (operator = 'Autre' OR operator IS NULL OR operator = '')
+            AND phone_number ~ '^0[789]'`);
+        await client.query(`UPDATE transactions SET operator = 'MTN'
+            WHERE (operator = 'Autre' OR operator IS NULL OR operator = '')
+            AND phone_number ~ '^0[456]'`);
+        await client.query(`UPDATE transactions SET operator = 'MOOV'
+            WHERE (operator = 'Autre' OR operator IS NULL OR operator = '')
+            AND phone_number ~ '^0[123]'`);
         // Normalisation : Moov -> MOOV pour coherence d'affichage
         await client.query(`UPDATE transactions SET operator = 'MOOV' WHERE operator = 'Moov';`);
         await client.query(`
