@@ -1,4 +1,4 @@
-// Génération du PDF imprimable côté serveur (pdfkit).
+// Generation du PDF imprimable cote serveur (pdfkit).
 const PDFDocument = require('pdfkit');
 
 function fmtNumber(n) {
@@ -19,20 +19,21 @@ function dfDay(iso) {
     });
 }
 
-function dfTime(iso) {
-    return new Date(iso).toLocaleTimeString('fr-FR');
-}
-
 function dfDateTime(iso) {
     const d = new Date(iso);
-    return d.toLocaleDateString('fr-FR') + ' ' + d.toLocaleTimeString('fr-FR').substring(0,5);
+    return d.toLocaleDateString('fr-FR') + ' ' + d.toLocaleTimeString('fr-FR').substring(0, 5);
 }
 
-/**
- * @param {WritableStream} res — flux de sortie (HTTP response)
- * @param {Array} transactions — [{ ts, type, amount, currency, reference, operator }]
- * @param {Array} patron — [{ ts, type, amount, note }]
- */
+// Operateur deduit du prefixe local du numero (07=Orange, 05=MTN, 01=MOOV)
+function phoneOpFromNum(phone) {
+    if (!phone) return '';
+    const p = String(phone).substring(0, 2);
+    if (p === '07' || p === '08' || p === '09') return 'Orange';
+    if (p === '05' || p === '04' || p === '06') return 'MTN';
+    if (p === '01' || p === '02' || p === '03') return 'MOOV';
+    return '';
+}
+
 function generate(res, transactions, patron = [], meta = {}) {
     const doc = new PDFDocument({ size: 'A4', margin: 36 });
     doc.pipe(res);
@@ -48,25 +49,23 @@ function generate(res, transactions, patron = [], meta = {}) {
         titleLine = `Transactions chez ${account}`;
     }
 
-    // Header avec logo (si fourni)
+    // En-tete avec logo (si fourni)
     if (meta.logoBuffer) {
         try {
             doc.image(meta.logoBuffer, 36, 36, { fit: [60, 60] });
             doc.fontSize(16).fillColor('#1565C0').text(titleLine, 110, 50, { align: 'left' });
             doc.moveDown(2);
         } catch (e) {
-            // Logo invalide → fallback texte seul
             doc.fontSize(16).fillColor('#1565C0').text(titleLine, { align: 'left' });
         }
     } else {
         doc.fontSize(16).fillColor('#1565C0').text(titleLine, { align: 'left' });
     }
     doc.fillColor('black');
-    doc.fontSize(9).fillColor('#555').text(`Généré le ${new Date().toLocaleString('fr-FR')}`);
+    doc.fontSize(9).fillColor('#555').text(`Genere le ${new Date().toLocaleString('fr-FR')}`);
     doc.moveDown();
     doc.fillColor('black');
 
-    // Regrouper par jour
     const groups = new Map();
     for (const t of transactions) {
         const k = dayKey(t.ts);
@@ -82,7 +81,7 @@ function generate(res, transactions, patron = [], meta = {}) {
         doc.fontSize(13).fillColor('black').text(dfDay(new Date(day).toISOString()), { underline: false });
         doc.moveDown(0.3);
 
-        // Entêtes
+        // Entetes colonnes
         const yStart = doc.y;
         doc.fontSize(10).fillColor('#333');
         doc.text('Date/Heure', 36, yStart);
@@ -103,9 +102,7 @@ function generate(res, transactions, patron = [], meta = {}) {
             doc.text(dfDateTime(t.ts), 36, y, { width: 70 });
             doc.text(t.type === 'RECU' ? 'Retrait' : (t.type === 'SORTIE' ? 'Dépôt' : '—'), 110, y, { width: 40 });
             doc.text(`${fmtNumber(t.amount)} ${t.currency || ''}`, 155, y, { width: 75 });
-            const phoneOp = phoneOpFromNum(t.phone_number);
-            const phoneDisplay = (t.phone_number || '—') + (phoneOp ? ` (${phoneOp})` : '');
-            doc.text(phoneDisplay.substring(0, 20), 235, y, { width: 95 });
+            doc.text((t.phone_number || '—').substring(0, 14), 235, y, { width: 95 });
             doc.text((t.reference || '—').substring(0, 22), 335, y, { width: 130 });
             const effOp = phoneOpFromNum(t.phone_number) || t.operator || '';
             doc.text(effOp, 470, y, { width: 80 });
@@ -118,14 +115,15 @@ function generate(res, transactions, patron = [], meta = {}) {
 
         doc.moveTo(36, doc.y).lineTo(559, doc.y).strokeColor('#bbb').stroke();
         doc.moveDown(0.3);
+        // ⚠️ Labels coherents avec le tableau au-dessus : Retrait (= RECU) / Dépôt (= SORTIE)
         doc.fontSize(10).fillColor('black').text(
-            `Reçu : ${fmtNumber(recu)}    |    Sortie : ${fmtNumber(sortie)}    |    Solde : ${fmtNumber(recu - sortie)}`,
+            `Retrait : ${fmtNumber(recu)}    |    Dépôt : ${fmtNumber(sortie)}    |    Solde : ${fmtNumber(recu - sortie)}`,
             { align: 'left' }
         );
         doc.moveDown();
     }
 
-    // Section PATRON
+    // Section Mes Comptes / PATRON manuel (si fournie)
     if (patron.length > 0) {
         if (doc.y > 700) doc.addPage();
         doc.fontSize(13).fillColor('black').text('Section PATRON (saisies manuelles)');
@@ -133,7 +131,7 @@ function generate(res, transactions, patron = [], meta = {}) {
         let pRecu = 0, pSortie = 0;
         for (const e of patron) {
             if (doc.y > 760) doc.addPage();
-            const label = e.type === 'RECU' ? 'Reçu' : 'Sortie';
+            const label = e.type === 'RECU' ? 'Entrée' : 'Sortie';
             doc.fontSize(9).text(
                 `${new Date(e.ts).toLocaleString('fr-FR')}    ${label}    ${fmtNumber(e.amount)}    ${e.note || ''}`
             );
@@ -145,20 +143,20 @@ function generate(res, transactions, patron = [], meta = {}) {
         doc.moveTo(36, doc.y).lineTo(559, doc.y).strokeColor('#bbb').stroke();
         doc.moveDown(0.3);
         doc.fontSize(11).text(
-            `Patron — Reçu : ${fmtNumber(pRecu)}    |    Sortie : ${fmtNumber(pSortie)}    |    Total : ${fmtNumber(pRecu - pSortie)}`
+            `Patron — Entrée : ${fmtNumber(pRecu)}    |    Sortie : ${fmtNumber(pSortie)}    |    Total : ${fmtNumber(pRecu - pSortie)}`
         );
         doc.moveDown();
     }
 
-    // Total général
+    // Total general
     if (doc.y > 740) doc.addPage();
     doc.moveTo(36, doc.y).lineTo(559, doc.y).strokeColor('#888').stroke();
     doc.moveDown(0.4);
     doc.fontSize(12).fillColor('black').text(
-        `TOTAL GÉNÉRAL — Reçu : ${fmtNumber(totalRecu)}    |    Sortie : ${fmtNumber(totalSortie)}    |    Solde : ${fmtNumber(totalRecu - totalSortie)}`
+        `TOTAL GÉNÉRAL — Retrait : ${fmtNumber(totalRecu)}    |    Dépôt : ${fmtNumber(totalSortie)}    |    Solde : ${fmtNumber(totalRecu - totalSortie)}`
     );
 
     doc.end();
 }
 
-module.exports = { generate, dayKey, fmtNumber };
+module.exports = { generate, dayKey, fmtNumber, phoneOpFromNum };

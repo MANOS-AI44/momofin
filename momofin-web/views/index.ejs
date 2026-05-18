@@ -100,11 +100,7 @@ function phoneOpColor(op) {
                     <td><%= new Date(t.ts).toLocaleString('fr-FR') %></td>
                     <td><span class="badge <%= t.type === 'RECU' ? 'recu' : 'sortie' %>"><%= t.type === 'RECU' ? 'Retrait' : (t.type === 'SORTIE' ? 'Dépôt' : '—') %></span></td>
                     <td><strong><%= fmt(t.amount) %></strong> <%= t.currency || '' %></td>
-                    <td>
-                        <% var op = phoneOp(t.phone_number); %>
-                        <strong><%= t.phone_number || '—' %></strong>
-                        <% if (op) { %><span style="background:<%= phoneOpColor(op) %>; color:white; font-size:10px; padding:2px 6px; border-radius:4px; margin-left:4px;"><%= op %></span><% } %>
-                    </td>
+                    <td><%= t.phone_number || '—' %></td>
                     <td><code><%= t.reference || '—' %></code></td>
                     <td><% var opEff = phoneOp(t.phone_number); %><%= (opEff || t.operator || 'Autre') %></td>
                 </tr>
