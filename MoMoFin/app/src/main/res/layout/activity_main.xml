@@ -29,9 +29,17 @@
                     android:textStyle="bold"
                     android:text="@string/app_name"/>
                 <Button
+                    android:id="@+id/btnDevices"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="📱 Appareils"
+                    android:textSize="11sp"/>
+
+                <Button
                     android:id="@+id/btnSettings"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
+                    android:layout_marginStart="4dp"
                     android:text="@string/btn_settings"
                     android:textSize="12sp"/>
             </LinearLayout>
