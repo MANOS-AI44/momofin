@@ -22,12 +22,6 @@
     </form>
 </section>
 
-<section class="cards">
-    <div class="card recu"><span class="label">Total Retrait</span><strong class="value"><%= fmt(totals.recu) %></strong></div>
-    <div class="card sortie"><span class="label">Total Dépôt</span><strong class="value"><%= fmt(totals.sortie) %></strong></div>
-    
-</section>
-
 <% if (days.length === 0) { %>
     <p class="empty">Aucune transaction reçue pour l'instant. Synchronisez depuis l'APK MoMo Fin.</p>
 <% } %>
