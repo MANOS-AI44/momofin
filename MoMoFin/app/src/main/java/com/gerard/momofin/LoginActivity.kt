@@ -107,6 +107,7 @@ class LoginActivity : AppCompatActivity() {
                 binding.btnSignupSubmit.isEnabled = true
                 if (r.ok && !r.token.isNullOrBlank()) {
                     Settings.save(this@LoginActivity, url, r.token)
+                    Settings.setAdmin(this@LoginActivity, true)
                     Toast.makeText(this@LoginActivity, R.string.login_success, Toast.LENGTH_LONG).show()
                     startActivity(Intent(this@LoginActivity, MainActivity::class.java))
                     finish()
@@ -131,6 +132,7 @@ class LoginActivity : AppCompatActivity() {
                 binding.btnCodeSubmit.isEnabled = true
                 if (r.ok && !r.token.isNullOrBlank()) {
                     Settings.save(this@LoginActivity, url, r.token)
+                    Settings.setAdmin(this@LoginActivity, false)
                     Toast.makeText(this@LoginActivity, R.string.login_success, Toast.LENGTH_LONG).show()
                     startActivity(Intent(this@LoginActivity, MainActivity::class.java))
                     finish()
@@ -162,6 +164,7 @@ class LoginActivity : AppCompatActivity() {
                 binding.btnLoginSubmit.isEnabled = true
                 if (r.ok && !r.token.isNullOrBlank()) {
                     Settings.save(this@LoginActivity, url, r.token)
+                    Settings.setAdmin(this@LoginActivity, true)
                     Toast.makeText(this@LoginActivity, R.string.login_success, Toast.LENGTH_LONG).show()
                     startActivity(Intent(this@LoginActivity, MainActivity::class.java))
                     finish()

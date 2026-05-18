@@ -9,12 +9,21 @@ object Settings {
     private const val K_TOKEN = "railway_token"
     private const val K_LAST_SYNC = "last_sync_ts"
     private const val K_ASKED_PERMS = "asked_perms"
+    private const val K_IS_ADMIN = "is_admin"
 
     fun getUrl(c: Context): String =
         c.getSharedPreferences(PREF, Context.MODE_PRIVATE).getString(K_URL, "") ?: ""
 
     fun getToken(c: Context): String =
         c.getSharedPreferences(PREF, Context.MODE_PRIVATE).getString(K_TOKEN, "") ?: ""
+
+    fun isAdmin(c: Context): Boolean =
+        c.getSharedPreferences(PREF, Context.MODE_PRIVATE).getBoolean(K_IS_ADMIN, true)
+
+    fun setAdmin(c: Context, isAdmin: Boolean) {
+        c.getSharedPreferences(PREF, Context.MODE_PRIVATE).edit()
+            .putBoolean(K_IS_ADMIN, isAdmin).apply()
+    }
 
     fun save(c: Context, url: String, token: String) {
         c.getSharedPreferences(PREF, Context.MODE_PRIVATE).edit()

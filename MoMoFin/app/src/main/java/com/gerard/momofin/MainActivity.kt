@@ -65,7 +65,15 @@ class MainActivity : AppCompatActivity() {
             startActivity(Intent(this, SettingsActivity::class.java))
         }
         binding.btnDevices.setOnClickListener {
-            startActivity(Intent(this, DevicesActivity::class.java))
+            if (Settings.isAdmin(this)) {
+                startActivity(Intent(this, DevicesActivity::class.java))
+            } else {
+                Toast.makeText(this, "🔒 Réservé à l'administrateur", Toast.LENGTH_LONG).show()
+            }
+        }
+        // Cacher btnDevices si pas admin (sous-compte)
+        if (!Settings.isAdmin(this)) {
+            binding.btnDevices.visibility = View.GONE
         }
         binding.btnSync.setOnClickListener { syncToRailway() }
 

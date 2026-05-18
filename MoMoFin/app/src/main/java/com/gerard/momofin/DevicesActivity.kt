@@ -42,6 +42,11 @@ class DevicesActivity : AppCompatActivity() {
             finish()
             return
         }
+        if (!Settings.isAdmin(this)) {
+            Toast.makeText(this, "🔒 Réservé à l'administrateur", Toast.LENGTH_LONG).show()
+            finish()
+            return
+        }
         loadList()
     }
 
