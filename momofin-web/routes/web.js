@@ -3,7 +3,7 @@ const express = require('express');
 const router = express.Router();
 
 const { pool } = require('../lib/db');
-const { authAdmin } = require('../lib/auth');
+const { requireUser } = require('../lib/users');
 const pdf = require('../lib/pdf');
 
 // =====================================================================
@@ -64,14 +64,18 @@ router.get('/manifest.webmanifest', (req, res) => {
 // =====================================================================
 // Au-delà, toutes les routes sont protégées par mot de passe admin
 // =====================================================================
-router.use(authAdmin);
+// Routes protégées : exigent un utilisateur connecté
+function protect(req, res, next) {
+    if (!req.user) return res.redirect('/connexion?next=' + encodeURIComponent(req.originalUrl));
+    next();
+}
 
 // Dashboard principal — liste regroupée par jour
-router.get('/', async (req, res) => {
+router.get('/', protect, async (req, res) => {
     const { from, to } = parseRange(req.query);
-    const days = await loadDays(from, to);
+    const days = await loadDays(req.user.id, from, to);
     const totals = sumTotals(days);
-    const accountName = await getAccountName();
+    const accountName = req.user.name || req.user.email.split('@')[0];
     res.render('index', { days, totals, fmt, from, to, accountName });
 });
 
@@ -99,9 +103,12 @@ async function getAccountName() {
 }
 
 // Section PATRON
-router.get('/patron', async (req, res) => {
+router.get('/patron', protect, async (req, res) => {
     const { rows: entries } = await pool.query(
-        'SELECT id, type, amount, note, ts, device_id FROM patron_entries ORDER BY ts DESC'
+        `SELECT id, type, amount, note, ts, device_id FROM patron_entries
+         WHERE device_id IN (SELECT token FROM devices WHERE user_id = $1)
+         ORDER BY ts DESC`,
+        [req.user.id]
     );
     const recu = entries.filter(e => e.type === 'RECU').reduce((s, e) => s + Number(e.amount), 0);
     const sortie = entries.filter(e => e.type === 'SORTIE').reduce((s, e) => s + Number(e.amount), 0);
@@ -109,7 +116,7 @@ router.get('/patron', async (req, res) => {
 });
 
 // Ajouter une entrée PATRON depuis le web
-router.post('/patron', async (req, res) => {
+router.post('/patron', protect, async (req, res) => {
     const { type, amount, note, device_id } = req.body;
     const a = Number((amount || '').toString().replace(',', '.'));
     if (!['RECU', 'SORTIE'].includes(type) || !isFinite(a) || a <= 0) {
@@ -123,13 +130,13 @@ router.post('/patron', async (req, res) => {
     res.redirect('/patron');
 });
 
-router.post('/patron/:id/delete', async (req, res) => {
+router.post('/patron/:id/delete', protect, async (req, res) => {
     await pool.query('DELETE FROM patron_entries WHERE id = $1', [req.params.id]);
     res.redirect('/patron');
 });
 
 // Génération PDF (avec ou sans le pwd dans la requête)
-router.get('/pdf', async (req, res) => {
+router.get('/pdf', protect, async (req, res) => {
     const { from, to } = parseRange(req.query);
     const conds = []; const args = [];
     if (from) { args.push(from.toISOString()); conds.push(`ts >= $${args.length}`); }
@@ -139,7 +146,7 @@ router.get('/pdf', async (req, res) => {
         `SELECT operator, type, amount, currency, reference, phone_number, ts FROM transactions ${where} ORDER BY ts DESC`,
         args
     );
-    const accountName = await getAccountName();
+    const accountName = req.user.name || req.user.email.split('@')[0];
     const fmtDate = d => d ? d.toISOString().substring(0, 10) : null;
     const filename = (() => {
         const safe = accountName.replace(/[^A-Za-z0-9_-]/g, '_');
@@ -152,30 +159,33 @@ router.get('/pdf', async (req, res) => {
 });
 
 // Page Devices : créer / lister les tokens d'appariement avec les APK
-router.get('/devices', async (req, res) => {
-    const { rows } = await pool.query('SELECT token, label, created_at FROM devices ORDER BY created_at DESC');
+router.get('/devices', protect, async (req, res) => {
+    const { rows } = await pool.query(
+        'SELECT token, label, code, created_at FROM devices WHERE user_id = $1 ORDER BY created_at DESC',
+        [req.user.id]
+    );
     res.render('devices', { devices: rows });
 });
 
-router.post('/devices', async (req, res) => {
+router.post('/devices', protect, async (req, res) => {
     const label = (req.body.label || 'Téléphone').trim();
-    const token = generateToken();
-    await pool.query('INSERT INTO devices (token, label) VALUES ($1, $2)', [token, label]);
+    const users = require('../lib/users');
+    await users.createDevice(req.user.id, label);
     res.redirect('/devices');
 });
 
-router.post('/devices/:token/delete', async (req, res) => {
-    await pool.query('DELETE FROM devices WHERE token = $1', [req.params.token]);
+router.post('/devices/:token/delete', protect, async (req, res) => {
+    await pool.query('DELETE FROM devices WHERE token = $1 AND user_id = $2', [req.params.token, req.user.id]);
     res.redirect('/devices');
 });
 
 // --- Helpers ---
 
-async function loadDays(from, to) {
-    const conds = []; const args = [];
-    if (from) { args.push(from.toISOString()); conds.push(`ts >= $${args.length}`); }
-    if (to) { args.push(to.toISOString()); conds.push(`ts <= $${args.length}`); }
-    const where = conds.length ? 'WHERE ' + conds.join(' AND ') : '';
+async function loadDays(userId, from, to) {
+    const args = [userId];
+    let where = `WHERE device_id IN (SELECT token FROM devices WHERE user_id = $1)`;
+    if (from) { args.push(from.toISOString()); where += ` AND ts >= $${args.length}`; }
+    if (to) { args.push(to.toISOString()); where += ` AND ts <= $${args.length}`; }
     const { rows } = await pool.query(
         `SELECT operator, type, amount, currency, reference, phone_number, ts
          FROM transactions ${where} ORDER BY ts DESC LIMIT 5000`,

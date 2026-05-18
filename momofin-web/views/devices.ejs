@@ -31,13 +31,14 @@
 
     <table>
         <thead>
-            <tr><th>Nom</th><th>Token (à copier dans l'APK)</th><th>Créé le</th><th></th></tr>
+            <tr><th>Nom</th><th>Code court (à dicter)</th><th>Token long</th><th>Créé le</th><th></th></tr>
         </thead>
         <tbody>
             <% devices.forEach(function(d) { %>
                 <tr>
                     <td><%= d.label || '—' %></td>
-                    <td><code><%= d.token %></code></td>
+                    <td><strong style="font-size:18px; color:#1565C0; letter-spacing:2px;"><%= d.code || '—' %></strong></td>
+                    <td><code style="font-size:10px;"><%= d.token %></code></td>
                     <td><%= new Date(d.created_at).toLocaleString('fr-FR') %></td>
                     <td>
                         <form method="POST" action="/devices/<%= d.token %>/delete" onsubmit="return confirm('Révoquer ce token ?')">
