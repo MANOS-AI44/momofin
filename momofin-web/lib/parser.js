@@ -1,18 +1,33 @@
-// Parser SMS Mobile Money — STRICT.
-// N'accepte que les 6 patterns de reference (Orange / MTN / MOOV — Depot et Retrait).
-// Tout SMS qui ne match aucun pattern est rejete (parse renvoie null, isMomoSms renvoie false).
+// Parser SMS Mobile Money — STRICT, base sur les 6 SMS REELS d'agent Orange/MTN/MOOV.
+// N'accepte que ces formes exactes. Tout autre SMS est rejete (return null).
 
 const CURRENCY = '(RWF|XOF|XAF|UGX|GHS|KES|TZS|FCFA|CFA|USD|EUR|F(?![a-zA-Z]))';
 const AMOUNT_RE = new RegExp(`(?:^|[^A-Za-z0-9])([0-9][0-9 ,.]{0,15})\\s*${CURRENCY}`, 'gi');
 
-// === Patterns canoniques (UN SEUL doit matcher pour accepter l'SMS) ===
-// SORTIE (Depot cote agent) : "Vous avez envoye X FCFA ..."
-const PAT_SORTIE = /\bvous\s+avez\s+envoy[eé]\b[\s\S]{0,200}?(?:FCFA|CFA|XOF|XAF|RWF|F\b)/i;
-// RECU (Retrait cote agent) : "Vous avez recu X FCFA ..." OU "Le numero X a envoye Y FCFA ... sur votre numero Z"
-const PAT_RECU_DIRECT = /\bvous\s+avez\s+re[çc]u\b[\s\S]{0,200}?(?:FCFA|CFA|XOF|XAF|RWF|F\b)/i;
-const PAT_RECU_INDIRECT = /\b(?:le\s+)?num[eé]ro\s+\+?\d[\d\s\-.]{6,18}\d\s+a\s+envoy[eé]\b[\s\S]{0,200}?sur\s+votre\s+num[eé]ro/i;
+// ===========================================================================
+// PATTERNS CANONIQUES (au moins UN doit matcher)
+// Note : pas de \b apres caracteres accentues (echoue en JS Unicode)
+// ===========================================================================
 
-// === Reference (ID Transaction / Ref / ID) ===
+// --- SORTIE (Depot cote agent : client vient deposer, agent envoie) ---
+// (a) MTN/MOOV : "Vous avez envoye/envoye X FCFA ..."
+const PAT_SORTIE_GENERIC = /vous\s+avez\s+envoy[eé][\s\S]{0,250}?(?:FCFA|CFA|XOF|XAF|RWF|\bF\b)/i;
+// (b) Orange : "Le depot vers le X est reussi"
+const PAT_SORTIE_ORANGE = /(?:^|[\s.])(?:le\s+)?d[eé]p[oô]?t\s+vers\s+(?:le\s+)?\+?\d[\d\s\-.]{6,18}\d[\s\S]{0,80}?(?:est\s+r[eé]ussi|reussi)/i;
+
+// --- RECU (Retrait cote agent : client vient retirer, agent recoit) ---
+// (a) generique : "Vous avez recu X FCFA"
+const PAT_RECU_DIRECT = /vous\s+avez\s+re[çc]u[\s\S]{0,250}?(?:FCFA|CFA|XOF|XAF|RWF|\bF\b)/i;
+// (b) MOOV : "Le numero X a envoye Y FCFA sur votre numero Z"
+const PAT_RECU_INDIRECT = /(?:le\s+)?num[eé]ro\s+\+?\d[\d\s\-.]{6,18}\d\s+a\s+envoy[eé][\s\S]{0,250}?sur\s+votre\s+num[eé]ro/i;
+// (c) Orange : "Retrait de X effectue"
+const PAT_RECU_ORANGE = /retrait\s+de\s+\+?\d[\d\s\-.]{6,18}\d[\s\S]{0,40}?effectu[eé]/i;
+// (d) MTN : "Le retrait initie ... a ete effectue" (avec ou sans "payer le montant")
+const PAT_RECU_MTN = /retrait\s+initi[eé][\s\S]{0,250}?(?:a\s+[eé]t[eé]\s+effectu[eé]|payer\s+le\s+montant)/i;
+
+// ===========================================================================
+// Reference, telephone, date
+// ===========================================================================
 const REF_PATTERNS = [
     /(?:ID\s+Transaction|Transaction\s+ID|Transaction\s+Id|Financial Transaction Id|TxId|TXID|Txn Id|Trans\.? Id)\s*[:#]?\s*([A-Za-z0-9][A-Za-z0-9.\-_]{3,40})/i,
     /\b(?:Ref(?:erence|érence)?|Réf)\.?\s*[:#]?\s*([A-Za-z0-9][A-Za-z0-9.\-_]{3,40})/i,
@@ -20,39 +35,44 @@ const REF_PATTERNS = [
     /\b(\d{8,16})\b/
 ];
 
-// === Phone patterns ===
 const PHONE_SENDER = /(?:le\s+num[eé]ro\s+|num[eé]ro\s+)?(\+?\d[\d\s\-.]{6,18}\d)\s+a\s+envoy[eé]/i;
 const PHONE_NUMERO = /\bnum[eé]ro\s+(\+?\d[\d\s\-.]{6,18}\d)/gi;
+// "Retrait de X" : capter directement
+const PHONE_RETRAIT_DE = /retrait\s+de\s+(\+?\d[\d\s\-.]{6,18}\d)/i;
+// "depot vers le X"
+const PHONE_DEPOT_VERS = /d[eé]p[oô]?t\s+vers\s+(?:le\s+)?(\+?\d[\d\s\-.]{6,18}\d)/i;
+// "vers le X" / "au X" / "de X" etc.
 const PHONE_NEAR = /\b(?:from|to|de|du|vers|à|a|au|chez)\b\s+(?:le\s+|la\s+|du\s+|des\s+|aux?\s+)?(?:[^()\d\n]{0,40}?)?\(?\s*(\+?\d[\d\s.]{6,18}\d)\s*\)?/gi;
 const PHONE_INTL = /(\+\d[\d\s.]{6,18}\d)/g;
 const PHONE_LONG = /(?<![\d])(\d{10,15})(?![\d])/g;
 const PHONE_LOCAL = /(?<![\d])(0\d[\d\s.]{6,12}\d)(?![\d])/g;
 
-// === Amount priority hints ===
-const GOOD_KW = ['montant', 'recu', 'reçu', 'envoye', 'envoyé', 'a envoye', 'a envoyé'];
+const GOOD_KW = ['montant', 'recu', 'reçu', 'envoye', 'envoyé', 'a envoye', 'a envoyé', 'payer le montant'];
 const BAD_KW = ['solde', 'frais', 'commission', 'balance', 'nouveau solde'];
 
+// ===========================================================================
 function detectType(body) {
-    // 1. RECU "indirect" (MOOV Retrait) — priorite max car contient "envoye" qui sinon serait SORTIE
     if (PAT_RECU_INDIRECT.test(body)) return 'RECU';
-    // 2. RECU direct
     if (PAT_RECU_DIRECT.test(body)) return 'RECU';
-    // 3. SORTIE (Depot)
-    if (PAT_SORTIE.test(body)) return 'SORTIE';
+    if (PAT_RECU_ORANGE.test(body)) return 'RECU';
+    if (PAT_RECU_MTN.test(body)) return 'RECU';
+    if (PAT_SORTIE_GENERIC.test(body)) return 'SORTIE';
+    if (PAT_SORTIE_ORANGE.test(body)) return 'SORTIE';
     return null;
 }
 
 function isMomoSms(sender, body) {
-    // STRICT : doit matcher un des patterns canoniques
     return detectType(body || '') !== null;
 }
 
 function detectOperator(sender, body) {
     const s = (sender || '').toLowerCase();
     const b = (body || '').toLowerCase();
-    if (s.includes('mtn') || s.includes('momo') || b.includes('momo')) return 'MTN';
-    if (s.includes('orange') || b.includes('orange money') || b.includes('orange')) return 'Orange';
-    if (s.includes('moov') || b.includes('moov') || b.includes('flooz')) return 'Moov';
+    if (s.includes('mobilemoney') || s.includes('mtn') || s.includes('momo') || b.includes('mtn momo')) return 'MTN';
+    if (s.includes('moovmoney') || s.includes('moov') || b.includes('moov money') || b.includes('flooz')) return 'Moov';
+    if (s.includes('orange') || b.includes('orange money')) return 'Orange';
+    // Orange shortcodes commencent souvent par +454 — detecter via signatures Orange du body
+    if (/id\s+transaction[:\s]+c[io]\d/i.test(body) || /vigilance\s+arnaque/i.test(body)) return 'Orange';
     if (s.includes('airtel')) return 'Airtel';
     if (s.includes('wave') || b.includes('wave')) return 'Wave';
     return 'Autre';
@@ -109,13 +129,16 @@ function cleanPhone(raw) {
 }
 
 function extractPhone(body) {
-    // Priorite 1 : "X a envoye" (MOOV Retrait — extrait l'expediteur)
+    // 1. "X a envoye" (Retrait MOOV : capter l'emetteur)
     const m1 = body.match(PHONE_SENDER);
-    if (m1 && m1[1]) {
-        const c = cleanPhone(m1[1]);
-        if (c) return c;
-    }
-    // Priorite 2 : "numero X" en ignorant "votre numero"
+    if (m1 && m1[1]) { const c = cleanPhone(m1[1]); if (c) return c; }
+    // 2. "Retrait de X" (Retrait Orange)
+    const m2 = body.match(PHONE_RETRAIT_DE);
+    if (m2 && m2[1]) { const c = cleanPhone(m2[1]); if (c) return c; }
+    // 3. "depot vers (le) X" (Depot Orange)
+    const m3 = body.match(PHONE_DEPOT_VERS);
+    if (m3 && m3[1]) { const c = cleanPhone(m3[1]); if (c) return c; }
+    // 4. "numero X" en sautant "votre numero"
     PHONE_NUMERO.lastIndex = 0;
     let m;
     while ((m = PHONE_NUMERO.exec(body)) !== null) {
@@ -125,7 +148,7 @@ function extractPhone(body) {
         const c = cleanPhone(m[1]);
         if (c) return c;
     }
-    // Priorite 3 : fallback
+    // 5. preposition + telephone
     for (const p of [PHONE_NEAR, PHONE_INTL, PHONE_LONG, PHONE_LOCAL]) {
         p.lastIndex = 0;
         let mm;
@@ -151,7 +174,6 @@ function extractDate(body) {
     return isNaN(date.getTime()) ? null : date.toISOString();
 }
 
-// parse() renvoie null si l'SMS ne correspond a aucun pattern accepte (rejet strict)
 function parse(sender, body, smsTimestamp) {
     const type = detectType(body || '');
     if (!type) return null;

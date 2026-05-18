@@ -14,15 +14,24 @@ object TransactionParser {
         Pattern.CASE_INSENSITIVE
     )
 
-    // === PATTERNS CANONIQUES STRICTS ===
-    private val PAT_SORTIE = Pattern.compile(
-        "(?i)\\bvous\\s+avez\\s+envoy[eé]\\b[\\s\\S]{0,200}?(?:FCFA|CFA|XOF|XAF|RWF|F\\b)"
+    // === PATTERNS CANONIQUES STRICTS — base sur les 6 SMS reels ===
+    private val PAT_SORTIE_GENERIC = Pattern.compile(
+        "(?i)vous\\s+avez\\s+envoy[eé][\\s\\S]{0,250}?(?:FCFA|CFA|XOF|XAF|RWF|\\bF\\b)"
+    )
+    private val PAT_SORTIE_ORANGE = Pattern.compile(
+        "(?i)(?:^|[\\s.])(?:le\\s+)?d[eé]p[oô]?t\\s+vers\\s+(?:le\\s+)?\\+?\\d[\\d\\s\\-\\.]{6,18}\\d[\\s\\S]{0,80}?(?:est\\s+r[eé]ussi|reussi)"
     )
     private val PAT_RECU_DIRECT = Pattern.compile(
-        "(?i)\\bvous\\s+avez\\s+re[çc]u\\b[\\s\\S]{0,200}?(?:FCFA|CFA|XOF|XAF|RWF|F\\b)"
+        "(?i)vous\\s+avez\\s+re[çc]u[\\s\\S]{0,250}?(?:FCFA|CFA|XOF|XAF|RWF|\\bF\\b)"
     )
     private val PAT_RECU_INDIRECT = Pattern.compile(
-        "(?i)\\b(?:le\\s+)?num[eé]ro\\s+\\+?\\d[\\d\\s\\-\\.]{6,18}\\d\\s+a\\s+envoy[eé]\\b[\\s\\S]{0,200}?sur\\s+votre\\s+num[eé]ro"
+        "(?i)(?:le\\s+)?num[eé]ro\\s+\\+?\\d[\\d\\s\\-\\.]{6,18}\\d\\s+a\\s+envoy[eé][\\s\\S]{0,250}?sur\\s+votre\\s+num[eé]ro"
+    )
+    private val PAT_RECU_ORANGE = Pattern.compile(
+        "(?i)retrait\\s+de\\s+\\+?\\d[\\d\\s\\-\\.]{6,18}\\d[\\s\\S]{0,40}?effectu[eé]"
+    )
+    private val PAT_RECU_MTN = Pattern.compile(
+        "(?i)retrait\\s+initi[eé][\\s\\S]{0,250}?(?:a\\s+[eé]t[eé]\\s+effectu[eé]|payer\\s+le\\s+montant)"
     )
 
     private val REF_PATTERNS = listOf(
@@ -32,46 +41,37 @@ object TransactionParser {
         Pattern.compile("\\b([0-9]{8,16})\\b")
     )
 
-    private val PHONE_SENDER = Pattern.compile(
-        "(?i)(?:le\\s+num[eé]ro\\s+|num[eé]ro\\s+)?(\\+?\\d[\\d\\s\\-\\.]{6,18}\\d)\\s+a\\s+envoy[eé]"
-    )
-    private val PHONE_NUMERO = Pattern.compile(
-        "(?i)\\bnum[eé]ro\\s+(\\+?\\d[\\d\\s\\-\\.]{6,18}\\d)"
-    )
-    private val PHONE_NEAR_KEYWORD = Pattern.compile(
-        "(?i)\\b(?:from|to|de|du|vers|à|a|au|chez)\\b\\s+(?:le\\s+|la\\s+|du\\s+|des\\s+|aux?\\s+)?(?:[^()\\d\\n]{0,40}?)?\\(?\\s*(\\+?\\d[\\d\\s\\.]{6,18}\\d)\\s*\\)?"
-    )
+    private val PHONE_SENDER = Pattern.compile("(?i)(?:le\\s+num[eé]ro\\s+|num[eé]ro\\s+)?(\\+?\\d[\\d\\s\\-\\.]{6,18}\\d)\\s+a\\s+envoy[eé]")
+    private val PHONE_NUMERO = Pattern.compile("(?i)\\bnum[eé]ro\\s+(\\+?\\d[\\d\\s\\-\\.]{6,18}\\d)")
+    private val PHONE_RETRAIT_DE = Pattern.compile("(?i)retrait\\s+de\\s+(\\+?\\d[\\d\\s\\-\\.]{6,18}\\d)")
+    private val PHONE_DEPOT_VERS = Pattern.compile("(?i)d[eé]p[oô]?t\\s+vers\\s+(?:le\\s+)?(\\+?\\d[\\d\\s\\-\\.]{6,18}\\d)")
+    private val PHONE_NEAR_KEYWORD = Pattern.compile("(?i)\\b(?:from|to|de|du|vers|à|a|au|chez)\\b\\s+(?:le\\s+|la\\s+|du\\s+|des\\s+|aux?\\s+)?(?:[^()\\d\\n]{0,40}?)?\\(?\\s*(\\+?\\d[\\d\\s\\.]{6,18}\\d)\\s*\\)?")
     private val PHONE_INTL = Pattern.compile("(\\+\\d[\\d\\s\\.]{6,18}\\d)")
     private val PHONE_LONG = Pattern.compile("(?<![\\d])(\\d{10,15})(?![\\d])")
     private val PHONE_LOCAL = Pattern.compile("(?<![\\d])(0\\d[\\d\\s\\.]{6,12}\\d)(?![\\d])")
 
     private val DATE_PATTERNS = listOf(
-        "dd/MM/yyyy HH:mm:ss",
-        "dd/MM/yyyy HH:mm",
-        "dd-MM-yyyy HH:mm:ss",
-        "dd-MM-yyyy HH:mm",
-        "yyyy-MM-dd HH:mm:ss",
-        "yyyy-MM-dd HH:mm"
+        "dd/MM/yyyy HH:mm:ss", "dd/MM/yyyy HH:mm",
+        "dd-MM-yyyy HH:mm:ss", "dd-MM-yyyy HH:mm",
+        "yyyy-MM-dd HH:mm:ss", "yyyy-MM-dd HH:mm"
     )
     private val DATE_REGEX = Pattern.compile(
         "(\\d{2,4}[/-]\\d{2}[/-]\\d{2,4})\\s*(?:à\\s+|a\\s+)?(\\d{1,2}:\\d{2}(?::\\d{2})?)"
     )
 
-    private val AMOUNT_GOOD_KEYWORDS = listOf(
-        "montant", "recu", "reçu", "envoye", "envoyé", "a envoye", "a envoyé"
-    )
-    private val AMOUNT_BAD_KEYWORDS = listOf(
-        "solde", "frais", "commission", "nouveau solde", "balance"
-    )
+    private val AMOUNT_GOOD_KEYWORDS = listOf("montant", "recu", "reçu", "envoye", "envoyé", "a envoye", "a envoyé", "payer le montant")
+    private val AMOUNT_BAD_KEYWORDS = listOf("solde", "frais", "commission", "nouveau solde", "balance")
 
     private fun detectType(body: String): TxType? {
         if (PAT_RECU_INDIRECT.matcher(body).find()) return TxType.RECU
         if (PAT_RECU_DIRECT.matcher(body).find()) return TxType.RECU
-        if (PAT_SORTIE.matcher(body).find()) return TxType.SORTIE
+        if (PAT_RECU_ORANGE.matcher(body).find()) return TxType.RECU
+        if (PAT_RECU_MTN.matcher(body).find()) return TxType.RECU
+        if (PAT_SORTIE_GENERIC.matcher(body).find()) return TxType.SORTIE
+        if (PAT_SORTIE_ORANGE.matcher(body).find()) return TxType.SORTIE
         return null
     }
 
-    /** STRICT : n'accepte que les 6 patterns de reference. Renvoie null sinon. */
     fun parse(rawId: Long, sender: String, body: String, smsTimestamp: Long, operator: String): Transaction? {
         val type = detectType(body) ?: return null
         val (amount, currency) = extractAmount(body)
@@ -79,7 +79,6 @@ object TransactionParser {
         val reference = extractReference(body)
         val phone = extractPhone(body)
         val timestamp = extractDate(body) ?: smsTimestamp
-
         return Transaction(
             rawId = rawId,
             operator = operator,
@@ -148,27 +147,22 @@ object TransactionParser {
     }
 
     private fun extractPhone(body: String): String {
-        val m1 = PHONE_SENDER.matcher(body)
-        if (m1.find()) {
-            val raw = m1.group(1) ?: ""
-            val clean = cleanPhone(raw)
-            if (clean.isNotEmpty()) return clean
-        }
+        PHONE_SENDER.matcher(body).let { if (it.find()) { val c = cleanPhone(it.group(1) ?: ""); if (c.isNotEmpty()) return c } }
+        PHONE_RETRAIT_DE.matcher(body).let { if (it.find()) { val c = cleanPhone(it.group(1) ?: ""); if (c.isNotEmpty()) return c } }
+        PHONE_DEPOT_VERS.matcher(body).let { if (it.find()) { val c = cleanPhone(it.group(1) ?: ""); if (c.isNotEmpty()) return c } }
         val m2 = PHONE_NUMERO.matcher(body)
         while (m2.find()) {
             val ctxStart = maxOf(0, m2.start() - 12)
             val ctx = body.substring(ctxStart, m2.start()).lowercase()
             if (ctx.contains("votre")) continue
-            val raw = m2.group(1) ?: continue
-            val clean = cleanPhone(raw)
-            if (clean.isNotEmpty()) return clean
+            val c = cleanPhone(m2.group(1) ?: continue)
+            if (c.isNotEmpty()) return c
         }
         for (p in listOf(PHONE_NEAR_KEYWORD, PHONE_INTL, PHONE_LONG, PHONE_LOCAL)) {
             val m = p.matcher(body)
             while (m.find()) {
-                val raw = m.group(1) ?: continue
-                val clean = cleanPhone(raw)
-                if (clean.isNotEmpty()) return clean
+                val c = cleanPhone(m.group(1) ?: continue)
+                if (c.isNotEmpty()) return c
             }
         }
         return ""
