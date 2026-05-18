@@ -57,3 +57,4 @@ db.init().then(() => {
     console.error('Erreur d\'initialisation DB :', err);
     process.exit(1);
 });
+
