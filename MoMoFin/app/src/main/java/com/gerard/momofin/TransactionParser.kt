@@ -15,20 +15,30 @@ object TransactionParser {
         Pattern.CASE_INSENSITIVE
     )
 
-    // ID Transaction / Transaction ID / Ref... (autorise points et tirets)
+    // ID Transaction / Transaction ID / Ref... (autorise points et tirets, ':' collé OK)
     private val REF_PATTERNS = listOf(
         Pattern.compile("(?:ID\\s+Transaction|Transaction\\s+ID|Transaction\\s+Id|Financial Transaction Id|TxId|TXID|Txn Id|Trans\\.? Id)\\s*[:#]?\\s*([A-Za-z0-9][A-Za-z0-9\\.\\-_]{3,40})", Pattern.CASE_INSENSITIVE),
-        Pattern.compile("(?:Ref(?:erence|érence)?|Réf)\\.?\\s*[:#]?\\s*([A-Za-z0-9][A-Za-z0-9\\.\\-_]{3,40})", Pattern.CASE_INSENSITIVE),
-        Pattern.compile("\\bID\\s*[:#]\\s*([A-Za-z0-9][A-Za-z0-9\\.\\-_]{3,40})", Pattern.CASE_INSENSITIVE),
+        Pattern.compile("\\b(?:Ref(?:erence|érence)?|Réf)\\.?\\s*[:#]?\\s*([A-Za-z0-9][A-Za-z0-9\\.\\-_]{3,40})", Pattern.CASE_INSENSITIVE),
+        Pattern.compile("\\bID\\s*[:#]?\\s*([A-Za-z0-9][A-Za-z0-9\\.\\-_]{3,40})", Pattern.CASE_INSENSITIVE),
         Pattern.compile("\\b([0-9]{8,16})\\b")
     )
 
+    // Patterns téléphone — du plus spécifique au plus générique.
+    // "X a envoye" : extrait l'émetteur (cas MOOV Retrait : "Le numero X a envoye Y sur votre numero Z")
+    private val PHONE_SENDER = Pattern.compile(
+        "(?i)(?:le\\s+num[eé]ro\\s+|num[eé]ro\\s+)?(\\+?\\d[\\d\\s\\-\\.]{6,18}\\d)\\s+a\\s+envoy[eé]"
+    )
+    private val PHONE_NUMERO = Pattern.compile(
+        "(?i)\\bnum[eé]ro\\s+(\\+?\\d[\\d\\s\\-\\.]{6,18}\\d)"
+    )
     private val PHONE_NEAR_KEYWORD = Pattern.compile(
-        "(?i)\\b(?:from|to|de|vers|à|au|chez)\\b\\s+(?:le\\s+|la\\s+|du\\s+|des\\s+|aux?\\s+)?(?:[^()\\d\\n]{0,40}?)?\\(?\\s*(\\+?\\d[\\d\\s\\-\\.]{6,18}\\d)\\s*\\)?"
+        "(?i)\\b(?:from|to|de|du|vers|à|a|au|chez)\\b\\s+(?:le\\s+|la\\s+|du\\s+|des\\s+|aux?\\s+)?(?:[^()\\d\\n]{0,40}?)?\\(?\\s*(\\+?\\d[\\d\\s\\.]{6,18}\\d)\\s*\\)?"
     )
     private val PHONE_IN_PARENS = Pattern.compile("\\((\\+?\\d[\\d\\s\\-\\.]{6,18}\\d)\\)")
-    private val PHONE_INTL = Pattern.compile("(\\+\\d[\\d\\s\\-\\.]{6,18}\\d)")
-    private val PHONE_LOCAL = Pattern.compile("(?<![\\d])(0\\d[\\d\\s\\-\\.]{6,12}\\d)(?![\\d])")
+    private val PHONE_INTL = Pattern.compile("(\\+\\d[\\d\\s\\.]{6,18}\\d)")
+    // Long suite de chiffres (10+) sans tirets — typique d'un numéro international ou local concaténé.
+    private val PHONE_LONG = Pattern.compile("(?<![\\d])(\\d{10,15})(?![\\d])")
+    private val PHONE_LOCAL = Pattern.compile("(?<![\\d])(0\\d[\\d\\s\\.]{6,12}\\d)(?![\\d])")
 
     private val DATE_PATTERNS = listOf(
         "dd/MM/yyyy HH:mm:ss",
@@ -38,8 +48,9 @@ object TransactionParser {
         "yyyy-MM-dd HH:mm:ss",
         "yyyy-MM-dd HH:mm"
     )
+    // Accepte "à" ou "a" entre date et heure (ex. "17/05/2026 a 19:18:36")
     private val DATE_REGEX = Pattern.compile(
-        "(\\d{2,4}[/-]\\d{2}[/-]\\d{2,4}\\s+\\d{1,2}:\\d{2}(?::\\d{2})?)"
+        "(\\d{2,4}[/-]\\d{2}[/-]\\d{2,4})\\s*(?:à\\s+|a\\s+)?(\\d{1,2}:\\d{2}(?::\\d{2})?)"
     )
 
     private val RECU_KEYWORDS = listOf(
@@ -55,7 +66,7 @@ object TransactionParser {
 
     // Mots-clés indiquant que le montant qui suit est le MONTANT principal
     private val AMOUNT_GOOD_KEYWORDS = listOf(
-        "montant", "recu", "reçu", "envoye", "envoyé",
+        "montant", "recu", "reçu", "envoye", "envoyé", "a envoye", "a envoyé",
         "retrait", "retrait de", "depot vers", "dépôt vers",
         "payer le montant", "payer", "payez", "transfere", "transféré"
     )
@@ -63,15 +74,29 @@ object TransactionParser {
         "solde", "frais", "commission", "nouveau solde", "balance"
     )
 
-    fun parse(rawId: Long, sender: String, body: String, smsTimestamp: Long, operator: String): Transaction {
+    // Détection du type prioritaire — règles spécifiques d'abord, fallback mots-clés ensuite.
+    private fun detectType(body: String): TxType {
+        val recuSurVotre = Regex("(?i)\\bsur\\s+votre\\s+num[eé]ro\\b")
+        val aEnvoye = Regex("(?i)\\ba\\s+envoy[eé]\\b")
+        val vousRecu = Regex("(?i)\\bvous\\s+avez\\s+re[çc]u\\b")
+        val vousEnvoye = Regex("(?i)\\bvous\\s+avez\\s+envoy[eé]\\b")
+        val retraitInitie = Regex("(?i)\\bretrait\\s+initi[eé]\\b")
+        val payerMontant = Regex("(?i)\\bpayer\\s+(le\\s+)?montant\\b")
+
+        if (recuSurVotre.containsMatchIn(body) && aEnvoye.containsMatchIn(body)) return TxType.RECU
+        if (vousRecu.containsMatchIn(body)) return TxType.RECU
+        if (vousEnvoye.containsMatchIn(body)) return TxType.SORTIE
+        if (retraitInitie.containsMatchIn(body)) return TxType.SORTIE
+        if (payerMontant.containsMatchIn(body)) return TxType.SORTIE
+
         val low = body.lowercase()
+        if (RECU_KEYWORDS.any { low.contains(it) }) return TxType.RECU
+        if (SORTIE_KEYWORDS.any { low.contains(it) }) return TxType.SORTIE
+        return TxType.INCONNU
+    }
 
-        val type = when {
-            RECU_KEYWORDS.any { low.contains(it) } -> TxType.RECU
-            SORTIE_KEYWORDS.any { low.contains(it) } -> TxType.SORTIE
-            else -> TxType.INCONNU
-        }
-
+    fun parse(rawId: Long, sender: String, body: String, smsTimestamp: Long, operator: String): Transaction {
+        val type = detectType(body)
         val (amount, currency) = extractAmount(body)
         val reference = extractReference(body)
         val phone = extractPhone(body)
@@ -147,7 +172,27 @@ object TransactionParser {
     }
 
     private fun extractPhone(body: String): String {
-        for (p in listOf(PHONE_NEAR_KEYWORD, PHONE_IN_PARENS, PHONE_INTL, PHONE_LOCAL)) {
+        // Priorité 1 : "X a envoye" (cas MOOV Retrait — extrait l'expediteur, pas le numero agent)
+        val m1 = PHONE_SENDER.matcher(body)
+        if (m1.find()) {
+            val raw = m1.group(1) ?: ""
+            val clean = cleanPhone(raw)
+            if (clean.isNotEmpty()) return clean
+        }
+
+        // Priorité 2 : "numero X" — ignorer "votre numero" (numero de l'agent lui-meme)
+        val m2 = PHONE_NUMERO.matcher(body)
+        while (m2.find()) {
+            val ctxStart = maxOf(0, m2.start() - 12)
+            val ctx = body.substring(ctxStart, m2.start()).lowercase()
+            if (ctx.contains("votre")) continue
+            val raw = m2.group(1) ?: continue
+            val clean = cleanPhone(raw)
+            if (clean.isNotEmpty()) return clean
+        }
+
+        // Priorité 3 : prepositions classiques (de, du, vers, etc.)
+        for (p in listOf(PHONE_NEAR_KEYWORD, PHONE_IN_PARENS, PHONE_INTL, PHONE_LONG, PHONE_LOCAL)) {
             val m = p.matcher(body)
             while (m.find()) {
                 val raw = m.group(1) ?: continue
@@ -161,7 +206,9 @@ object TransactionParser {
     private fun extractDate(body: String): Long? {
         val m = DATE_REGEX.matcher(body)
         if (!m.find()) return null
-        val raw = m.group(1) ?: return null
+        val rawDate = (m.group(1) ?: return null).replace("-", "/")
+        val rawTime = m.group(2) ?: return null
+        val raw = "$rawDate $rawTime"
         for (fmt in DATE_PATTERNS) {
             try {
                 val sdf = SimpleDateFormat(fmt, Locale.FRENCH)
