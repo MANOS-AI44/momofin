@@ -159,6 +159,22 @@ router.get('/pdf', protect, async (req, res) => {
 });
 
 // Page Devices : créer / lister les tokens d'appariement avec les APK
+
+// MES POINTS
+router.get('/points', protect, async (req, res) => {
+    let where, args;
+    if (req.user.deviceToken) {
+        // Sous-compte : pas d'isolation par device pour points (les points sont au niveau user)
+        where = `WHERE user_id = $1`; args = [req.user.id];
+    } else {
+        where = `WHERE user_id = $1`; args = [req.user.id];
+    }
+    const { rows } = await pool.query(
+        `SELECT day_key, om, momo, moov, wave, djamo, cfa, entree, sortie, note, updated_at
+         FROM daily_points ${where} ORDER BY day_key DESC LIMIT 500`, args);
+    res.render('points', { rows, fmt, user: req.user });
+});
+
 router.get('/devices', protect, async (req, res) => {
     const { rows } = await pool.query(
         'SELECT token, label, code, created_at FROM devices WHERE user_id = $1 ORDER BY created_at DESC',

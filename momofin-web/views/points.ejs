@@ -1,0 +1,54 @@
+<%- include('_layout_head', { pageTitle: 'MES POINTS — MoMo Fin', activeNav: 'points', user: user }) %>
+
+<h1>📈 MES POINTS</h1>
+<p class="subtitle">Historique de vos soldes quotidiens (OM, MoMo, MOOV, WAVE, djamo, CFA + entrées/sorties).</p>
+
+<% if (rows.length === 0) { %>
+    <section class="panel">
+        <p class="empty">Aucun rapport enregistré. Saisissez vos points quotidiens depuis l'application MoMo Fin sur le téléphone.</p>
+    </section>
+<% } else { %>
+    <section class="panel">
+        <h2>Historique (<%= rows.length %> rapport<%= rows.length > 1 ? 's' : '' %>)</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th style="color:#FF6F00;">OM</th>
+                    <th style="color:#FBC02D;">MoMo</th>
+                    <th style="color:#1565C0;">MOOV</th>
+                    <th style="color:#00ACC1;">WAVE</th>
+                    <th style="color:#7B1FA2;">djamo</th>
+                    <th style="color:#2E7D32;">CFA</th>
+                    <th style="color:#059669;">Entrée</th>
+                    <th style="color:#DC2626;">Sortie</th>
+                    <th style="background:#6A1B9A;color:white;">TOTAL</th>
+                </tr>
+            </thead>
+            <tbody>
+                <% rows.forEach(function(r) {
+                    var total = (+r.om||0)+(+r.momo||0)+(+r.moov||0)+(+r.wave||0)+(+r.djamo||0)+(+r.cfa||0)+(+r.entree||0)-(+r.sortie||0);
+                %>
+                <tr>
+                    <td><strong><%= new Date(+r.day_key).toLocaleDateString('fr-FR', { weekday:'short', day:'2-digit', month:'short', year:'numeric' }) %></strong></td>
+                    <td><%= fmt(r.om) %></td>
+                    <td><%= fmt(r.momo) %></td>
+                    <td><%= fmt(r.moov) %></td>
+                    <td><%= fmt(r.wave) %></td>
+                    <td><%= fmt(r.djamo) %></td>
+                    <td><%= fmt(r.cfa) %></td>
+                    <td style="color:#059669;"><%= fmt(r.entree) %></td>
+                    <td style="color:#DC2626;"><%= fmt(r.sortie) %></td>
+                    <td style="background:#F3E5F5; color:#4A148C; font-weight:bold;"><%= fmt(total) %></td>
+                </tr>
+                <% }); %>
+            </tbody>
+        </table>
+    </section>
+
+    <section class="filter-row" style="margin-top:16px;">
+        <button onclick="window.print()" class="btn warn">🖨️ Imprimer cet historique</button>
+    </section>
+<% } %>
+
+<%- include('_layout_foot') %>

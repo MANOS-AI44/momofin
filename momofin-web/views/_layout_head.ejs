@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title><%= typeof pageTitle === 'string' ? pageTitle : 'MoMo Fin' %></title>
+    <meta name="theme-color" content="#1565C0">
+    <link rel="manifest" href="/manifest.webmanifest">
+    <link rel="icon" type="image/svg+xml" href="/icon.svg">
+    <link rel="stylesheet" href="/style.css">
+    <script defer>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(() => {}));
+        }
+    </script>
+</head>
+<body>
+<div class="app-shell">
+    <aside class="sidebar">
+        <div class="brand">
+            <span class="logo">💰</span>
+            <span class="name">MoMo Fin</span>
+        </div>
+        <nav>
+            <a href="/" class="<%= activeNav === 'dashboard' ? 'active' : '' %>">
+                <span class="nav-icon">📊</span> Tableau de bord
+            </a>
+            <a href="/points" class="<%= activeNav === 'points' ? 'active' : '' %>">
+                <span class="nav-icon">📈</span> MES POINTS
+            </a>
+            <a href="/patron" class="<%= activeNav === 'patron' ? 'active' : '' %>">
+                <span class="nav-icon">📓</span> Mes Comptes
+            </a>
+            <a href="/devices" class="<%= activeNav === 'devices' ? 'active' : '' %>">
+                <span class="nav-icon">📱</span> Mes Appareils
+            </a>
+            <a href="/mon-compte" class="<%= activeNav === 'mon-compte' ? 'active' : '' %>">
+                <span class="nav-icon">👤</span> Mon compte
+            </a>
+            <a href="/telecharger" class="<%= activeNav === 'telecharger' ? 'active' : '' %>">
+                <span class="nav-icon">📥</span> Télécharger l'app
+            </a>
+            <a href="/pdf" target="_blank">
+                <span class="nav-icon">📄</span> Exporter PDF
+            </a>
+        </nav>
+        <% if (typeof user !== 'undefined' && user) { %>
+        <div class="user-info">
+            <div class="label">Connecté en tant que</div>
+            <div class="name"><%= user.isSubAccount ? user.deviceLabel + ' (sous-compte)' : (user.name || user.email) %></div>
+            <a href="/deconnexion" class="logout">↩ Déconnexion</a>
+        </div>
+        <% } %>
+    </aside>
+    <main class="app-main">

@@ -1,103 +1,48 @@
-<!doctype html>
-<html lang="fr">
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Mon compte — MoMo Fin</title>
-    <meta name="theme-color" content="#1565C0">
-    <link rel="manifest" href="/manifest.webmanifest">
-    <link rel="icon" type="image/svg+xml" href="/icon.svg">
-    <link rel="stylesheet" href="/style.css">
-    <style>
-        .page { max-width:760px; margin:30px auto; padding:0 16px; }
-        .hello { color:#1565C0; margin:0 0 8px; }
-        .sub { color:#666; margin:0 0 24px; }
-        .welcome { background:#e8f5e9; color:#1b5e20; padding:16px; border-radius:8px; border-left:4px solid #2E7D32; margin-bottom:24px; }
-        .welcome strong { display:block; margin-bottom:4px; }
-        .token-card { background:white; border-radius:12px; padding:24px; box-shadow:0 2px 8px rgba(0,0,0,0.06); margin-bottom:16px; }
-        .token-card h2 { margin:0 0 6px; color:#1565C0; font-size:18px; }
-        .token-card .label { color:#666; font-size:13px; margin-bottom:8px; }
-        .token-wrapper { display:flex; gap:8px; align-items:stretch; margin-top:8px; }
-        .token-box { flex:1; background:#f1f3f5; padding:14px; border-radius:6px; font-family:monospace; font-size:13px; word-break:break-all; border:1px solid #ddd; user-select:all; }
-        .copy-btn { padding:0 18px; background:#1565C0; color:white; border:none; border-radius:6px; cursor:pointer; font-weight:600; white-space:nowrap; }
-        .copy-btn:hover { background:#0D47A1; }
-        .copy-btn.ok { background:#2E7D32; }
-        .meta { color:#888; font-size:12px; margin-top:10px; }
-        .revoke { background:none; color:#c62828; border:none; cursor:pointer; font-size:12px; text-decoration:underline; padding:0; margin-top:8px; }
-        .actions { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:20px; }
-        .actions a, .actions button { padding:8px 14px; background:#1565C0; color:white; text-decoration:none; border-radius:6px; border:none; cursor:pointer; font-size:14px; }
-        .actions a.secondary, .actions button.secondary { background:#f1f3f5; color:#444; }
-        .new-token-form { display:flex; gap:8px; align-items:center; margin-top:16px; }
-        .new-token-form input { flex:1; padding:8px 10px; border:1px solid #ccc; border-radius:6px; font-size:14px; }
-        .new-token-form button { padding:8px 14px; background:#2E7D32; color:white; border:none; border-radius:6px; cursor:pointer; font-weight:600; }
-        .help { background:#fff8e1; border-left:4px solid #FFB300; padding:14px 18px; border-radius:6px; color:#5d4037; font-size:14px; margin-top:24px; }
-        .help h3 { margin:0 0 8px; color:#000; font-size:15px; }
-        .help ol { margin:4px 0 0 18px; padding:0; }
-        .help li { margin-bottom:4px; }
-        .topbar { display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; padding:14px 16px; background:#1565C0; color:white; border-radius:8px; }
-        .topbar a { color:rgba(255,255,255,0.85); text-decoration:none; margin-left:18px; font-size:14px; }
-        .topbar a:hover { color:white; }
-    </style>
-</head>
-<body>
-<div class="page">
+<%- include('_layout_head', { pageTitle: 'Mon compte — MoMo Fin', activeNav: 'mon-compte', user: user }) %>
 
-    <div class="topbar">
-        <strong>📱 MoMo Fin</strong>
-        <div>
-            <a href="/telecharger">Télécharger</a>
-            <a href="/deconnexion">Déconnexion</a>
+<h1>👤 Mon compte</h1>
+<p class="subtitle">Bienvenue <strong><%= user.name || user.email.split('@')[0] %></strong></p>
+
+<% if (bienvenue) { %>
+    <section class="panel" style="background:#D1FAE5; border-color:#10B981; color:#065F46;">
+        <h2 style="color:#065F46;">🎉 Bienvenue ! Votre compte est créé.</h2>
+        <p>Copiez votre code ci-dessous et collez-le dans MoMo Fin sur votre téléphone (bouton « 🔢 J'ai un code d'appareil »).</p>
+    </section>
+<% } %>
+
+<% devices.forEach(function(d, idx) { %>
+    <section class="panel">
+        <h2><%= d.label || ('Téléphone ' + (idx+1)) %></h2>
+
+        <% if (d.code) { %>
+        <p style="color:#6B7280; font-size:13px; margin:0 0 8px;">🔢 Code court (à dicter à l'utilisateur du téléphone) :</p>
+        <div style="display:flex; gap:10px; align-items:stretch;">
+            <div id="code-<%= idx %>" style="flex:1; background:#F3E5F5; padding:18px; border-radius:8px; font-size:32px; font-weight:bold; letter-spacing:6px; text-align:center; color:#4A148C; font-family:ui-monospace,monospace;"><%= d.code %></div>
+            <button type="button" class="btn purple" onclick="copyText('code-<%= idx %>', this)">Copier</button>
         </div>
-    </div>
+        <% } %>
 
-    <h1 class="hello">Bonjour <%= user.name || user.email.split('@')[0] %> 👋</h1>
-    <p class="sub">Voici votre code à coller dans l'application Android.</p>
-
-    <% if (bienvenue) { %>
-        <div class="welcome">
-            <strong>🎉 Bienvenue ! Votre compte est créé.</strong>
-            Copiez le code ci-dessous et collez-le dans <em>MoMo Fin → Paramètres → Token du téléphone</em>.
+        <p style="margin-top:14px; color:#9CA3AF; font-size:11px;">Token long (alternative pour les anciennes versions de l'app) :</p>
+        <div style="display:flex; gap:8px; align-items:stretch;">
+            <div id="tok-<%= idx %>" style="flex:1; background:#F9FAFB; padding:8px 12px; border-radius:6px; font-size:10px; font-family:monospace; word-break:break-all; border:1px solid #E5E7EB;"><%= d.token %></div>
+            <button type="button" class="btn secondary" onclick="copyText('tok-<%= idx %>', this)">Copier</button>
         </div>
-    <% } %>
 
-    <% devices.forEach(function(d, idx) { %>
-        <div class="token-card">
-            <h2><%= d.label || ('Téléphone ' + (idx+1)) %></h2>
-            <div class="label">Code à coller dans l'application :</div>
-            <div class="token-wrapper">
-                <div class="token-box" id="tok-<%= idx %>"><%= d.token %></div>
-                <button type="button" class="copy-btn" onclick="copyToken(<%= idx %>, this)">Copier</button>
-            </div>
-            <div class="meta">Créé le <%= new Date(d.created_at).toLocaleString('fr-FR') %></div>
-            <form method="POST" action="/mon-compte/revoquer/<%= d.token %>" onsubmit="return confirm('Révoquer ce code ? Le téléphone associé ne pourra plus synchroniser.')" style="display:inline">
-                <button type="submit" class="revoke">Révoquer ce code</button>
-            </form>
-        </div>
-    <% }); %>
+        <p style="margin-top:10px; color:#9CA3AF; font-size:12px;">Créé le <%= new Date(d.created_at).toLocaleString('fr-FR') %></p>
 
-    <form method="POST" action="/mon-compte/nouveau-token" class="new-token-form">
-        <input type="text" name="label" placeholder="Nom du téléphone (ex. Boutique 2)" />
-        <button type="submit">+ Nouveau code</button>
+        <form method="POST" action="/mon-compte/revoquer/<%= d.token %>" onsubmit="return confirm('Révoquer ce code ?')" style="display:inline">
+            <button type="submit" class="btn-link">Révoquer ce code</button>
+        </form>
+    </section>
+<% }); %>
+
+<section class="panel">
+    <h2>+ Nouveau code (nouvelle boutique)</h2>
+    <form method="POST" action="/mon-compte/nouveau-token" class="filter-row">
+        <input type="text" name="label" placeholder="Nom du téléphone (ex. Boutique 2)" style="flex:1;min-width:240px;" />
+        <button type="submit" class="btn success">+ Créer</button>
     </form>
-
-    <div class="help">
-        <h3>Comment utiliser votre code</h3>
-        <ol>
-            <li>Téléchargez l'app <strong>MoMo Fin</strong> (page <a href="/telecharger">Téléchargement</a>)</li>
-            <li>Installez-la sur votre téléphone Android</li>
-            <li>Ouvrez MoMo Fin → bouton <strong>Paramètres</strong> en haut à droite</li>
-            <li>Dans <strong>URL du serveur</strong>, mettre :<br/>
-                <code style="background:#fff;padding:2px 6px;border-radius:4px;border:1px solid #ddd"><%= 'https://' + (process.env.PUBLIC_HOST || 'momofin-production.up.railway.app') %></code></li>
-            <li>Dans <strong>Token du téléphone</strong>, collez le code copié ci-dessus</li>
-            <li>Appuyez sur <strong>Tester</strong> puis <strong>Enregistrer</strong></li>
-            <li>De retour à l'écran principal, appuyez sur <strong>Synchroniser</strong></li>
-        </ol>
-    </div>
-
-    <div style="margin-top:24px; text-align:center;">
-        <a href="/" style="color:#1565C0;">→ Voir le tableau de bord</a>
-    </div>
-</div>
+</section>
 
 <script>
 function copyText(id, btn) {
@@ -105,13 +50,9 @@ function copyText(id, btn) {
     navigator.clipboard.writeText(t).then(function() {
         var old = btn.textContent;
         btn.textContent = '✓ Copié !';
-        btn.classList.add('ok');
-        setTimeout(function() {
-            btn.textContent = old;
-            btn.classList.remove('ok');
-        }, 2000);
+        setTimeout(function() { btn.textContent = old; }, 2000);
     });
 }
 </script>
-</body>
-</html>
+
+<%- include('_layout_foot') %>
