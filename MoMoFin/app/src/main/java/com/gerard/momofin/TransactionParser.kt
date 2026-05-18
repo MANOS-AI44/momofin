@@ -7,6 +7,30 @@ import java.util.regex.Pattern
 
 object TransactionParser {
 
+    /** Normalise un numero CI : strip prefixe 225 (+225, 225, 00225) -> 0XXX */
+    fun normalizePhone(phone: String?): String {
+        if (phone.isNullOrBlank()) return ""
+        var digits = phone.replace(Regex("[^\\d]"), "")
+        if (digits.startsWith("00225")) digits = digits.substring(5)
+        else if (digits.startsWith("225") && digits.length > 10) digits = digits.substring(3)
+        if (digits.length == 8) digits = "0$digits"
+        if (digits.length == 9 && !digits.startsWith("0")) digits = "0$digits"
+        return digits
+    }
+
+    /** Operateur deduit du prefixe local : 07/08/09 = Orange, 05/04/06 = MTN, 01/02/03 = MOOV */
+    fun phoneOperator(phone: String?): String {
+        val n = normalizePhone(phone)
+        if (n.length != 10) return ""
+        return when (n.substring(0, 2)) {
+            "07", "08", "09" -> "Orange"
+            "05", "04", "06" -> "MTN"
+            "01", "02", "03" -> "MOOV"
+            else -> ""
+        }
+    }
+
+
     private val CURRENCY = "(RWF|XOF|XAF|UGX|GHS|KES|TZS|FCFA|CFA|USD|EUR|F(?![a-zA-Z]))"
 
     private val AMOUNT_PATTERN = Pattern.compile(
@@ -77,7 +101,7 @@ object TransactionParser {
         val (amount, currency) = extractAmount(body)
         if (amount <= 0.0) return null
         val reference = extractReference(body)
-        val phone = extractPhone(body)
+        val phone = normalizePhone(extractPhone(body))
         val timestamp = extractDate(body) ?: smsTimestamp
         return Transaction(
             rawId = rawId,

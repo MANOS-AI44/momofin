@@ -43,6 +43,10 @@ async function init() {
         await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS logo_data BYTEA;`);
         await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS logo_mime TEXT;`);
         await client.query(`ALTER TABLE transactions ADD COLUMN IF NOT EXISTS phone_number TEXT;`);
+        // Migration : normaliser les numeros CI (strip prefixe 225) sur les anciennes lignes
+        await client.query(`UPDATE transactions
+            SET phone_number = SUBSTRING(phone_number FROM 4)
+            WHERE phone_number LIKE '225%' AND LENGTH(phone_number) > 10;`);
         // Normalisation : Moov -> MOOV pour coherence d'affichage
         await client.query(`UPDATE transactions SET operator = 'MOOV' WHERE operator = 'Moov';`);
         await client.query(`

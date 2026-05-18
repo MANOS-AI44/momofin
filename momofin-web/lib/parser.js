@@ -128,6 +128,29 @@ function extractReference(body) {
     return '';
 }
 
+// Normalise un numero CI : strip prefixe 225 (+225, 225, 00225) -> 0XXX
+function normalizePhone(phone) {
+    if (!phone) return '';
+    let digits = phone.replace(/[^\d]/g, ''); // garder chiffres seuls (sans +)
+    if (digits.startsWith('00225')) digits = digits.substring(5);
+    else if (digits.startsWith('225') && digits.length > 10) digits = digits.substring(3);
+    // Re-prefixer par '0' si on a 8 chiffres (numero CI nu)
+    if (digits.length === 8) digits = '0' + digits;
+    if (digits.length === 9 && !digits.startsWith('0')) digits = '0' + digits;
+    return digits;
+}
+
+// Determine operateur a partir du prefixe local (numero deja normalise)
+function phoneOperator(phone) {
+    const n = normalizePhone(phone);
+    if (!n || n.length !== 10) return '';
+    const prefix = n.substring(0, 2);
+    if (prefix === '07' || prefix === '08' || prefix === '09') return 'Orange';
+    if (prefix === '05' || prefix === '04' || prefix === '06') return 'MTN';
+    if (prefix === '01' || prefix === '02' || prefix === '03') return 'MOOV';
+    return '';
+}
+
 function cleanPhone(raw) {
     const digitsOnly = raw.replace(/[^\d+]/g, '');
     const justDigits = digitsOnly.replace(/\+/g, '');
@@ -190,7 +213,8 @@ function parse(sender, body, smsTimestamp) {
     const reference = extractReference(body || '');
     const phone_number = extractPhone(body || '');
     const ts = extractDate(body || '') || new Date(smsTimestamp || Date.now()).toISOString();
-    return { operator, type, amount, currency, reference, phone_number, ts };
+    const normalizedPhone = normalizePhone(phone_number);
+    return { operator, type, amount, currency, reference, phone_number: normalizedPhone, ts };
 }
 
-module.exports = { parse, isMomoSms, detectOperator, detectType };
+module.exports = { parse, isMomoSms, detectOperator, detectType, normalizePhone, phoneOperator };

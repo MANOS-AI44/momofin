@@ -1,3 +1,19 @@
+<%
+function phoneOp(phone) {
+    if (!phone) return '';
+    const p2 = String(phone).substring(0, 2);
+    if (p2 === '07' || p2 === '08' || p2 === '09') return 'Orange';
+    if (p2 === '05' || p2 === '04' || p2 === '06') return 'MTN';
+    if (p2 === '01' || p2 === '02' || p2 === '03') return 'MOOV';
+    return '';
+}
+function phoneOpColor(op) {
+    if (op === 'Orange') return '#F97316';
+    if (op === 'MTN') return '#EAB308';
+    if (op === 'MOOV') return '#3B82F6';
+    return '#9CA3AF';
+}
+%>
 <%- include('_layout_head', { pageTitle: 'Transactions de l\'appareil — MoMo Fin', activeNav: 'devices', user: user }) %>
 
 <h1>📊 Transactions — <%= device.label || 'Appareil' %></h1>
@@ -78,7 +94,11 @@
                     <td><%= new Date(t.ts).toLocaleString('fr-FR') %></td>
                     <td><span class="badge <%= t.type === 'RECU' ? 'recu' : 'sortie' %>"><%= t.type === 'RECU' ? 'Retrait' : (t.type === 'SORTIE' ? 'Dépôt' : '—') %></span></td>
                     <td><strong><%= fmt(t.amount) %></strong> <%= t.currency || '' %></td>
-                    <td><%= t.phone_number || '—' %></td>
+                    <td>
+                        <% var op = phoneOp(t.phone_number); %>
+                        <strong><%= t.phone_number || '—' %></strong>
+                        <% if (op) { %><span style="background:<%= phoneOpColor(op) %>; color:white; font-size:10px; padding:2px 6px; border-radius:4px; margin-left:4px;"><%= op %></span><% } %>
+                    </td>
                     <td><code><%= t.reference || '—' %></code></td>
                     <td><%= t.operator || '' %></td>
                 </tr>

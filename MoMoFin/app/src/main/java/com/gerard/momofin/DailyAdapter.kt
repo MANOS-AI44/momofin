@@ -94,7 +94,9 @@ class DailyAdapter : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
                 TxType.SORTIE -> 0xFFC62828.toInt()
                 else -> 0xFF000000.toInt()
             })
-            txtPhone.text = if (tx.phoneNumber.isBlank()) "📞 —" else "📞 ${tx.phoneNumber}"
+            val opByNum = TransactionParser.phoneOperator(tx.phoneNumber)
+            val opSuffix = if (opByNum.isNotEmpty()) " ($opByNum)" else ""
+            txtPhone.text = if (tx.phoneNumber.isBlank()) "📞 —" else "📞 ${tx.phoneNumber}$opSuffix"
             txtRef.text = if (tx.reference.isBlank()) "Réf. —" else "Réf. ${tx.reference}"
             txtOp.text = "Opérateur : ${tx.operator}"
         }

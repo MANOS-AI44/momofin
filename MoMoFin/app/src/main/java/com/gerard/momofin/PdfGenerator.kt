@@ -126,7 +126,9 @@ object PdfGenerator {
             canvas.drawText(dfRow.format(Date(tx.timestamp)), xDate + 8, ty, cellP)
             canvas.drawText(typeLabel, xType + 8, ty, typePaint)
             canvas.drawText("${nf.format(tx.amount)} ${tx.currency}", xAmount + 8, ty, cellBoldP)
-            canvas.drawText(tx.phoneNumber.ifBlank { "—" }, xPhone + 8, ty, cellP)
+            val op1 = TransactionParser.phoneOperator(tx.phoneNumber)
+                val ph1 = if (tx.phoneNumber.isBlank()) "—" else tx.phoneNumber + (if (op1.isNotEmpty()) " ($op1)" else "")
+                canvas.drawText(ph1, xPhone + 8, ty, cellP)
             canvas.drawText(truncate(tx.reference.ifBlank { "—" }, 18), xRef + 8, ty, cellP)
             y += rowH
 
@@ -215,7 +217,9 @@ object PdfGenerator {
                 val lbl = when (tx.type) { TxType.RECU -> "Retrait"; TxType.SORTIE -> "Dépôt"; else -> "—" }
                 canvas.drawText(lbl, xType, y, text)
                 canvas.drawText("${nf.format(tx.amount)} ${tx.currency}", xAmount, y, text)
-                canvas.drawText(tx.phoneNumber.ifBlank { "—" }, xPhone, y, text)
+                val op2 = TransactionParser.phoneOperator(tx.phoneNumber)
+                val ph2 = if (tx.phoneNumber.isBlank()) "—" else tx.phoneNumber + (if (op2.isNotEmpty()) " ($op2)" else "")
+                canvas.drawText(ph2, xPhone, y, text)
                 canvas.drawText(truncate(tx.reference.ifBlank { "—" }, 22), xRef, y, text)
                 y += 12f
                 when (tx.type) { TxType.RECU -> dayRecu += tx.amount; TxType.SORTIE -> daySortie += tx.amount; else -> {} }
