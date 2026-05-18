@@ -75,18 +75,21 @@ object PdfGenerator {
             MARGIN.toFloat(), y, subtitle)
         y += 20f
 
-        // Colonnes : Type | Montant | Numéro | Référence
-        val xType = MARGIN.toFloat()
-        val xAmount = xType + 90
-        val xPhone = xAmount + 130
-        val xRef = xPhone + 140
+        // Colonnes : Date/Heure | Type | Montant | Numéro | Référence
+        val xDate = MARGIN.toFloat()
+        val xType = xDate + 105
+        val xAmount = xType + 55
+        val xPhone = xAmount + 95
+        val xRef = xPhone + 115
         val tableEnd = (PAGE_W - MARGIN).toFloat()
         val rowH = 26f
+        val dfRow = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.FRENCH)
 
         // Bandeau d'entête
         canvas.drawRect(MARGIN.toFloat(), y, tableEnd, y + rowH,
             Paint().apply { color = 0xFF1565C0.toInt() })
         val textY = y + 17f
+        canvas.drawText("Date/Heure", xDate + 8, textY, headerP)
         canvas.drawText("Type", xType + 8, textY, headerP)
         canvas.drawText("Montant", xAmount + 8, textY, headerP)
         canvas.drawText("Numéro", xPhone + 8, textY, headerP)
@@ -120,10 +123,11 @@ object PdfGenerator {
                     else -> 0xFF888888.toInt()
                 }
             }
+            canvas.drawText(dfRow.format(Date(tx.timestamp)), xDate + 8, ty, cellP)
             canvas.drawText(typeLabel, xType + 8, ty, typePaint)
             canvas.drawText("${nf.format(tx.amount)} ${tx.currency}", xAmount + 8, ty, cellBoldP)
             canvas.drawText(tx.phoneNumber.ifBlank { "—" }, xPhone + 8, ty, cellP)
-            canvas.drawText(truncate(tx.reference.ifBlank { "—" }, 22), xRef + 8, ty, cellP)
+            canvas.drawText(truncate(tx.reference.ifBlank { "—" }, 18), xRef + 8, ty, cellP)
             y += rowH
 
             when (tx.type) {
