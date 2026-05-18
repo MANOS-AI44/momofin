@@ -72,17 +72,9 @@ router.post('/transactions/sync', authDevice, async (req, res) => {
             const sender = item.sender || '';
             const body = item.body || '';
             // Si le client a déjà parsé, on lui fait confiance ; sinon on reparse côté serveur.
-            const parsed = (item.type && item.amount !== undefined)
-                ? {
-                    operator: item.operator || parser.detectOperator(sender, body),
-                    type: item.type,
-                    amount: Number(item.amount) || 0,
-                    currency: item.currency || '',
-                    reference: item.reference || '',
-                    phone_number: item.phone_number || '',
-                    ts: item.ts || new Date(item.smsTimestamp || Date.now()).toISOString()
-                }
-                : parser.parse(sender, body, item.smsTimestamp);
+            // STRICT : on reparse cote serveur. Si le SMS ne match aucun pattern, on ignore.
+            const parsed = parser.parse(sender, body, item.smsTimestamp);
+            if (!parsed) continue;
 
             const r = await client.query(
                 `INSERT INTO transactions

@@ -202,7 +202,8 @@ class MainActivity : AppCompatActivity() {
                 SmsSource.loadAll(this@MainActivity)
             else
                 RailwayClient.pullTransactions(Settings.getUrl(this@MainActivity), Settings.getToken(this@MainActivity))
-            val txs = raws.map {
+            // Parse strict : ignore les SMS qui ne matchent aucun des 6 patterns canoniques
+            val txs = raws.mapNotNull {
                 TransactionParser.parse(
                     rawId = it.id,
                     sender = it.sender,

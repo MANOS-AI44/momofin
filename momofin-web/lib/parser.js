@@ -1,36 +1,18 @@
-// Parser SMS Mobile Money — version JavaScript du parser Kotlin (mêmes règles).
-// Adapté pour les 6 formats SMS de référence (Orange / MTN / MOOV — Dépôt et Retrait).
+// Parser SMS Mobile Money — STRICT.
+// N'accepte que les 6 patterns de reference (Orange / MTN / MOOV — Depot et Retrait).
+// Tout SMS qui ne match aucun pattern est rejete (parse renvoie null, isMomoSms renvoie false).
+
 const CURRENCY = '(RWF|XOF|XAF|UGX|GHS|KES|TZS|FCFA|CFA|USD|EUR|F(?![a-zA-Z]))';
+const AMOUNT_RE = new RegExp(`(?:^|[^A-Za-z0-9])([0-9][0-9 ,.]{0,15})\\s*${CURRENCY}`, 'gi');
 
-const SENDERS = [
-    'momo', 'mtn', 'mtn momo', 'm-money', 'mtnmomo',
-    'orange', 'orangemoney', 'orange money', 'om',
-    'airtel', 'airtelmoney', 'airtel money',
-    'moov', 'wave', 'mobile money', 'cellulant', 'flooz'
-];
+// === Patterns canoniques (UN SEUL doit matcher pour accepter l'SMS) ===
+// SORTIE (Depot cote agent) : "Vous avez envoye X FCFA ..."
+const PAT_SORTIE = /\bvous\s+avez\s+envoy[eé]\b[\s\S]{0,200}?(?:FCFA|CFA|XOF|XAF|RWF|F\b)/i;
+// RECU (Retrait cote agent) : "Vous avez recu X FCFA ..." OU "Le numero X a envoye Y FCFA ... sur votre numero Z"
+const PAT_RECU_DIRECT = /\bvous\s+avez\s+re[çc]u\b[\s\S]{0,200}?(?:FCFA|CFA|XOF|XAF|RWF|F\b)/i;
+const PAT_RECU_INDIRECT = /\b(?:le\s+)?num[eé]ro\s+\+?\d[\d\s\-.]{6,18}\d\s+a\s+envoy[eé]\b[\s\S]{0,200}?sur\s+votre\s+num[eé]ro/i;
 
-const KEYWORDS = [
-    'momo', 'mobile money', 'transaction', 'received', 'sent',
-    'recu', 'reçu', 'envoy', 'transfert', 'transfer', 'ref',
-    'rwf', 'xof', 'xaf', 'ugx', 'ghs', 'kes', 'tzs', 'fcfa',
-    'id:', 'id transaction', 'txn', 'txid',
-    'depot', 'retrait', 'solde'
-];
-
-// Mots-clés génériques (fallback) — la détection prioritaire est plus haut dans detectType()
-const RECU_KEYWORDS = [
-    'received', 'credited',
-    'reçu', 'recu', 'vous avez reçu', 'vous avez recu', 'crédité', 'credite'
-];
-
-const SORTIE_KEYWORDS = [
-    'sent', 'paid', 'debited', 'withdrawn',
-    'envoyé', 'envoye', 'vous avez envoyé', 'vous avez envoye',
-    'paiement', 'retrait', 'débité', 'debite',
-    'transfert vers', 'depot vers', 'dépôt vers'
-];
-
-// Référence : autorise ':' collé sans espace (ex. "Ref:CO260512..."), points et tirets.
+// === Reference (ID Transaction / Ref / ID) ===
 const REF_PATTERNS = [
     /(?:ID\s+Transaction|Transaction\s+ID|Transaction\s+Id|Financial Transaction Id|TxId|TXID|Txn Id|Trans\.? Id)\s*[:#]?\s*([A-Za-z0-9][A-Za-z0-9.\-_]{3,40})/i,
     /\b(?:Ref(?:erence|érence)?|Réf)\.?\s*[:#]?\s*([A-Za-z0-9][A-Za-z0-9.\-_]{3,40})/i,
@@ -38,60 +20,42 @@ const REF_PATTERNS = [
     /\b(\d{8,16})\b/
 ];
 
-const AMOUNT_RE = new RegExp(`(?:^|[^A-Za-z0-9])([0-9][0-9 ,.]{0,15})\\s*${CURRENCY}`, 'gi');
-
-// Patterns téléphone : du plus spécifique au plus générique.
-// PHONE_SENDER capture le numéro émetteur dans "Le numero X a envoye ... sur votre numero Z"
+// === Phone patterns ===
 const PHONE_SENDER = /(?:le\s+num[eé]ro\s+|num[eé]ro\s+)?(\+?\d[\d\s\-.]{6,18}\d)\s+a\s+envoy[eé]/i;
-// "au numero / du numero / sur le numero" etc.
 const PHONE_NUMERO = /\bnum[eé]ro\s+(\+?\d[\d\s\-.]{6,18}\d)/gi;
 const PHONE_NEAR = /\b(?:from|to|de|du|vers|à|a|au|chez)\b\s+(?:le\s+|la\s+|du\s+|des\s+|aux?\s+)?(?:[^()\d\n]{0,40}?)?\(?\s*(\+?\d[\d\s.]{6,18}\d)\s*\)?/gi;
-const PHONE_PARENS = /\((\+?\d[\d\s\-.]{6,18}\d)\)/g;
 const PHONE_INTL = /(\+\d[\d\s.]{6,18}\d)/g;
-// Long suite de chiffres (10+) sans tirets — typique d'un numéro international ou local concaténé.
 const PHONE_LONG = /(?<![\d])(\d{10,15})(?![\d])/g;
 const PHONE_LOCAL = /(?<![\d])(0\d[\d\s.]{6,12}\d)(?![\d])/g;
 
-const GOOD_KW = ['montant', 'recu', 'reçu', 'envoye', 'envoyé', 'a envoye', 'a envoyé', 'retrait', 'depot vers', 'dépôt vers', 'payer', 'transfere', 'transféré'];
-const BAD_KW = ['solde', 'frais', 'commission', 'balance'];
+// === Amount priority hints ===
+const GOOD_KW = ['montant', 'recu', 'reçu', 'envoye', 'envoyé', 'a envoye', 'a envoyé'];
+const BAD_KW = ['solde', 'frais', 'commission', 'balance', 'nouveau solde'];
+
+function detectType(body) {
+    // 1. RECU "indirect" (MOOV Retrait) — priorite max car contient "envoye" qui sinon serait SORTIE
+    if (PAT_RECU_INDIRECT.test(body)) return 'RECU';
+    // 2. RECU direct
+    if (PAT_RECU_DIRECT.test(body)) return 'RECU';
+    // 3. SORTIE (Depot)
+    if (PAT_SORTIE.test(body)) return 'SORTIE';
+    return null;
+}
 
 function isMomoSms(sender, body) {
-    const s = (sender || '').toLowerCase();
-    const b = (body || '').toLowerCase();
-    if (SENDERS.some(x => s.includes(x))) return true;
-    return KEYWORDS.filter(k => b.includes(k)).length >= 2;
+    // STRICT : doit matcher un des patterns canoniques
+    return detectType(body || '') !== null;
 }
 
 function detectOperator(sender, body) {
     const s = (sender || '').toLowerCase();
     const b = (body || '').toLowerCase();
     if (s.includes('mtn') || s.includes('momo') || b.includes('momo')) return 'MTN';
-    if (s.includes('orange') || b.includes('orange money')) return 'Orange';
-    if (s.includes('airtel')) return 'Airtel';
+    if (s.includes('orange') || b.includes('orange money') || b.includes('orange')) return 'Orange';
     if (s.includes('moov') || b.includes('moov') || b.includes('flooz')) return 'Moov';
+    if (s.includes('airtel')) return 'Airtel';
     if (s.includes('wave') || b.includes('wave')) return 'Wave';
     return 'Autre';
-}
-
-// Détection du type prioritaire — règles spécifiques d'abord, fallback mots-clés ensuite.
-function detectType(body) {
-    const low = (body || '').toLowerCase();
-
-    // RECU spécifique : "Le numero X a envoye Y sur votre numero Z" (MOOV Retrait)
-    if (/\bsur\s+votre\s+num[eé]ro\b/i.test(body) && /\ba\s+envoy[eé]\b/i.test(body)) return 'RECU';
-    // RECU spécifique : "Vous avez reçu/recu"
-    if (/\bvous\s+avez\s+re[çc]u\b/i.test(body)) return 'RECU';
-
-    // SORTIE spécifique : "Vous avez envoyé/envoye"
-    if (/\bvous\s+avez\s+envoy[eé]\b/i.test(body)) return 'SORTIE';
-    // SORTIE spécifique : "Retrait initié" / "Payer le montant"
-    if (/\bretrait\s+initi[eé]\b/i.test(body)) return 'SORTIE';
-    if (/\bpayer\s+(le\s+)?montant\b/i.test(body)) return 'SORTIE';
-
-    // Fallback générique
-    if (RECU_KEYWORDS.some(k => low.includes(k))) return 'RECU';
-    if (SORTIE_KEYWORDS.some(k => low.includes(k))) return 'SORTIE';
-    return 'INCONNU';
 }
 
 function normalize(raw) {
@@ -145,27 +109,24 @@ function cleanPhone(raw) {
 }
 
 function extractPhone(body) {
-    // Priorité 1 : "X a envoye" (cas MOOV Retrait — extrait l'expediteur)
+    // Priorite 1 : "X a envoye" (MOOV Retrait — extrait l'expediteur)
     const m1 = body.match(PHONE_SENDER);
     if (m1 && m1[1]) {
         const c = cleanPhone(m1[1]);
         if (c) return c;
     }
-
-    // Priorité 2 : "numero X" (premier match, généralement le destinataire/expediteur)
+    // Priorite 2 : "numero X" en ignorant "votre numero"
     PHONE_NUMERO.lastIndex = 0;
     let m;
     while ((m = PHONE_NUMERO.exec(body)) !== null) {
-        // Ignorer "votre numero" (numero de l'agent lui-meme)
         const ctxStart = Math.max(0, m.index - 12);
         const ctx = body.substring(ctxStart, m.index).toLowerCase();
         if (ctx.includes('votre')) continue;
         const c = cleanPhone(m[1]);
         if (c) return c;
     }
-
-    // Priorité 3 : prepositions classiques (de, du, vers, etc.)
-    for (const p of [PHONE_NEAR, PHONE_PARENS, PHONE_INTL, PHONE_LONG, PHONE_LOCAL]) {
+    // Priorite 3 : fallback
+    for (const p of [PHONE_NEAR, PHONE_INTL, PHONE_LONG, PHONE_LOCAL]) {
         p.lastIndex = 0;
         let mm;
         while ((mm = p.exec(body)) !== null) {
@@ -177,7 +138,6 @@ function extractPhone(body) {
 }
 
 function extractDate(body) {
-    // Accepte "à" entre date et heure (ex. "17/05/2026 a 19:18:36")
     const m = body.match(/(\d{2,4}[/-]\d{2}[/-]\d{2,4})\s*(?:à\s+|a\s+)?(\d{1,2}:\d{2}(?::\d{2})?)/);
     if (!m) return null;
     const rawDate = m[1].replace(/-/g, '/');
@@ -191,14 +151,16 @@ function extractDate(body) {
     return isNaN(date.getTime()) ? null : date.toISOString();
 }
 
+// parse() renvoie null si l'SMS ne correspond a aucun pattern accepte (rejet strict)
 function parse(sender, body, smsTimestamp) {
-    const operator = detectOperator(sender, body);
     const type = detectType(body || '');
+    if (!type) return null;
     const { amount, currency } = extractAmount(body || '');
+    if (amount <= 0) return null;
+    const operator = detectOperator(sender, body);
     const reference = extractReference(body || '');
     const phone_number = extractPhone(body || '');
     const ts = extractDate(body || '') || new Date(smsTimestamp || Date.now()).toISOString();
-
     return { operator, type, amount, currency, reference, phone_number, ts };
 }
 

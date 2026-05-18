@@ -383,4 +383,59 @@ router.get('/devices/:token/pdf', adminOnly, async (req, res) => {
 });
 
 
+
+// Nettoyer les transactions invalides (qui ne matchent plus le parser strict)
+router.get('/nettoyer-transactions', adminOnly, async (req, res) => {
+    // Compter d'abord
+    const { rows: txs } = await pool.query(
+        `SELECT id, raw_sender, raw_body FROM transactions
+         WHERE device_id IN (SELECT token FROM devices WHERE user_id = $1)`,
+        [req.user.id]
+    );
+    const parser = require('../lib/parser');
+    const toDelete = [];
+    for (const t of txs) {
+        const r = parser.parse(t.raw_sender || '', t.raw_body || '', Date.now());
+        if (!r) toDelete.push(t.id);
+    }
+    res.send(`
+        <html><body style="font-family:sans-serif; max-width:600px; margin:40px auto; padding:20px;">
+            <h2>🧹 Nettoyage des transactions</h2>
+            <p>Total transactions de votre compte : <strong>${txs.length}</strong></p>
+            <p>Transactions invalides a supprimer (ne matchent plus le parser strict) : <strong style="color:#DC2626;">${toDelete.length}</strong></p>
+            ${toDelete.length === 0
+                ? '<p style="color:#059669;">Aucune transaction a supprimer. Tout est conforme aux 6 patterns.</p>'
+                : `<form method="POST" action="/nettoyer-transactions" onsubmit="return confirm('Supprimer definitivement ${toDelete.length} transactions invalides ?')">
+                       <button type="submit" style="background:#DC2626; color:white; border:none; padding:12px 24px; border-radius:6px; font-size:16px; cursor:pointer;">Supprimer ${toDelete.length} transactions</button>
+                   </form>`}
+            <p><a href="/" style="color:#1565C0;">← Retour au tableau de bord</a></p>
+        </body></html>
+    `);
+});
+
+router.post('/nettoyer-transactions', adminOnly, async (req, res) => {
+    const { rows: txs } = await pool.query(
+        `SELECT id, raw_sender, raw_body FROM transactions
+         WHERE device_id IN (SELECT token FROM devices WHERE user_id = $1)`,
+        [req.user.id]
+    );
+    const parser = require('../lib/parser');
+    const toDelete = [];
+    for (const t of txs) {
+        const r = parser.parse(t.raw_sender || '', t.raw_body || '', Date.now());
+        if (!r) toDelete.push(t.id);
+    }
+    if (toDelete.length > 0) {
+        await pool.query(`DELETE FROM transactions WHERE id = ANY($1::bigint[])`, [toDelete]);
+    }
+    res.send(`
+        <html><body style="font-family:sans-serif; max-width:600px; margin:40px auto; padding:20px;">
+            <h2>✓ Nettoyage termine</h2>
+            <p><strong>${toDelete.length}</strong> transactions invalides supprimees.</p>
+            <p><a href="/" style="color:#1565C0;">← Retour au tableau de bord</a></p>
+        </body></html>
+    `);
+});
+
+
 module.exports = router;
