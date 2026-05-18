@@ -110,4 +110,11 @@
     <string name="btn_pick_date">Choisir date</string>
     <string name="date_all">Toutes les dates</string>
     <string name="no_data_for_date">Aucune transaction pour cette date.</string>
+    <!-- Réinitialisation -->
+    <string name="reset_help">Pour repartir de zéro (comme une nouvelle installation) :</string>
+    <string name="reset_button">🗑️ Réinitialiser l\'application</string>
+    <string name="reset_title">Réinitialiser l\'application ?</string>
+    <string name="reset_message">Cette action effacera DÉFINITIVEMENT :\n\n• Toutes les transactions captées\n• Tous vos comptes (Mes Comptes)\n• Vos paramètres de connexion\n• Les PDF générés\n\nVotre compte sur le serveur (email + mot de passe) reste valide — vous pourrez vous reconnecter ensuite.\n\nÊtes-vous sûr ?</string>
+    <string name="reset_confirm">Oui, tout effacer</string>
+    <string name="reset_done">Application réinitialisée.</string>
 </resources>
