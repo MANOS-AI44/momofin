@@ -14,12 +14,12 @@ import kotlinx.coroutines.withContext
 class LoginActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityLoginBinding
-    private var isSignup = true
+    private enum class State { CHOICE, SIGNUP, LOGIN }
+    private var state = State.CHOICE
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // Si déjà connecté → bascule directement vers MainActivity
         if (Settings.isConfigured(this)) {
             startActivity(Intent(this, MainActivity::class.java))
             finish()
@@ -29,77 +29,106 @@ class LoginActivity : AppCompatActivity() {
         binding = ActivityLoginBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        binding.edtUrl.setText(
-            Settings.getUrl(this).ifBlank { AuthClient.defaultUrl() }
-        )
-
-        binding.btnSwitchMode.setOnClickListener { toggleMode() }
-        binding.btnSubmit.setOnClickListener { submit() }
-        binding.btnSkip.setOnClickListener {
-            startActivity(Intent(this, MainActivity::class.java))
-            finish()
+        // URL serveur par défaut — invisible
+        if (Settings.getUrl(this).isBlank()) {
+            Settings.save(this, AuthClient.defaultUrl(), "")
         }
 
-        updateUi()
+        binding.btnChoiceSignup.setOnClickListener { showSignup() }
+        binding.btnChoiceLogin.setOnClickListener { showLogin() }
+        binding.btnBackSignup.setOnClickListener { showChoice() }
+        binding.btnBackLogin.setOnClickListener { showChoice() }
+        binding.btnSignupSubmit.setOnClickListener { doSignup() }
+        binding.btnLoginSubmit.setOnClickListener { doLogin() }
+        binding.btnGotoLogin.setOnClickListener { showLogin() }
+        binding.btnGotoSignup.setOnClickListener { showSignup() }
+
+        showChoice()
     }
 
-    private fun toggleMode() {
-        isSignup = !isSignup
-        updateUi()
+    private fun showChoice() {
+        state = State.CHOICE
+        binding.layoutChoice.visibility = View.VISIBLE
+        binding.layoutSignup.visibility = View.GONE
+        binding.layoutLogin.visibility = View.GONE
     }
 
-    private fun updateUi() {
-        if (isSignup) {
-            binding.txtTitle.text = getString(R.string.signup_title)
-            binding.btnSubmit.text = getString(R.string.signup_submit)
-            binding.btnSwitchMode.text = getString(R.string.signup_switch_to_login)
-            binding.edtName.visibility = View.VISIBLE
-            binding.lblName.visibility = View.VISIBLE
-        } else {
-            binding.txtTitle.text = getString(R.string.login_title)
-            binding.btnSubmit.text = getString(R.string.login_submit)
-            binding.btnSwitchMode.text = getString(R.string.login_switch_to_signup)
-            binding.edtName.visibility = View.GONE
-            binding.lblName.visibility = View.GONE
-        }
+    private fun showSignup() {
+        state = State.SIGNUP
+        binding.layoutChoice.visibility = View.GONE
+        binding.layoutSignup.visibility = View.VISIBLE
+        binding.layoutLogin.visibility = View.GONE
     }
 
-    private fun submit() {
-        val url = binding.edtUrl.text.toString().trim().removeSuffix("/")
-        val email = binding.edtEmail.text.toString().trim()
-        val password = binding.edtPassword.text.toString()
-        val name = binding.edtName.text.toString().trim()
+    private fun showLogin() {
+        state = State.LOGIN
+        binding.layoutChoice.visibility = View.GONE
+        binding.layoutSignup.visibility = View.GONE
+        binding.layoutLogin.visibility = View.VISIBLE
+    }
 
-        if (url.isBlank() || !url.startsWith("http")) {
-            Toast.makeText(this, R.string.settings_url_invalid, Toast.LENGTH_SHORT).show()
-            return
-        }
+    override fun onBackPressed() {
+        if (state != State.CHOICE) showChoice() else super.onBackPressed()
+    }
+
+    private fun doSignup() {
+        val email = binding.edtSignupEmail.text.toString().trim()
+        val password = binding.edtSignupPassword.text.toString()
+        val name = binding.edtSignupName.text.toString().trim()
+
         if (email.isBlank() || !email.contains("@")) {
-            Toast.makeText(this, R.string.login_email_invalid, Toast.LENGTH_SHORT).show()
-            return
+            Toast.makeText(this, R.string.login_email_invalid, Toast.LENGTH_SHORT).show(); return
         }
         if (password.length < 6) {
-            Toast.makeText(this, R.string.login_password_short, Toast.LENGTH_SHORT).show()
-            return
+            Toast.makeText(this, R.string.login_password_short, Toast.LENGTH_SHORT).show(); return
         }
 
-        binding.btnSubmit.isEnabled = false
-        binding.txtStatus.text = getString(R.string.login_in_progress)
+        binding.btnSignupSubmit.isEnabled = false
+        binding.txtSignupStatus.text = getString(R.string.login_in_progress)
 
+        val url = Settings.getUrl(this).ifBlank { AuthClient.defaultUrl() }
         CoroutineScope(Dispatchers.IO).launch {
-            val result = if (isSignup) AuthClient.signup(url, email, password, name)
-                         else AuthClient.login(url, email, password)
+            val r = AuthClient.signup(url, email, password, name)
             withContext(Dispatchers.Main) {
-                binding.btnSubmit.isEnabled = true
-                if (result.ok && !result.token.isNullOrBlank()) {
-                    Settings.save(this@LoginActivity, url, result.token)
-                    binding.txtStatus.text = "✅ ${result.message}"
+                binding.btnSignupSubmit.isEnabled = true
+                if (r.ok && !r.token.isNullOrBlank()) {
+                    Settings.save(this@LoginActivity, url, r.token)
                     Toast.makeText(this@LoginActivity, R.string.login_success, Toast.LENGTH_LONG).show()
                     startActivity(Intent(this@LoginActivity, MainActivity::class.java))
                     finish()
                 } else {
-                    binding.txtStatus.text = "❌ ${result.message}"
-                    Toast.makeText(this@LoginActivity, result.message, Toast.LENGTH_LONG).show()
+                    binding.txtSignupStatus.text = "❌ ${r.message}"
+                }
+            }
+        }
+    }
+
+    private fun doLogin() {
+        val email = binding.edtLoginEmail.text.toString().trim()
+        val password = binding.edtLoginPassword.text.toString()
+
+        if (email.isBlank() || !email.contains("@")) {
+            Toast.makeText(this, R.string.login_email_invalid, Toast.LENGTH_SHORT).show(); return
+        }
+        if (password.isBlank()) {
+            Toast.makeText(this, R.string.login_password_short, Toast.LENGTH_SHORT).show(); return
+        }
+
+        binding.btnLoginSubmit.isEnabled = false
+        binding.txtLoginStatus.text = getString(R.string.login_in_progress)
+
+        val url = Settings.getUrl(this).ifBlank { AuthClient.defaultUrl() }
+        CoroutineScope(Dispatchers.IO).launch {
+            val r = AuthClient.login(url, email, password)
+            withContext(Dispatchers.Main) {
+                binding.btnLoginSubmit.isEnabled = true
+                if (r.ok && !r.token.isNullOrBlank()) {
+                    Settings.save(this@LoginActivity, url, r.token)
+                    Toast.makeText(this@LoginActivity, R.string.login_success, Toast.LENGTH_LONG).show()
+                    startActivity(Intent(this@LoginActivity, MainActivity::class.java))
+                    finish()
+                } else {
+                    binding.txtLoginStatus.text = "❌ ${r.message}"
                 }
             }
         }

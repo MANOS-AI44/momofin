@@ -1,142 +1,364 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:fillViewport="true"
+    android:background="#1565C0">
 
     <LinearLayout
         android:orientation="vertical"
-        android:padding="24dp"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content">
+        android:layout_height="wrap_content"
+        android:gravity="center">
 
-        <TextView
+        <!-- Header avec logo -->
+        <LinearLayout
+            android:orientation="vertical"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:textSize="28sp"
-            android:textStyle="bold"
-            android:text="@string/app_name"
-            android:textColor="#1565C0"/>
+            android:gravity="center"
+            android:paddingTop="40dp"
+            android:paddingBottom="24dp">
 
-        <TextView
-            android:id="@+id/txtTitle"
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="💰"
+                android:textSize="64sp"/>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="MoMo Fin"
+                android:textSize="32sp"
+                android:textStyle="bold"
+                android:textColor="#FFFFFF"/>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:text="Mobile Money — Suivi simple"
+                android:textSize="14sp"
+                android:textColor="#BBDEFB"/>
+        </LinearLayout>
+
+        <!-- Carte blanche qui contient l'un des 3 panneaux -->
+        <androidx.cardview.widget.CardView
+            xmlns:app="http://schemas.android.com/apk/res-auto"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="6dp"
-            android:textSize="18sp"
-            android:textStyle="bold"
-            android:text="@string/signup_title"/>
+            android:layout_marginHorizontal="20dp"
+            android:layout_marginBottom="24dp"
+            app:cardCornerRadius="16dp"
+            app:cardElevation="8dp">
 
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="6dp"
-            android:textSize="13sp"
-            android:textColor="#666"
-            android:text="@string/login_help"/>
+            <FrameLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
 
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="18dp"
-            android:textSize="13sp"
-            android:textStyle="bold"
-            android:text="@string/label_url"/>
+                <!-- ============ ÉTAT 1 : CHOIX ============ -->
+                <LinearLayout
+                    android:id="@+id/layoutChoice"
+                    android:orientation="vertical"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:padding="28dp"
+                    android:visibility="visible">
 
-        <EditText
-            android:id="@+id/edtUrl"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:hint="@string/hint_url"
-            android:inputType="textUri"
-            android:importantForAutofill="no"/>
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Bienvenue"
+                        android:textSize="22sp"
+                        android:textStyle="bold"
+                        android:textColor="#1A1A1A"
+                        android:gravity="center"/>
 
-        <TextView
-            android:id="@+id/lblName"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
-            android:textSize="13sp"
-            android:textStyle="bold"
-            android:text="@string/login_label_name"/>
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="6dp"
+                        android:text="Connectez-vous pour gérer vos transactions Mobile Money"
+                        android:textSize="14sp"
+                        android:textColor="#666"
+                        android:gravity="center"/>
 
-        <EditText
-            android:id="@+id/edtName"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:hint="@string/login_hint_name"
-            android:inputType="textPersonName"
-            android:importantForAutofill="no"/>
+                    <Button
+                        android:id="@+id/btnChoiceLogin"
+                        android:layout_width="match_parent"
+                        android:layout_height="56dp"
+                        android:layout_marginTop="32dp"
+                        android:text="🔐  J'ai déjà un compte"
+                        android:textSize="15sp"
+                        android:textStyle="bold"
+                        android:backgroundTint="#1565C0"
+                        android:textColor="#FFFFFF"/>
 
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
-            android:textSize="13sp"
-            android:textStyle="bold"
-            android:text="@string/login_label_email"/>
+                    <Button
+                        android:id="@+id/btnChoiceSignup"
+                        android:layout_width="match_parent"
+                        android:layout_height="56dp"
+                        android:layout_marginTop="12dp"
+                        android:text="✨  Créer un compte gratuit"
+                        android:textSize="15sp"
+                        android:textStyle="bold"
+                        android:backgroundTint="#FFFFFF"
+                        android:textColor="#1565C0"
+                        android:elevation="0dp"
+                        android:stateListAnimator="@null"/>
 
-        <EditText
-            android:id="@+id/edtEmail"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:hint="@string/login_hint_email"
-            android:inputType="textEmailAddress"
-            android:importantForAutofill="no"/>
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="20dp"
+                        android:text="🔒 Vos données restent sur votre serveur. Sans publicité, sans tracking."
+                        android:textSize="11sp"
+                        android:textColor="#999"
+                        android:gravity="center"/>
+                </LinearLayout>
 
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
-            android:textSize="13sp"
-            android:textStyle="bold"
-            android:text="@string/login_label_password"/>
+                <!-- ============ ÉTAT 2 : SIGNUP ============ -->
+                <LinearLayout
+                    android:id="@+id/layoutSignup"
+                    android:orientation="vertical"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:padding="28dp"
+                    android:visibility="gone">
 
-        <EditText
-            android:id="@+id/edtPassword"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:hint="@string/login_hint_password"
-            android:inputType="textPassword"
-            android:importantForAutofill="no"/>
+                    <LinearLayout
+                        android:orientation="horizontal"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center_vertical">
 
-        <Button
-            android:id="@+id/btnSubmit"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="20dp"
-            android:text="@string/signup_submit"
-            android:backgroundTint="#1565C0"
-            android:textColor="#FFFFFF"/>
+                        <Button
+                            android:id="@+id/btnBackSignup"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="‹"
+                            android:textSize="22sp"
+                            android:minWidth="40dp"
+                            style="?android:attr/borderlessButtonStyle"
+                            android:textColor="#1565C0"/>
 
-        <Button
-            android:id="@+id/btnSwitchMode"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="6dp"
-            android:text="@string/signup_switch_to_login"
-            style="?android:attr/borderlessButtonStyle"
-            android:textColor="#1565C0"/>
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_weight="1"
+                            android:layout_height="wrap_content"
+                            android:text="Créer un compte"
+                            android:textSize="20sp"
+                            android:textStyle="bold"
+                            android:textColor="#1A1A1A"/>
+                    </LinearLayout>
 
-        <TextView
-            android:id="@+id/txtStatus"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="10dp"
-            android:textSize="13sp"
-            android:gravity="center"/>
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="14dp"
+                        android:text="Nom (facultatif)"
+                        android:textSize="12sp"
+                        android:textColor="#666"/>
+                    <EditText
+                        android:id="@+id/edtSignupName"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:hint="ex. Gérard"
+                        android:inputType="textPersonName"
+                        android:importantForAutofill="no"
+                        android:textSize="15sp"/>
 
-        <View
-            android:layout_width="match_parent"
-            android:layout_height="1dp"
-            android:layout_marginVertical="20dp"
-            android:background="#DDD"/>
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:text="Email"
+                        android:textSize="12sp"
+                        android:textColor="#666"/>
+                    <EditText
+                        android:id="@+id/edtSignupEmail"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:hint="vous@example.com"
+                        android:inputType="textEmailAddress"
+                        android:importantForAutofill="no"
+                        android:textSize="15sp"/>
 
-        <Button
-            android:id="@+id/btnSkip"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/login_skip"
-            style="?android:attr/borderlessButtonStyle"
-            android:textColor="#666"/>
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:text="Mot de passe (6 caractères min.)"
+                        android:textSize="12sp"
+                        android:textColor="#666"/>
+                    <EditText
+                        android:id="@+id/edtSignupPassword"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:hint="••••••"
+                        android:inputType="textPassword"
+                        android:importantForAutofill="no"
+                        android:textSize="15sp"/>
+
+                    <Button
+                        android:id="@+id/btnSignupSubmit"
+                        android:layout_width="match_parent"
+                        android:layout_height="52dp"
+                        android:layout_marginTop="20dp"
+                        android:text="Créer mon compte"
+                        android:textSize="15sp"
+                        android:textStyle="bold"
+                        android:backgroundTint="#2E7D32"
+                        android:textColor="#FFFFFF"/>
+
+                    <TextView
+                        android:id="@+id/txtSignupStatus"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="10dp"
+                        android:textSize="13sp"
+                        android:gravity="center"/>
+
+                    <LinearLayout
+                        android:orientation="horizontal"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="14dp"
+                        android:gravity="center">
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Déjà un compte ?"
+                            android:textSize="13sp"
+                            android:textColor="#666"/>
+                        <Button
+                            android:id="@+id/btnGotoLogin"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Se connecter"
+                            android:textSize="13sp"
+                            android:textStyle="bold"
+                            style="?android:attr/borderlessButtonStyle"
+                            android:textColor="#1565C0"
+                            android:minHeight="0dp"
+                            android:paddingVertical="4dp"/>
+                    </LinearLayout>
+                </LinearLayout>
+
+                <!-- ============ ÉTAT 3 : LOGIN ============ -->
+                <LinearLayout
+                    android:id="@+id/layoutLogin"
+                    android:orientation="vertical"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:padding="28dp"
+                    android:visibility="gone">
+
+                    <LinearLayout
+                        android:orientation="horizontal"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center_vertical">
+
+                        <Button
+                            android:id="@+id/btnBackLogin"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="‹"
+                            android:textSize="22sp"
+                            android:minWidth="40dp"
+                            style="?android:attr/borderlessButtonStyle"
+                            android:textColor="#1565C0"/>
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_weight="1"
+                            android:layout_height="wrap_content"
+                            android:text="Connexion"
+                            android:textSize="20sp"
+                            android:textStyle="bold"
+                            android:textColor="#1A1A1A"/>
+                    </LinearLayout>
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="18dp"
+                        android:text="Email"
+                        android:textSize="12sp"
+                        android:textColor="#666"/>
+                    <EditText
+                        android:id="@+id/edtLoginEmail"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:hint="vous@example.com"
+                        android:inputType="textEmailAddress"
+                        android:importantForAutofill="no"
+                        android:textSize="15sp"/>
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:text="Mot de passe"
+                        android:textSize="12sp"
+                        android:textColor="#666"/>
+                    <EditText
+                        android:id="@+id/edtLoginPassword"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:hint="••••••"
+                        android:inputType="textPassword"
+                        android:importantForAutofill="no"
+                        android:textSize="15sp"/>
+
+                    <Button
+                        android:id="@+id/btnLoginSubmit"
+                        android:layout_width="match_parent"
+                        android:layout_height="52dp"
+                        android:layout_marginTop="20dp"
+                        android:text="Se connecter"
+                        android:textSize="15sp"
+                        android:textStyle="bold"
+                        android:backgroundTint="#1565C0"
+                        android:textColor="#FFFFFF"/>
+
+                    <TextView
+                        android:id="@+id/txtLoginStatus"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="10dp"
+                        android:textSize="13sp"
+                        android:gravity="center"/>
+
+                    <LinearLayout
+                        android:orientation="horizontal"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="14dp"
+                        android:gravity="center">
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Pas encore de compte ?"
+                            android:textSize="13sp"
+                            android:textColor="#666"/>
+                        <Button
+                            android:id="@+id/btnGotoSignup"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Créer un compte"
+                            android:textSize="13sp"
+                            android:textStyle="bold"
+                            style="?android:attr/borderlessButtonStyle"
+                            android:textColor="#2E7D32"
+                            android:minHeight="0dp"
+                            android:paddingVertical="4dp"/>
+                    </LinearLayout>
+                </LinearLayout>
+            </FrameLayout>
+        </androidx.cardview.widget.CardView>
     </LinearLayout>
 </ScrollView>
