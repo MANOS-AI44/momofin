@@ -86,6 +86,26 @@
             android:layout_marginTop="14dp"
             android:textSize="13sp"/>
 
+
+        <View
+            android:layout_width="match_parent" android:layout_height="1dp"
+            android:background="#DDD" android:layout_marginVertical="16dp"/>
+
+        <TextView
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:textSize="13sp" android:textStyle="bold"
+            android:text="📱 Téléphone prioritaire"/>
+        <TextView
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginTop="2dp" android:textSize="12sp" android:textColor="#666"
+            android:text="Si ACTIVÉ : ce téléphone capte les SMS et les envoie au serveur.\nSi DÉSACTIVÉ : ce téléphone consulte uniquement les transactions/rapports déjà synchronisés depuis votre autre téléphone."/>
+        <androidx.appcompat.widget.SwitchCompat
+            android:id="@+id/switchPrimary"
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:text="Ce téléphone est prioritaire (lit les SMS)"
+            android:checked="true"/>
+
         <View
             android:layout_width="match_parent"
             android:layout_height="1dp"

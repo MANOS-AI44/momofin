@@ -149,4 +149,51 @@ router.delete('/patron/:id', authDevice, async (req, res) => {
     res.json({ ok: true });
 });
 
+
+// ===== MES POINTS — saisie quotidienne =====
+async function getUserIdForDevice(deviceToken) {
+    const { rows } = await pool.query('SELECT user_id FROM devices WHERE token = $1', [deviceToken]);
+    return rows[0]?.user_id || null;
+}
+
+router.post('/points', authDevice, async (req, res) => {
+    const uid = await getUserIdForDevice(req.deviceToken);
+    if (!uid) return res.status(400).json({ error: 'Aucun utilisateur associé à ce token' });
+    const p = req.body || {};
+    try {
+        await pool.query(
+            `INSERT INTO daily_points (user_id, day_key, om, momo, moov, wave, djamo, cfa, entree, sortie, note, updated_at)
+             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,NOW())
+             ON CONFLICT (user_id, day_key) DO UPDATE SET
+                om=$3, momo=$4, moov=$5, wave=$6, djamo=$7, cfa=$8,
+                entree=$9, sortie=$10, note=$11, updated_at=NOW()`,
+            [uid, p.day_key, p.om||0, p.momo||0, p.moov||0, p.wave||0,
+             p.djamo||0, p.cfa||0, p.entree||0, p.sortie||0, p.note||'']
+        );
+        res.json({ ok: true });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+router.get('/points', authDevice, async (req, res) => {
+    const uid = await getUserIdForDevice(req.deviceToken);
+    if (!uid) return res.json([]);
+    const { rows } = await pool.query(
+        `SELECT day_key, om, momo, moov, wave, djamo, cfa, entree, sortie, note, updated_at
+         FROM daily_points WHERE user_id = $1 ORDER BY day_key DESC LIMIT 500`,
+        [uid]
+    );
+    res.json(rows);
+});
+
+router.delete('/points/:dayKey', authDevice, async (req, res) => {
+    const uid = await getUserIdForDevice(req.deviceToken);
+    if (!uid) return res.json({ ok: true });
+    await pool.query('DELETE FROM daily_points WHERE user_id = $1 AND day_key = $2',
+        [uid, req.params.dayKey]);
+    res.json({ ok: true });
+});
+
+
 module.exports = router;

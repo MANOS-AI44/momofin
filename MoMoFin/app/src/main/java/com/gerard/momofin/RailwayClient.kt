@@ -84,6 +84,37 @@ object RailwayClient {
         }
     }
 
+    
+    fun pullTransactions(baseUrl: String, token: String): List<SmsSource.Raw> {
+        return try {
+            val (code, resp) = httpGet("$baseUrl/api/transactions", token)
+            if (code !in 200..299) return emptyList()
+            val arr = org.json.JSONArray(resp)
+            val list = mutableListOf<SmsSource.Raw>()
+            for (i in 0 until arr.length()) {
+                val o = arr.getJSONObject(i)
+                // Reconstruit un Raw fictif à partir des données serveur
+                val body = "${o.optString("type")} ${o.optDouble("amount", 0.0)} ${o.optString("currency")} " +
+                           "Ref: ${o.optString("reference")} " +
+                           "Num: ${o.optString("phone_number")}"
+                val ts = try {
+                    java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", java.util.Locale.US)
+                        .apply { timeZone = java.util.TimeZone.getTimeZone("UTC") }
+                        .parse(o.optString("ts").substring(0, 19))?.time ?: 0L
+                } catch (_: Exception) { 0L }
+                list.add(SmsSource.Raw(
+                    id = o.optLong("id"),
+                    sender = o.optString("raw_sender", "Serveur"),
+                    body = body,
+                    timestamp = ts,
+                    operator = o.optString("operator", "Autre")
+                ))
+            }
+            list
+        } catch (_: Exception) { emptyList() }
+    }
+
+
     private fun httpPost(url: String, token: String, body: String): Pair<Int, String> {
         val conn = (URL(url).openConnection() as HttpURLConnection).apply {
             requestMethod = "POST"

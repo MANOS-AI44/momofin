@@ -40,6 +40,14 @@ class SettingsActivity : AppCompatActivity() {
         }
 
         binding.btnTest.setOnClickListener { testConnection() }
+        binding.switchPrimary.isChecked = Settings.isPrimaryDevice(this)
+        binding.switchPrimary.setOnCheckedChangeListener { _, checked ->
+            Settings.setPrimaryDevice(this, checked)
+            Toast.makeText(this,
+                if (checked) "Ce téléphone capte les SMS"
+                else "Ce téléphone consulte seulement (pas de capture SMS)",
+                Toast.LENGTH_LONG).show()
+        }
 
         binding.btnReset.setOnClickListener { confirmReset() }
     }

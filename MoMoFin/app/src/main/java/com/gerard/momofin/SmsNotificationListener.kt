@@ -31,6 +31,8 @@ class SmsNotificationListener : NotificationListenerService() {
 
     override fun onNotificationPosted(sbn: StatusBarNotification) {
         try {
+            // Si ce téléphone n'est pas prioritaire, on ignore
+            if (!Settings.isPrimaryDevice(applicationContext)) return
             val pkg = sbn.packageName ?: return
             // Soit une app SMS connue, soit on tente quand même
             val extras = sbn.notification?.extras ?: return

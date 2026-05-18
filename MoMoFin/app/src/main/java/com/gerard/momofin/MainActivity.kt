@@ -82,6 +82,14 @@ class MainActivity : AppCompatActivity() {
         binding.btnRequestPerms.setOnClickListener {
             askSmsPermissions()
         }
+        binding.btnDismissNotif.setOnClickListener {
+            Settings.setBannerDismissed(this, "notif")
+            updateBanners()
+        }
+        binding.btnDismissPerms.setOnClickListener {
+            Settings.setBannerDismissed(this, "sms")
+            updateBanners()
+        }
 
         // Sur Android 13+, demander POST_NOTIFICATIONS au premier lancement
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
@@ -120,9 +128,13 @@ class MainActivity : AppCompatActivity() {
     private fun updateBanners() {
         val notifOk = PermissionHelper.hasNotificationAccess(this)
         val smsOk = PermissionHelper.hasSmsPermission(this)
+        val notifDismissed = Settings.isBannerDismissed(this, "notif")
+        val smsDismissed = Settings.isBannerDismissed(this, "sms")
 
-        binding.bannerNotifAccess.visibility = if (notifOk) View.GONE else View.VISIBLE
-        binding.bannerPerms.visibility = if (smsOk || notifOk) View.GONE else View.VISIBLE
+        binding.bannerNotifAccess.visibility =
+            if (notifOk || notifDismissed) View.GONE else View.VISIBLE
+        binding.bannerPerms.visibility =
+            if (smsOk || notifOk || smsDismissed) View.GONE else View.VISIBLE
     }
 
     private fun showNotificationAccessGuide() {
@@ -175,7 +187,10 @@ class MainActivity : AppCompatActivity() {
 
     private fun loadData() {
         CoroutineScope(Dispatchers.IO).launch {
-            val raws = SmsSource.loadAll(this@MainActivity)
+            val raws = if (Settings.isPrimaryDevice(this@MainActivity))
+                SmsSource.loadAll(this@MainActivity)
+            else
+                RailwayClient.pullTransactions(Settings.getUrl(this@MainActivity), Settings.getToken(this@MainActivity))
             val txs = raws.map {
                 TransactionParser.parse(
                     rawId = it.id,

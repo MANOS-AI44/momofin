@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical" android:padding="12dp"
+    android:layout_width="match_parent" android:layout_height="match_parent">
+
+    <TextView
+        android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:textSize="22sp" android:textStyle="bold" android:textColor="#6A1B9A"
+        android:text="📂 Historique MES POINTS"/>
+
+    <TextView
+        android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:textSize="12sp" android:textColor="#666" android:layout_marginTop="2dp"
+        android:text="Tous vos rapports enregistrés, du plus récent au plus ancien. Cliquez pour voir le détail."/>
+
+    <TextView
+        android:id="@+id/txtCount"
+        android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:layout_marginTop="6dp" android:textSize="13sp" android:textStyle="bold"/>
+
+    <Button
+        android:id="@+id/btnSyncCloud"
+        android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="☁️ Récupérer du serveur (multi-téléphones)"
+        android:backgroundTint="#1565C0" android:textColor="#FFFFFF"/>
+
+    <TextView
+        android:id="@+id/txtEmpty"
+        android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:layout_marginTop="40dp" android:gravity="center"
+        android:textColor="#888" android:textStyle="italic"
+        android:text="Aucun rapport enregistré. Allez dans MES POINTS pour en créer."
+        android:visibility="gone"/>
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/recycler"
+        android:layout_width="match_parent" android:layout_height="0dp"
+        android:layout_weight="1" android:layout_marginTop="10dp"/>
+</LinearLayout>

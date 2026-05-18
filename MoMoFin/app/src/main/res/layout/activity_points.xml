@@ -10,13 +10,17 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content">
 
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:textSize="22sp"
-            android:textStyle="bold"
-            android:textColor="#6A1B9A"
-            android:text="📊 MES POINTS"/>
+        <LinearLayout android:orientation="horizontal" android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center_vertical">
+            <TextView
+                android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content"
+                android:textSize="22sp" android:textStyle="bold" android:textColor="#6A1B9A"
+                android:text="📊 MES POINTS"/>
+            <Button
+                android:id="@+id/btnHistory"
+                android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="📂 Historique" android:textSize="12sp"
+                android:backgroundTint="#6A1B9A" android:textColor="#FFFFFF"/>
+        </LinearLayout>
 
         <TextView
             android:layout_width="match_parent"

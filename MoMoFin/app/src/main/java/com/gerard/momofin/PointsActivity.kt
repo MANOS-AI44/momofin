@@ -1,6 +1,10 @@
 package com.gerard.momofin
 
 import android.app.DatePickerDialog
+import android.content.Intent
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
@@ -47,6 +51,9 @@ class PointsActivity : AppCompatActivity() {
         binding.btnPrev.setOnClickListener { changeDay(-1) }
         binding.btnNext.setOnClickListener { changeDay(1) }
         binding.btnSave.setOnClickListener { saveCurrent() }
+        binding.btnHistory.setOnClickListener {
+            startActivity(Intent(this, PointsHistoryActivity::class.java))
+        }
 
         loadDay()
     }
@@ -125,5 +132,11 @@ class PointsActivity : AppCompatActivity() {
         )
         store.save(p)
         Toast.makeText(this, "✅ Points enregistrés pour ce jour", Toast.LENGTH_SHORT).show()
+        // Push vers le serveur si configuré (visible sur les autres téléphones du même compte)
+        if (Settings.isConfigured(this)) {
+            CoroutineScope(Dispatchers.IO).launch {
+                PointsClient.push(Settings.getUrl(this@PointsActivity), Settings.getToken(this@PointsActivity), p)
+            }
+        }
     }
 }

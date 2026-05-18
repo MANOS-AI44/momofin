@@ -40,6 +40,24 @@ async function init() {
         await client.query(`ALTER TABLE devices ADD COLUMN IF NOT EXISTS user_id BIGINT REFERENCES users(id) ON DELETE CASCADE;`);
         await client.query(`ALTER TABLE transactions ADD COLUMN IF NOT EXISTS phone_number TEXT;`);
         await client.query(`
+            CREATE TABLE IF NOT EXISTS daily_points (
+                id BIGSERIAL PRIMARY KEY,
+                user_id BIGINT REFERENCES users(id) ON DELETE CASCADE,
+                day_key BIGINT NOT NULL,
+                om NUMERIC(18,2) DEFAULT 0,
+                momo NUMERIC(18,2) DEFAULT 0,
+                moov NUMERIC(18,2) DEFAULT 0,
+                wave NUMERIC(18,2) DEFAULT 0,
+                djamo NUMERIC(18,2) DEFAULT 0,
+                cfa NUMERIC(18,2) DEFAULT 0,
+                entree NUMERIC(18,2) DEFAULT 0,
+                sortie NUMERIC(18,2) DEFAULT 0,
+                note TEXT,
+                updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                UNIQUE(user_id, day_key)
+            );
+        `);
+        await client.query(`
             CREATE TABLE IF NOT EXISTS transactions (
                 id BIGSERIAL PRIMARY KEY,
                 device_id TEXT NOT NULL,

@@ -42,6 +42,23 @@ object Settings {
             .putBoolean(K_ASKED_PERMS, true).apply()
     }
 
+
+    fun isBannerDismissed(c: Context, key: String): Boolean =
+        c.getSharedPreferences(PREF, Context.MODE_PRIVATE).getBoolean("dismiss_$key", false)
+
+    fun setBannerDismissed(c: Context, key: String) {
+        c.getSharedPreferences(PREF, Context.MODE_PRIVATE).edit()
+            .putBoolean("dismiss_$key", true).apply()
+    }
+
+    fun isPrimaryDevice(c: Context): Boolean =
+        c.getSharedPreferences(PREF, Context.MODE_PRIVATE).getBoolean("primary_device", true)
+
+    fun setPrimaryDevice(c: Context, primary: Boolean) {
+        c.getSharedPreferences(PREF, Context.MODE_PRIVATE).edit()
+            .putBoolean("primary_device", primary).apply()
+    }
+
     fun logout(c: Context) {
         c.getSharedPreferences(PREF, Context.MODE_PRIVATE).edit()
             .remove(K_URL).remove(K_TOKEN).remove(K_LAST_SYNC).apply()
