@@ -23,7 +23,7 @@ class FolderDetailActivity : AppCompatActivity() {
     private lateinit var store: FolderStore
     private lateinit var folder: Folder
     private lateinit var adapter: EntryAdapter
-    private val nf = NumberFormat.getNumberInstance(Locale.FRENCH).apply { groupingSize = 3 }
+    private val nf = NumberFormat.getNumberInstance(Locale.FRENCH)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -97,7 +97,7 @@ class FolderDetailActivity : AppCompatActivity() {
 
     class EntryAdapter(val onLong: (FolderEntry) -> Unit) : RecyclerView.Adapter<EntryAdapter.VH>() {
         private val items = mutableListOf<FolderEntry>()
-        private val nf = NumberFormat.getNumberInstance(Locale.FRENCH).apply { groupingSize = 3 }
+        private val nf = NumberFormat.getNumberInstance(Locale.FRENCH)
         private val df = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.FRENCH)
 
         fun submit(l: List<FolderEntry>) { items.clear(); items.addAll(l); notifyDataSetChanged() }

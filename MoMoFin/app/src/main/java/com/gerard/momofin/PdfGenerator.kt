@@ -60,7 +60,7 @@ object PdfGenerator {
         val recuColor = 0xFF2E7D32.toInt()
         val sortieColor = 0xFFC62828.toInt()
 
-        val nf = NumberFormat.getNumberInstance(Locale.FRENCH).apply { groupingSize = 3 }
+        val nf = NumberFormat.getNumberInstance(Locale.FRENCH)
         val dfDay = SimpleDateFormat("EEEE dd MMMM yyyy", Locale.FRENCH)
 
         var pageNum = 1
@@ -163,7 +163,7 @@ object PdfGenerator {
         val rule = Paint().apply { strokeWidth = 0.6f; color = 0xFFBBBBBB.toInt() }
         val header = Paint().apply { textSize = 9f; isFakeBoldText = true }
 
-        val nf = NumberFormat.getNumberInstance(Locale.FRENCH).apply { groupingSize = 3 }
+        val nf = NumberFormat.getNumberInstance(Locale.FRENCH)
         val dfDay = SimpleDateFormat("EEEE dd MMMM yyyy", Locale.FRENCH)
         val dfNow = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.FRENCH)
 

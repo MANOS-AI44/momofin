@@ -26,7 +26,7 @@ class PatronActivity : AppCompatActivity() {
     private lateinit var binding: ActivityPatronBinding
     private lateinit var store: FolderStore
     private lateinit var adapter: FolderAdapter
-    private val nf = NumberFormat.getNumberInstance(Locale.FRENCH).apply { groupingSize = 3 }
+    private val nf = NumberFormat.getNumberInstance(Locale.FRENCH)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
