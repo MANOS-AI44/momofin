@@ -115,6 +115,50 @@ object RailwayClient {
     }
 
 
+    /**
+     * Variante qui renvoie directement des Transaction deja parsees par le backend.
+     * A utiliser sur les sous-comptes (mode lecture seule) : evite de retraverser
+     * le parser strict local qui rejetterait les bodies fictifs reconstruits.
+     */
+    fun pullTransactionsAsTx(baseUrl: String, token: String): List<Transaction> {
+        return try {
+            val (code, resp) = httpGet("$baseUrl/api/transactions", token)
+            if (code !in 200..299) return emptyList()
+            val arr = org.json.JSONArray(resp)
+            val list = mutableListOf<Transaction>()
+            for (i in 0 until arr.length()) {
+                val o = arr.getJSONObject(i)
+                val ts = try {
+                    java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", java.util.Locale.US)
+                        .apply { timeZone = java.util.TimeZone.getTimeZone("UTC") }
+                        .parse(o.optString("ts").substring(0, 19))?.time ?: 0L
+                } catch (_: Exception) { 0L }
+                val type = when (o.optString("type").uppercase()) {
+                    "RECU" -> TxType.RECU
+                    "SORTIE" -> TxType.SORTIE
+                    else -> TxType.INCONNU
+                }
+                if (type == TxType.INCONNU) continue
+                val amount = o.optDouble("amount", 0.0)
+                if (amount <= 0.0) continue
+                list.add(Transaction(
+                    rawId = o.optLong("id"),
+                    operator = o.optString("operator", "Autre"),
+                    type = type,
+                    amount = amount,
+                    currency = o.optString("currency").ifBlank { "FCFA" },
+                    reference = o.optString("reference", ""),
+                    phoneNumber = TransactionParser.normalizePhone(o.optString("phone_number", "")),
+                    timestamp = ts,
+                    rawSender = o.optString("raw_sender", "Serveur"),
+                    rawBody = ""
+                ))
+            }
+            list
+        } catch (_: Exception) { emptyList() }
+    }
+
+
     private fun httpPost(url: String, token: String, body: String): Pair<Int, String> {
         val conn = (URL(url).openConnection() as HttpURLConnection).apply {
             requestMethod = "POST"

@@ -237,18 +237,23 @@ class MainActivity : AppCompatActivity() {
 
     private fun loadData() {
         CoroutineScope(Dispatchers.IO).launch {
-            val raws = if (Settings.isPrimaryDevice(this@MainActivity))
-                SmsSource.loadAll(this@MainActivity)
-            else
-                RailwayClient.pullTransactions(Settings.getUrl(this@MainActivity), Settings.getToken(this@MainActivity))
-            // Parse strict : ignore les SMS qui ne matchent aucun des 6 patterns canoniques
-            val txs = raws.mapNotNull {
-                TransactionParser.parse(
-                    rawId = it.id,
-                    sender = it.sender,
-                    body = it.body,
-                    smsTimestamp = it.timestamp,
-                    operator = it.operator
+            val txs: List<Transaction> = if (Settings.isPrimaryDevice(this@MainActivity)) {
+                val raws = SmsSource.loadAll(this@MainActivity)
+                // Parse strict : ignore les SMS qui ne matchent aucun des 6 patterns canoniques
+                raws.mapNotNull {
+                    TransactionParser.parse(
+                        rawId = it.id,
+                        sender = it.sender,
+                        body = it.body,
+                        smsTimestamp = it.timestamp,
+                        operator = it.operator
+                    )
+                }
+            } else {
+                // Sous-compte : on recupere les Transaction deja parsees cote serveur
+                RailwayClient.pullTransactionsAsTx(
+                    Settings.getUrl(this@MainActivity),
+                    Settings.getToken(this@MainActivity)
                 )
             }
             withContext(Dispatchers.Main) {

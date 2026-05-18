@@ -5,6 +5,7 @@ const router = express.Router();
 const { pool } = require('../lib/db');
 const { requireUser } = require('../lib/users');
 const pdf = require('../lib/pdf');
+const parser = require('../lib/parser');
 
 // =====================================================================
 // Routes PUBLIQUES (pas de mot de passe) — page de téléchargement APK
@@ -405,7 +406,7 @@ router.get('/devices/:token/pdf', adminOnly, async (req, res) => {
 
 // === Re-traitement complet : re-parse, met a jour, deduplique, supprime les invalides ===
 router.get('/nettoyer-transactions', adminOnly, async (req, res) => {
-    const parser = require('../lib/parser');
+
     const { rows: txs } = await pool.query(
         `SELECT id, device_id, operator, type, amount, phone_number, reference, ts, raw_sender, raw_body
          FROM transactions
@@ -453,7 +454,7 @@ router.get('/nettoyer-transactions', adminOnly, async (req, res) => {
 });
 
 router.post('/nettoyer-transactions', adminOnly, async (req, res) => {
-    const parser = require('../lib/parser');
+
     const { rows: txs } = await pool.query(
         `SELECT id, device_id, operator, type, amount, phone_number, reference, ts, raw_sender, raw_body
          FROM transactions

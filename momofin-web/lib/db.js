@@ -11,6 +11,7 @@ const pool = new Pool({
 async function init() {
     const client = await pool.connect();
     try {
+        // === 1) Creation des tables (idempotent : CREATE IF NOT EXISTS) ===
         await client.query(`
             CREATE TABLE IF NOT EXISTS users (
                 id BIGSERIAL PRIMARY KEY,
@@ -36,29 +37,6 @@ async function init() {
                 created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
             );
         `);
-        // Migration : ajouter user_id à devices si table déjà existante sans la colonne
-        await client.query(`ALTER TABLE devices ADD COLUMN IF NOT EXISTS user_id BIGINT REFERENCES users(id) ON DELETE CASCADE;`);
-        await client.query(`ALTER TABLE devices ADD COLUMN IF NOT EXISTS code TEXT UNIQUE;`);
-        await client.query(`ALTER TABLE sessions ADD COLUMN IF NOT EXISTS device_token TEXT REFERENCES devices(token) ON DELETE CASCADE;`);
-        await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS logo_data BYTEA;`);
-        await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS logo_mime TEXT;`);
-        await client.query(`ALTER TABLE transactions ADD COLUMN IF NOT EXISTS phone_number TEXT;`);
-        // Migration : normaliser les numeros CI (strip prefixe 225) sur les anciennes lignes
-        await client.query(`UPDATE transactions
-            SET phone_number = SUBSTRING(phone_number FROM 4)
-            WHERE phone_number LIKE '225%' AND LENGTH(phone_number) > 10;`);
-        // Migration : re-deriver l'operateur depuis le prefixe du numero pour les anciennes lignes 'Autre'
-        await client.query(`UPDATE transactions SET operator = 'Orange'
-            WHERE (operator = 'Autre' OR operator IS NULL OR operator = '')
-            AND phone_number ~ '^0[789]'`);
-        await client.query(`UPDATE transactions SET operator = 'MTN'
-            WHERE (operator = 'Autre' OR operator IS NULL OR operator = '')
-            AND phone_number ~ '^0[456]'`);
-        await client.query(`UPDATE transactions SET operator = 'MOOV'
-            WHERE (operator = 'Autre' OR operator IS NULL OR operator = '')
-            AND phone_number ~ '^0[123]'`);
-        // Normalisation : Moov -> MOOV pour coherence d'affichage
-        await client.query(`UPDATE transactions SET operator = 'MOOV' WHERE operator = 'Moov';`);
         await client.query(`
             CREATE TABLE IF NOT EXISTS daily_points (
                 id BIGSERIAL PRIMARY KEY,
@@ -105,10 +83,40 @@ async function init() {
                 created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
             );
         `);
+
+        // === 2) Migrations de schema (idempotentes : ADD COLUMN IF NOT EXISTS) ===
+        // Sur tables qui existent forcement apres les CREATE TABLE ci-dessus.
+        await client.query(`ALTER TABLE devices ADD COLUMN IF NOT EXISTS user_id BIGINT REFERENCES users(id) ON DELETE CASCADE;`);
+        await client.query(`ALTER TABLE devices ADD COLUMN IF NOT EXISTS code TEXT UNIQUE;`);
+        await client.query(`ALTER TABLE sessions ADD COLUMN IF NOT EXISTS device_token TEXT REFERENCES devices(token) ON DELETE CASCADE;`);
+        await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS logo_data BYTEA;`);
+        await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS logo_mime TEXT;`);
+        await client.query(`ALTER TABLE transactions ADD COLUMN IF NOT EXISTS phone_number TEXT;`);
+
+        // === 3) Migrations de donnees (idempotentes : conditions WHERE filtrent) ===
+        // Normaliser les numeros CI (strip prefixe 225) sur les anciennes lignes
+        await client.query(`UPDATE transactions
+            SET phone_number = SUBSTRING(phone_number FROM 4)
+            WHERE phone_number LIKE '225%' AND LENGTH(phone_number) > 10;`);
+        // Re-deriver l'operateur depuis le prefixe du numero pour les anciennes lignes 'Autre'
+        await client.query(`UPDATE transactions SET operator = 'Orange'
+            WHERE (operator = 'Autre' OR operator IS NULL OR operator = '')
+            AND phone_number ~ '^0[789]'`);
+        await client.query(`UPDATE transactions SET operator = 'MTN'
+            WHERE (operator = 'Autre' OR operator IS NULL OR operator = '')
+            AND phone_number ~ '^0[456]'`);
+        await client.query(`UPDATE transactions SET operator = 'MOOV'
+            WHERE (operator = 'Autre' OR operator IS NULL OR operator = '')
+            AND phone_number ~ '^0[123]'`);
+        // Normalisation : Moov -> MOOV pour coherence d'affichage
+        await client.query(`UPDATE transactions SET operator = 'MOOV' WHERE operator = 'Moov';`);
+
+        // === 4) Index (idempotents : CREATE INDEX IF NOT EXISTS) ===
         await client.query(`CREATE INDEX IF NOT EXISTS idx_tx_ts ON transactions(ts DESC);`);
         await client.query(`CREATE INDEX IF NOT EXISTS idx_patron_ts ON patron_entries(ts DESC);`);
         await client.query(`CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user_id);`);
 
+        // === 5) Device par defaut (seed) ===
         const { rows } = await client.query('SELECT COUNT(*)::int AS n FROM devices');
         if (rows[0].n === 0 && process.env.DEFAULT_DEVICE_TOKEN) {
             await client.query(
