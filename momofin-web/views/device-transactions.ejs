@@ -1,0 +1,70 @@
+<%- include('_layout_head', { pageTitle: 'Transactions de l\'appareil — MoMo Fin', activeNav: 'devices', user: user }) %>
+
+<h1>📊 Transactions — <%= device.label || 'Appareil' %></h1>
+<p class="subtitle">
+    Code court : <strong style="color:#1565C0; letter-spacing:2px;"><%= device.code || '—' %></strong>
+    &nbsp;·&nbsp;
+    <a href="/devices" style="color:#6B7280;">← Retour aux appareils</a>
+</p>
+
+<section class="panel">
+    <h3>📅 Période</h3>
+    <div class="filter-bar">
+        <% var pAll = (typeof from === 'undefined' || !from) ? 'active' : ''; %>
+        <a href="/devices/<%= device.token %>/transactions" class="preset-btn <%= pAll %>">Tout</a>
+        <a href="/devices/<%= device.token %>/transactions?preset=today" class="preset-btn">Aujourd'hui</a>
+        <a href="/devices/<%= device.token %>/transactions?preset=week" class="preset-btn">7 jours</a>
+        <a href="/devices/<%= device.token %>/transactions?preset=month" class="preset-btn">Ce mois</a>
+        <a href="/devices/<%= device.token %>/transactions?preset=year" class="preset-btn">Cette année</a>
+    </div>
+    <form method="GET" action="/devices/<%= device.token %>/transactions" class="filter-row">
+        <label>Du <input type="date" name="from" value="<%= from ? from.toISOString().substring(0,10) : '' %>"></label>
+        <label>Au <input type="date" name="to" value="<%= to ? to.toISOString().substring(0,10) : '' %>"></label>
+        <button type="submit" class="btn primary">Filtrer</button>
+        <button type="button" onclick="window.print()" class="btn warn">🖨️ Imprimer</button>
+        <a href="/devices/<%= device.token %>/pdf<%= from ? ('?from=' + from.toISOString().substring(0,10) + '&to=' + (to ? to.toISOString().substring(0,10) : '')) : '' %>" target="_blank" class="btn danger">📄 PDF</a>
+    </form>
+</section>
+
+<% if (days.length === 0) { %>
+    <p class="empty">Aucune transaction pour cet appareil sur la période choisie.</p>
+<% } else { %>
+    <section class="panel" style="background:#F9FAFB;">
+        <h3>🧮 Totaux de la période</h3>
+        <p style="font-size:16px;">
+            <strong style="color:#059669;">Total Retrait : <%= fmt(totals.recu) %></strong>
+             &nbsp;·&nbsp;
+            <strong style="color:#DC2626;">Total Dépôt : <%= fmt(totals.sortie) %></strong>
+        </p>
+    </section>
+<% } %>
+
+<% days.forEach(function(d) { %>
+    <section class="day">
+        <h2><%= new Date(d.day).toLocaleDateString('fr-FR', { weekday:'long', day:'2-digit', month:'long', year:'numeric' }) %></h2>
+        <p class="day-totals">
+            <strong style="color:#059669;">Total Retrait : <%= fmt(d.recu) %></strong>
+             &nbsp;·&nbsp;
+            <strong style="color:#DC2626;">Total Dépôt : <%= fmt(d.sortie) %></strong>
+        </p>
+        <table>
+            <thead>
+                <tr><th>Date/Heure</th><th>Type</th><th>Montant</th><th>Numéro</th><th>Référence</th><th>Opérateur</th></tr>
+            </thead>
+            <tbody>
+            <% d.list.forEach(function(t) { %>
+                <tr>
+                    <td><%= new Date(t.ts).toLocaleString('fr-FR') %></td>
+                    <td><span class="badge <%= t.type === 'RECU' ? 'recu' : 'sortie' %>"><%= t.type === 'RECU' ? 'Retrait' : (t.type === 'SORTIE' ? 'Dépôt' : '—') %></span></td>
+                    <td><strong><%= fmt(t.amount) %></strong> <%= t.currency || '' %></td>
+                    <td><%= t.phone_number || '—' %></td>
+                    <td><code><%= t.reference || '—' %></code></td>
+                    <td><%= t.operator || '' %></td>
+                </tr>
+            <% }); %>
+            </tbody>
+        </table>
+    </section>
+<% }); %>
+
+<%- include('_layout_foot') %>

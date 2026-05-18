@@ -275,4 +275,77 @@ function generateToken() {
         .join('');
 }
 
+
+// Transactions d'un appareil precis (admin only)
+router.get('/devices/:token/transactions', adminOnly, async (req, res) => {
+    const token = req.params.token;
+    // Verifier que le device appartient bien a l'admin
+    const { rows: drows } = await pool.query(
+        'SELECT token, label, code FROM devices WHERE token = $1 AND user_id = $2',
+        [token, req.user.id]
+    );
+    if (drows.length === 0) return res.status(404).send('Appareil introuvable.');
+    const device = drows[0];
+
+    const { from, to } = parseRange(req.query);
+    // Charger les jours filtres pour CET appareil uniquement
+    const conds = ['device_id = $1']; const args = [token];
+    if (from) { args.push(from.toISOString()); conds.push(`ts >= $${args.length}`); }
+    if (to)   { args.push(to.toISOString());   conds.push(`ts <= $${args.length}`); }
+    const { rows } = await pool.query(
+        `SELECT operator, type, amount, currency, reference, phone_number, ts
+         FROM transactions WHERE ${conds.join(' AND ')} ORDER BY ts DESC LIMIT 5000`,
+        args
+    );
+    const grouped = new Map();
+    for (const r of rows) {
+        const d = new Date(r.ts);
+        const k = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate())).toISOString();
+        if (!grouped.has(k)) grouped.set(k, []);
+        grouped.get(k).push(r);
+    }
+    const days = [...grouped.entries()]
+        .sort((a, b) => new Date(b[0]) - new Date(a[0]))
+        .map(([day, list]) => {
+            const recu = list.filter(x => x.type === 'RECU').reduce((s, x) => s + Number(x.amount), 0);
+            const sortie = list.filter(x => x.type === 'SORTIE').reduce((s, x) => s + Number(x.amount), 0);
+            return { day, list, recu, sortie, solde: recu - sortie };
+        });
+    const totals = sumTotals(days);
+    res.render('device-transactions', { user: req.user, device, days, totals, from, to, fmt });
+});
+
+// PDF des transactions d'un appareil precis
+router.get('/devices/:token/pdf', adminOnly, async (req, res) => {
+    const token = req.params.token;
+    const { rows: drows } = await pool.query(
+        'SELECT token, label FROM devices WHERE token = $1 AND user_id = $2',
+        [token, req.user.id]
+    );
+    if (drows.length === 0) return res.status(404).send('Appareil introuvable.');
+    const device = drows[0];
+    const { from, to } = parseRange(req.query);
+    const conds = ['device_id = $1']; const args = [token];
+    if (from) { args.push(from.toISOString()); conds.push(`ts >= $${args.length}`); }
+    if (to)   { args.push(to.toISOString());   conds.push(`ts <= $${args.length}`); }
+    const { rows: tx } = await pool.query(
+        `SELECT operator, type, amount, currency, reference, phone_number, ts
+         FROM transactions WHERE ${conds.join(' AND ')} ORDER BY ts DESC`,
+        args
+    );
+    const accountName = `${req.user.name || req.user.email.split('@')[0]} — ${device.label || 'Appareil'}`;
+    const fmtDate = d => d ? d.toISOString().substring(0, 10) : null;
+    const safe = accountName.replace(/[^A-Za-z0-9_-]/g, '_');
+    const filename = (from && to) ? `${safe}_du_${fmtDate(from)}_au_${fmtDate(to)}.pdf` : `${safe}_${Date.now()}.pdf`;
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `inline; filename="${filename}"`);
+    let logoBuffer = null;
+    try {
+        const { rows: lrows } = await pool.query('SELECT logo_data FROM users WHERE id = $1', [req.user.id]);
+        if (lrows[0]?.logo_data) logoBuffer = lrows[0].logo_data;
+    } catch (_) {}
+    pdf.generate(res, tx, [], { accountName, from, to, logoBuffer });
+});
+
+
 module.exports = router;
