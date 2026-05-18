@@ -174,6 +174,43 @@
                     android:visibility="gone"/>
             </LinearLayout>
 
+            <!-- Recherche par numero (discret) -->
+            <LinearLayout
+                android:orientation="horizontal"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:gravity="center_vertical">
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textSize="14sp"
+                    android:text="🔍"/>
+                <EditText
+                    android:id="@+id/edtSearch"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="38dp"
+                    android:layout_marginStart="6dp"
+                    android:hint="Rechercher un numero, une reference..."
+                    android:textSize="12sp"
+                    android:padding="6dp"
+                    android:singleLine="true"
+                    android:inputType="text"
+                    android:imeOptions="actionSearch"/>
+                <Button
+                    android:id="@+id/btnClearSearch"
+                    style="@style/Btn.Outline"
+                    android:layout_width="wrap_content"
+                    android:layout_height="38dp"
+                    android:layout_marginStart="4dp"
+                    android:text="✕"
+                    android:textSize="12sp"
+                    android:minWidth="40dp"
+                    android:paddingHorizontal="8dp"
+                    android:visibility="gone"/>
+            </LinearLayout>
+
             <!-- Résumé -->
             <TextView
                 android:id="@+id/txtSummary"

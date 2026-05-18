@@ -11,6 +11,8 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.text.Editable
+import android.text.TextWatcher
 import android.view.View
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
@@ -29,6 +31,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var adapter: DailyAdapter
     private var current: List<Transaction> = emptyList()
     private var filterDayMillis: Long? = null
+    private var searchQuery: String = ""
 
     private val permLauncher = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
@@ -82,6 +85,20 @@ class MainActivity : AppCompatActivity() {
             filterDayMillis = null
             refreshDateUi()
             renderList()
+        }
+
+        // Recherche par numero / reference
+        binding.edtSearch.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+            override fun afterTextChanged(s: Editable?) {
+                searchQuery = (s?.toString() ?: "").trim()
+                binding.btnClearSearch.visibility = if (searchQuery.isEmpty()) View.GONE else View.VISIBLE
+                renderList()
+            }
+        })
+        binding.btnClearSearch.setOnClickListener {
+            binding.edtSearch.setText("")
         }
 
         binding.btnNotifAccess.setOnClickListener {
@@ -186,8 +203,16 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun renderList() {
-        val list = if (filterDayMillis == null) current
+        var list = if (filterDayMillis == null) current
                    else current.filter { TransactionParser.dayKey(it.timestamp) == filterDayMillis }
+        if (searchQuery.isNotEmpty()) {
+            val q = searchQuery.lowercase()
+            list = list.filter {
+                it.phoneNumber.lowercase().contains(q) ||
+                it.reference.lowercase().contains(q) ||
+                it.operator.lowercase().contains(q)
+            }
+        }
         adapter.submit(list)
         val recu = list.filter { it.type == TxType.RECU }.sumOf { it.amount }
         val sortie = list.filter { it.type == TxType.SORTIE }.sumOf { it.amount }
