@@ -21,7 +21,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="6dp"
             android:textSize="13sp"
-            android:text="@string/settings_help"/>
+            android:text="Réglez ici votre serveur. Le code/token sont gérés automatiquement, vous n'avez pas à les modifier."/>
 
         <TextView
             android:layout_width="match_parent"
@@ -30,6 +30,13 @@
             android:textSize="13sp"
             android:textStyle="bold"
             android:text="@string/label_url"/>
+
+        <LinearLayout
+            android:id="@+id/advancedZone"
+            android:orientation="vertical"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:visibility="gone">
 
         <EditText
             android:id="@+id/edtUrl"
@@ -54,6 +61,18 @@
             android:hint="@string/hint_token"
             android:inputType="textPassword"
             android:importantForAutofill="no"/>
+
+        </LinearLayout>
+
+        <Button
+            android:id="@+id/btnToggleAdvanced"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:text="⚙️ Paramètres avancés (URL serveur)"
+            android:textSize="11sp"
+            style="?android:attr/borderlessButtonStyle"
+            android:textColor="#999"/>
 
         <LinearLayout
             android:orientation="horizontal"

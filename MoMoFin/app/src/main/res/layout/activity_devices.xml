@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical" android:padding="14dp"
+    android:layout_width="match_parent" android:layout_height="match_parent">
+
+    <TextView
+        android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:textSize="22sp" android:textStyle="bold" android:textColor="#1565C0"
+        android:text="📱 Mes Appareils"/>
+
+    <TextView
+        android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:layout_marginTop="2dp" android:textSize="12sp" android:textColor="#666"
+        android:text="Créez un code par boutique/téléphone. Chaque code permet à un sous-téléphone de se connecter à votre compte."/>
+
+    <Button
+        android:id="@+id/btnNew"
+        android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:layout_marginTop="14dp"
+        android:text="+ Nouvelle boutique / appareil"
+        android:backgroundTint="#2E7D32" android:textColor="#FFFFFF"
+        android:textStyle="bold"/>
+
+    <TextView
+        android:id="@+id/txtStatus"
+        android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:layout_marginTop="10dp" android:textSize="13sp" android:textColor="#666"/>
+
+    <TextView
+        android:id="@+id/txtEmpty"
+        android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:layout_marginTop="30dp" android:gravity="center"
+        android:textColor="#888" android:textStyle="italic"
+        android:visibility="gone"
+        android:text="Aucun appareil. Créez-en un pour commencer."/>
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/recycler"
+        android:layout_width="match_parent" android:layout_height="0dp"
+        android:layout_weight="1" android:layout_marginTop="14dp"/>
+</LinearLayout>

@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical" android:padding="14dp"
+    android:layout_width="match_parent" android:layout_height="wrap_content"
+    android:layout_marginBottom="8dp"
+    android:background="#F5F5F5">
+
+    <LinearLayout android:orientation="horizontal"
+        android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:gravity="center_vertical">
+        <TextView android:id="@+id/txtLabel"
+            android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content"
+            android:textSize="16sp" android:textStyle="bold" android:textColor="#1A1A1A"/>
+        <TextView android:id="@+id/txtCurrent"
+            android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:textSize="10sp" android:textColor="#FFFFFF"
+            android:padding="4dp" android:background="#2E7D32"
+            android:text="CE TÉLÉPHONE" android:visibility="gone"/>
+    </LinearLayout>
+
+    <TextView
+        android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:layout_marginTop="4dp" android:textSize="11sp" android:textColor="#888"
+        android:text="Code à dicter à l'utilisateur du téléphone :"/>
+
+    <TextView android:id="@+id/txtCode"
+        android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:layout_marginTop="4dp" android:textSize="26sp" android:textStyle="bold"
+        android:textColor="#1565C0" android:letterSpacing="0.3" android:gravity="center"
+        android:background="#FFFFFF" android:padding="8dp"/>
+
+    <TextView
+        android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:layout_marginTop="4dp" android:textSize="10sp" android:textColor="#999"
+        android:gravity="center"
+        android:text="Appui long → révoquer"/>
+</LinearLayout>

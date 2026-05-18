@@ -207,4 +207,39 @@ router.delete('/points/:dayKey', authDevice, async (req, res) => {
 });
 
 
+
+// ===== Gestion des appareils depuis l'APK (admin) =====
+router.get('/devices', authDevice, async (req, res) => {
+    const uid = await getUserIdForDevice(req.deviceToken);
+    if (!uid) return res.json([]);
+    const { rows } = await pool.query(
+        `SELECT token, label, code, created_at FROM devices WHERE user_id = $1 ORDER BY created_at DESC`,
+        [uid]
+    );
+    res.json(rows);
+});
+
+router.post('/devices', authDevice, async (req, res) => {
+    const uid = await getUserIdForDevice(req.deviceToken);
+    if (!uid) return res.status(401).json({ ok: false, error: 'Non autorisé' });
+    const label = (req.body?.label || 'Téléphone').trim();
+    try {
+        const { token, code } = await usersLib.createDevice(uid, label);
+        res.json({ ok: true, token, code, label });
+    } catch (err) {
+        res.status(400).json({ ok: false, error: err.message });
+    }
+});
+
+router.delete('/devices/:token', authDevice, async (req, res) => {
+    const uid = await getUserIdForDevice(req.deviceToken);
+    if (!uid) return res.status(401).json({ ok: false });
+    await pool.query(
+        'DELETE FROM devices WHERE token = $1 AND user_id = $2 AND token != $3',
+        [req.params.token, uid, req.deviceToken]
+    );
+    res.json({ ok: true });
+});
+
+
 module.exports = router;

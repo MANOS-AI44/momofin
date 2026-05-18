@@ -24,6 +24,12 @@ class SettingsActivity : AppCompatActivity() {
         binding.edtUrl.setText(Settings.getUrl(this))
         binding.edtToken.setText(Settings.getToken(this))
 
+        binding.btnToggleAdvanced.setOnClickListener {
+            binding.advancedZone.visibility =
+                if (binding.advancedZone.visibility == android.view.View.GONE) android.view.View.VISIBLE
+                else android.view.View.GONE
+        }
+
         binding.btnSave.setOnClickListener {
             val url = binding.edtUrl.text.toString().trim()
             val token = binding.edtToken.text.toString().trim()

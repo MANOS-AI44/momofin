@@ -64,6 +64,9 @@ class MainActivity : AppCompatActivity() {
         binding.btnSettings.setOnClickListener {
             startActivity(Intent(this, SettingsActivity::class.java))
         }
+        binding.btnDevices.setOnClickListener {
+            startActivity(Intent(this, DevicesActivity::class.java))
+        }
         binding.btnSync.setOnClickListener { syncToRailway() }
 
         binding.btnPickDate.setOnClickListener { pickDate() }
