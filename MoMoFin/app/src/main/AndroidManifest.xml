@@ -38,6 +38,7 @@
         </activity>
 
         <activity android:name=".MainActivity" android:exported="false"/>
+        <activity android:name=".PointsActivity" android:exported="false"/>
         <activity android:name=".PatronActivity" android:exported="false" android:label="@string/title_patron"/>
         <activity android:name=".FolderDetailActivity" android:exported="false"/>
         <activity android:name=".SettingsActivity" android:exported="false" android:label="@string/title_settings"/>

@@ -6,6 +6,7 @@
     <string name="btn_pdf">Exporter PDF</string>
     <string name="btn_patron">Mes Comptes</string>
     <string name="btn_patron_big">📓 Mes Comptes</string>
+    <string name="btn_points_big">📊 MES POINTS</string>
     <string name="title_patron">Mes Comptes</string>
     <string name="patron_help">Saisissez manuellement les entrées et sorties d\'argent. Le total est la différence entre Reçu et Sortie.</string>
     <string name="btn_recu">Reçu</string>

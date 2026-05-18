@@ -220,14 +220,33 @@
         </LinearLayout>
     </ScrollView>
 
-    <Button
-        android:id="@+id/btnPatron"
+    <!-- Barre de boutons sticky en bas : Mes Comptes + MES POINTS -->
+    <LinearLayout
+        android:orientation="horizontal"
         android:layout_width="match_parent"
         android:layout_height="64dp"
-        android:text="@string/btn_patron_big"
-        android:textSize="18sp"
-        android:textStyle="bold"
-        android:backgroundTint="#FFB300"
-        android:textColor="#000000"
-        android:elevation="8dp"/>
+        android:elevation="8dp">
+
+        <Button
+            android:id="@+id/btnPatron"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="match_parent"
+            android:text="@string/btn_patron_big"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:backgroundTint="#FFB300"
+            android:textColor="#000000"/>
+
+        <Button
+            android:id="@+id/btnPoints"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="match_parent"
+            android:text="@string/btn_points_big"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:backgroundTint="#6A1B9A"
+            android:textColor="#FFFFFF"/>
+    </LinearLayout>
 </LinearLayout>

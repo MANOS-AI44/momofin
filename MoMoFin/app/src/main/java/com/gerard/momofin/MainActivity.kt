@@ -58,6 +58,9 @@ class MainActivity : AppCompatActivity() {
         binding.btnPatron.setOnClickListener {
             startActivity(Intent(this, PatronActivity::class.java))
         }
+        binding.btnPoints.setOnClickListener {
+            startActivity(Intent(this, PointsActivity::class.java))
+        }
         binding.btnSettings.setOnClickListener {
             startActivity(Intent(this, SettingsActivity::class.java))
         }
