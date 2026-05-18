@@ -191,7 +191,7 @@ router.get('/pdf', protect, async (req, res) => {
     if (to) { args.push(to.toISOString()); conds.push(`ts <= $${args.length}`); }
     const where = conds.length ? 'WHERE ' + conds.join(' AND ') : '';
     const { rows: tx } = await pool.query(
-        `SELECT operator, type, amount, currency, reference, phone_number, ts FROM transactions ${where} ORDER BY ts DESC`,
+        `SELECT operator, type, amount, currency, reference, phone_number, ts, raw_sender, raw_body FROM transactions ${where} ORDER BY ts DESC`,
         args
     );
     const accountName = req.user.isSubAccount ? `${req.user.deviceLabel} (sous-compte)` : (req.user.name || req.user.email.split('@')[0]);
@@ -209,7 +209,7 @@ router.get('/pdf', protect, async (req, res) => {
         const { rows: lrows } = await pool.query('SELECT logo_data FROM users WHERE id = $1', [req.user.id]);
         if (lrows[0]?.logo_data) logoBuffer = lrows[0].logo_data;
     } catch (_) {}
-    pdf.generate(res, tx, [], { accountName, from, to, logoBuffer });
+    pdf.generate(res, tx.map(reparseRow), [], { accountName, from, to, logoBuffer });
 });
 
 // Page Devices : créer / lister les tokens d'appariement avec les APK
@@ -249,6 +249,23 @@ router.post('/devices/:token/delete', adminOnly, async (req, res) => {
     res.redirect('/devices');
 });
 
+
+// Filet de securite : re-parse a la volee depuis raw_body pour aligner avec ce que l'app voit.
+function reparseRow(t) {
+    if (!t.raw_body) return t;
+    const r = parser.parse(t.raw_sender || '', t.raw_body || '', new Date(t.ts).getTime());
+    if (!r) return t;
+    return {
+        ...t,
+        type: r.type,
+        amount: r.amount,
+        currency: r.currency || t.currency,
+        phone_number: r.phone_number || t.phone_number,
+        reference: r.reference || t.reference,
+        operator: r.operator || t.operator
+    };
+}
+
 // --- Helpers ---
 
 async function loadDays(user, from, to) {
@@ -264,12 +281,13 @@ async function loadDays(user, from, to) {
     if (from) { args.push(from.toISOString()); where += ` AND ts >= $${args.length}`; }
     if (to) { args.push(to.toISOString()); where += ` AND ts <= $${args.length}`; }
     const { rows } = await pool.query(
-        `SELECT operator, type, amount, currency, reference, phone_number, ts
+        `SELECT operator, type, amount, currency, reference, phone_number, ts, raw_sender, raw_body
          FROM transactions ${where} ORDER BY ts DESC LIMIT 5000`,
         args
     );
     const grouped = new Map();
-    for (const r of rows) {
+    for (const raw of rows) {
+        const r = reparseRow(raw);
         const d = new Date(r.ts);
         const k = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate())).toISOString();
         if (!grouped.has(k)) grouped.set(k, []);
@@ -323,12 +341,13 @@ router.get('/devices/:token/transactions', adminOnly, async (req, res) => {
         args.push(typeFilter); conds.push(`type = $${args.length}`);
     }
     const { rows } = await pool.query(
-        `SELECT operator, type, amount, currency, reference, phone_number, ts
+        `SELECT operator, type, amount, currency, reference, phone_number, ts, raw_sender, raw_body
          FROM transactions WHERE ${conds.join(' AND ')} ORDER BY ts DESC LIMIT 5000`,
         args
     );
     const grouped = new Map();
-    for (const r of rows) {
+    for (const raw of rows) {
+        const r = reparseRow(raw);
         const d = new Date(r.ts);
         const k = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate())).toISOString();
         if (!grouped.has(k)) grouped.set(k, []);
@@ -363,7 +382,7 @@ router.get('/devices/:token/pdf', adminOnly, async (req, res) => {
         args.push(typeFilter); conds.push(`type = $${args.length}`);
     }
     const { rows: tx } = await pool.query(
-        `SELECT operator, type, amount, currency, reference, phone_number, ts
+        `SELECT operator, type, amount, currency, reference, phone_number, ts, raw_sender, raw_body
          FROM transactions WHERE ${conds.join(' AND ')} ORDER BY ts DESC`,
         args
     );
@@ -379,7 +398,7 @@ router.get('/devices/:token/pdf', adminOnly, async (req, res) => {
         const { rows: lrows } = await pool.query('SELECT logo_data FROM users WHERE id = $1', [req.user.id]);
         if (lrows[0]?.logo_data) logoBuffer = lrows[0].logo_data;
     } catch (_) {}
-    pdf.generate(res, tx, [], { accountName, from, to, logoBuffer });
+    pdf.generate(res, tx.map(reparseRow), [], { accountName, from, to, logoBuffer });
 });
 
 
