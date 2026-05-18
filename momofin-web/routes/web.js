@@ -384,55 +384,108 @@ router.get('/devices/:token/pdf', adminOnly, async (req, res) => {
 
 
 
-// Nettoyer les transactions invalides (qui ne matchent plus le parser strict)
+// === Re-traitement complet : re-parse, met a jour, deduplique, supprime les invalides ===
 router.get('/nettoyer-transactions', adminOnly, async (req, res) => {
-    // Compter d'abord
+    const parser = require('../lib/parser');
     const { rows: txs } = await pool.query(
-        `SELECT id, raw_sender, raw_body FROM transactions
+        `SELECT id, device_id, operator, type, amount, phone_number, reference, ts, raw_sender, raw_body
+         FROM transactions
          WHERE device_id IN (SELECT token FROM devices WHERE user_id = $1)`,
         [req.user.id]
     );
-    const parser = require('../lib/parser');
-    const toDelete = [];
+    // Analyse : combien a supprimer (rejets + doublons) + combien a mettre a jour
+    const seen = new Map(); // cle = device_id + raw_body — garde le plus ancien id
+    let toDelete = 0, toUpdate = 0, duplicates = 0, invalid = 0;
     for (const t of txs) {
-        const r = parser.parse(t.raw_sender || '', t.raw_body || '', Date.now());
-        if (!r) toDelete.push(t.id);
+        const r = parser.parse(t.raw_sender || '', t.raw_body || '', new Date(t.ts).getTime());
+        if (!r) { toDelete++; invalid++; continue; }
+        const key = (t.device_id || '') + '|||' + (t.raw_body || '');
+        if (seen.has(key)) { toDelete++; duplicates++; continue; }
+        seen.set(key, t.id);
+        const numNorm = parser.normalizePhone ? parser.normalizePhone(t.phone_number || '') : (t.phone_number || '');
+        const diff = (r.type !== t.type)
+            || (Math.abs(Number(r.amount) - Number(t.amount)) > 0.01)
+            || ((r.phone_number || '') !== numNorm)
+            || ((r.reference || '') !== (t.reference || ''))
+            || ((r.operator || '') !== (t.operator || ''));
+        if (diff) toUpdate++;
     }
     res.send(`
-        <html><body style="font-family:sans-serif; max-width:600px; margin:40px auto; padding:20px;">
-            <h2>🧹 Nettoyage des transactions</h2>
-            <p>Total transactions de votre compte : <strong>${txs.length}</strong></p>
-            <p>Transactions invalides a supprimer (ne matchent plus le parser strict) : <strong style="color:#DC2626;">${toDelete.length}</strong></p>
-            ${toDelete.length === 0
-                ? '<p style="color:#059669;">Aucune transaction a supprimer. Tout est conforme aux 6 patterns.</p>'
-                : `<form method="POST" action="/nettoyer-transactions" onsubmit="return confirm('Supprimer definitivement ${toDelete.length} transactions invalides ?')">
-                       <button type="submit" style="background:#DC2626; color:white; border:none; padding:12px 24px; border-radius:6px; font-size:16px; cursor:pointer;">Supprimer ${toDelete.length} transactions</button>
+        <html><body style="font-family:sans-serif; max-width:680px; margin:40px auto; padding:24px; line-height:1.6;">
+            <h2>🔄 Re-traitement des transactions</h2>
+            <p>Cette operation re-parse toutes les transactions a partir du texte SMS d'origine
+               avec le parser strict actuel, met a jour les valeurs erronees,
+               supprime les doublons et les SMS hors-perimetre.</p>
+            <table style="border-collapse:collapse; width:100%; margin:16px 0;">
+              <tr><td style="padding:8px; border-bottom:1px solid #eee;">Total transactions en base</td><td style="text-align:right; padding:8px; border-bottom:1px solid #eee;"><strong>${txs.length}</strong></td></tr>
+              <tr><td style="padding:8px; border-bottom:1px solid #eee; color:#DC2626;">A supprimer (parser strict les rejette)</td><td style="text-align:right; padding:8px; border-bottom:1px solid #eee; color:#DC2626;"><strong>${invalid}</strong></td></tr>
+              <tr><td style="padding:8px; border-bottom:1px solid #eee; color:#DC2626;">A supprimer (doublons memes SMS)</td><td style="text-align:right; padding:8px; border-bottom:1px solid #eee; color:#DC2626;"><strong>${duplicates}</strong></td></tr>
+              <tr><td style="padding:8px; border-bottom:1px solid #eee; color:#F59E0B;">A mettre a jour (type, montant, ref... corriges)</td><td style="text-align:right; padding:8px; border-bottom:1px solid #eee; color:#F59E0B;"><strong>${toUpdate}</strong></td></tr>
+              <tr><td style="padding:8px;">A conserver telles quelles</td><td style="text-align:right; padding:8px;"><strong>${txs.length - toDelete - toUpdate}</strong></td></tr>
+            </table>
+            ${(toDelete === 0 && toUpdate === 0)
+                ? '<p style="color:#059669; font-size:16px;">✓ Aucune action necessaire. Toutes les transactions sont coherentes avec le parser actuel.</p>'
+                : `<form method="POST" action="/nettoyer-transactions" onsubmit="return confirm('Confirmer ? ${toDelete} suppressions + ${toUpdate} mises a jour.')">
+                       <button type="submit" style="background:#1565C0; color:white; border:none; padding:14px 28px; border-radius:8px; font-size:16px; cursor:pointer; font-weight:bold;">🔄 Re-traiter maintenant</button>
                    </form>`}
-            <p><a href="/" style="color:#1565C0;">← Retour au tableau de bord</a></p>
+            <p style="margin-top:24px;"><a href="/" style="color:#1565C0;">← Retour au tableau de bord</a></p>
         </body></html>
     `);
 });
 
 router.post('/nettoyer-transactions', adminOnly, async (req, res) => {
+    const parser = require('../lib/parser');
     const { rows: txs } = await pool.query(
-        `SELECT id, raw_sender, raw_body FROM transactions
+        `SELECT id, device_id, operator, type, amount, phone_number, reference, ts, raw_sender, raw_body
+         FROM transactions
          WHERE device_id IN (SELECT token FROM devices WHERE user_id = $1)`,
         [req.user.id]
     );
-    const parser = require('../lib/parser');
-    const toDelete = [];
+    const seen = new Map();
+    const toDeleteIds = [];
+    const toUpdate = []; // {id, type, amount, phone, ref, operator}
     for (const t of txs) {
-        const r = parser.parse(t.raw_sender || '', t.raw_body || '', Date.now());
-        if (!r) toDelete.push(t.id);
+        const r = parser.parse(t.raw_sender || '', t.raw_body || '', new Date(t.ts).getTime());
+        if (!r) { toDeleteIds.push(t.id); continue; }
+        const key = (t.device_id || '') + '|||' + (t.raw_body || '');
+        if (seen.has(key)) { toDeleteIds.push(t.id); continue; }
+        seen.set(key, t.id);
+        const numNorm = parser.normalizePhone ? parser.normalizePhone(t.phone_number || '') : (t.phone_number || '');
+        const diff = (r.type !== t.type)
+            || (Math.abs(Number(r.amount) - Number(t.amount)) > 0.01)
+            || ((r.phone_number || '') !== numNorm)
+            || ((r.reference || '') !== (t.reference || ''))
+            || ((r.operator || '') !== (t.operator || ''));
+        if (diff) toUpdate.push({ id: t.id, type: r.type, amount: r.amount, phone: r.phone_number, ref: r.reference, op: r.operator });
     }
-    if (toDelete.length > 0) {
-        await pool.query(`DELETE FROM transactions WHERE id = ANY($1::bigint[])`, [toDelete]);
+    const client = await pool.connect();
+    try {
+        await client.query('BEGIN');
+        if (toDeleteIds.length > 0) {
+            await client.query(`DELETE FROM transactions WHERE id = ANY($1::bigint[])`, [toDeleteIds]);
+        }
+        for (const u of toUpdate) {
+            await client.query(
+                `UPDATE transactions SET type=$1, amount=$2, phone_number=$3, reference=$4, operator=$5
+                 WHERE id=$6`,
+                [u.type, u.amount, u.phone, u.ref, u.op, u.id]
+            );
+        }
+        await client.query('COMMIT');
+    } catch (e) {
+        await client.query('ROLLBACK');
+        console.error(e);
+        client.release();
+        return res.status(500).send('Erreur : ' + e.message);
     }
+    client.release();
     res.send(`
-        <html><body style="font-family:sans-serif; max-width:600px; margin:40px auto; padding:20px;">
-            <h2>✓ Nettoyage termine</h2>
-            <p><strong>${toDelete.length}</strong> transactions invalides supprimees.</p>
-            <p><a href="/" style="color:#1565C0;">← Retour au tableau de bord</a></p>
+        <html><body style="font-family:sans-serif; max-width:600px; margin:40px auto; padding:24px;">
+            <h2>✓ Re-traitement termine</h2>
+            <p><strong style="color:#DC2626;">${toDeleteIds.length}</strong> transactions supprimees (invalides + doublons)</p>
+            <p><strong style="color:#F59E0B;">${toUpdate.length}</strong> transactions corrigees (type/montant/ref)</p>
+            <p>Le tableau de bord est maintenant synchronise avec ce que l'app voit reellement sur le telephone.</p>
+            <p style="margin-top:20px;"><a href="/" style="background:#1565C0; color:white; padding:10px 20px; text-decoration:none; border-radius:6px;">← Retour au tableau de bord</a></p>
         </body></html>
     `);
 });

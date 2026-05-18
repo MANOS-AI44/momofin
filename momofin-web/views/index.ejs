@@ -35,7 +35,7 @@ function phoneOpColor(op) {
         <button type="submit" class="btn primary">Filtrer</button>
         <button type="button" onclick="window.print()" class="btn warn">🖨️ Imprimer</button>
         <a href="/pdf<%= from ? ('?from=' + from.toISOString().substring(0,10) + '&to=' + (to ? to.toISOString().substring(0,10) : '')) : '' %>" target="_blank" class="btn danger">📄 PDF</a>
-        <% if (typeof user !== "undefined" && user && !user.isSubAccount) { %><a href="/nettoyer-transactions" class="btn warn" style="margin-left:auto;" title="Supprimer les transactions qui ne correspondent pas aux 6 patterns reference">🧹 Nettoyer</a><% } %>
+        <% if (typeof user !== "undefined" && user && !user.isSubAccount) { %><a href="/nettoyer-transactions" class="btn warn" style="margin-left:auto;" title="Re-parser toutes les transactions, deduplique et corrige les types/montants">🔄 Re-traiter</a><% } %>
     </form>
 </section>
 
