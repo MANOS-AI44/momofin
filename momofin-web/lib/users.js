@@ -54,12 +54,12 @@ async function authenticate(email, password) {
     return { id: rows[0].id, email: rows[0].email, name: rows[0].name };
 }
 
-async function startSession(userId) {
+async function startSession(userId, deviceToken = null) {
     const token = randomToken(40);
     const expires = new Date(Date.now() + SESSION_DAYS * 24 * 3600 * 1000);
     await pool.query(
-        `INSERT INTO sessions (token, user_id, expires_at) VALUES ($1, $2, $3)`,
-        [token, userId, expires]
+        `INSERT INTO sessions (token, user_id, expires_at, device_token) VALUES ($1, $2, $3, $4)`,
+        [token, userId, expires, deviceToken]
     );
     return { token, expires };
 }
@@ -67,12 +67,20 @@ async function startSession(userId) {
 async function getSessionUser(sessionToken) {
     if (!sessionToken) return null;
     const { rows } = await pool.query(
-        `SELECT u.id, u.email, u.name
+        `SELECT u.id, u.email, u.name, s.device_token,
+                (SELECT label FROM devices WHERE token = s.device_token) AS device_label
          FROM sessions s JOIN users u ON s.user_id = u.id
          WHERE s.token = $1 AND s.expires_at > NOW()`,
         [sessionToken]
     );
-    return rows[0] || null;
+    const r = rows[0];
+    if (!r) return null;
+    return {
+        id: r.id, email: r.email, name: r.name,
+        deviceToken: r.device_token,
+        deviceLabel: r.device_label,
+        isSubAccount: !!r.device_token
+    };
 }
 
 async function endSession(sessionToken) {

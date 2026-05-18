@@ -55,6 +55,21 @@ router.post('/connexion', async (req, res) => {
     res.redirect('/mon-compte');
 });
 
+router.post('/connexion-code', async (req, res) => {
+    try {
+        const code = (req.body.code || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+        const d = await users.deviceByCode(code);
+        if (!d) return res.status(401).render('connexion', { error: 'Code introuvable.', values: {} });
+        const session = await users.startSession(d.user_id, d.token);
+        res.cookie('session', session.token, {
+            httpOnly: true, secure: true, sameSite: 'lax', expires: session.expires
+        });
+        res.redirect('/');
+    } catch (err) {
+        res.status(400).render('connexion', { error: err.message, values: {} });
+    }
+});
+
 router.get('/deconnexion', async (req, res) => {
     await users.endSession(req.cookies?.session);
     res.clearCookie('session');

@@ -73,9 +73,9 @@ function protect(req, res, next) {
 // Dashboard principal — liste regroupée par jour
 router.get('/', protect, async (req, res) => {
     const { from, to } = parseRange(req.query);
-    const days = await loadDays(req.user.id, from, to);
+    const days = await loadDays(req.user, from, to);
     const totals = sumTotals(days);
-    const accountName = req.user.name || req.user.email.split('@')[0];
+    const accountName = req.user.isSubAccount ? `${req.user.deviceLabel} (sous-compte)` : (req.user.name || req.user.email.split('@')[0]);
     res.render('index', { days, totals, fmt, from, to, accountName });
 });
 
@@ -105,10 +105,10 @@ async function getAccountName() {
 // Section PATRON
 router.get('/patron', protect, async (req, res) => {
     const { rows: entries } = await pool.query(
-        `SELECT id, type, amount, note, ts, device_id FROM patron_entries
-         WHERE device_id IN (SELECT token FROM devices WHERE user_id = $1)
-         ORDER BY ts DESC`,
-        [req.user.id]
+        req.user.deviceToken
+          ? `SELECT id, type, amount, note, ts, device_id FROM patron_entries WHERE device_id = $1 ORDER BY ts DESC`
+          : `SELECT id, type, amount, note, ts, device_id FROM patron_entries WHERE device_id IN (SELECT token FROM devices WHERE user_id = $1) ORDER BY ts DESC`,
+        [req.user.deviceToken || req.user.id]
     );
     const recu = entries.filter(e => e.type === 'RECU').reduce((s, e) => s + Number(e.amount), 0);
     const sortie = entries.filter(e => e.type === 'SORTIE').reduce((s, e) => s + Number(e.amount), 0);
@@ -146,7 +146,7 @@ router.get('/pdf', protect, async (req, res) => {
         `SELECT operator, type, amount, currency, reference, phone_number, ts FROM transactions ${where} ORDER BY ts DESC`,
         args
     );
-    const accountName = req.user.name || req.user.email.split('@')[0];
+    const accountName = req.user.isSubAccount ? `${req.user.deviceLabel} (sous-compte)` : (req.user.name || req.user.email.split('@')[0]);
     const fmtDate = d => d ? d.toISOString().substring(0, 10) : null;
     const filename = (() => {
         const safe = accountName.replace(/[^A-Za-z0-9_-]/g, '_');
@@ -181,9 +181,16 @@ router.post('/devices/:token/delete', protect, async (req, res) => {
 
 // --- Helpers ---
 
-async function loadDays(userId, from, to) {
-    const args = [userId];
-    let where = `WHERE device_id IN (SELECT token FROM devices WHERE user_id = $1)`;
+async function loadDays(user, from, to) {
+    let where, args;
+    if (user.deviceToken) {
+        // sous-compte : filtre par device
+        where = `WHERE device_id = $1`; args = [user.deviceToken];
+    } else {
+        // admin : tous les devices de l'utilisateur
+        where = `WHERE device_id IN (SELECT token FROM devices WHERE user_id = $1)`;
+        args = [user.id];
+    }
     if (from) { args.push(from.toISOString()); where += ` AND ts >= $${args.length}`; }
     if (to) { args.push(to.toISOString()); where += ` AND ts <= $${args.length}`; }
     const { rows } = await pool.query(

@@ -8,40 +8,77 @@
     <link rel="icon" type="image/svg+xml" href="/icon.svg">
     <link rel="stylesheet" href="/style.css">
     <style>
-        .auth-box { max-width:420px; margin:60px auto; padding:32px; background:white; border-radius:12px; box-shadow:0 2px 10px rgba(0,0,0,0.06); }
+        .auth-box { max-width:440px; margin:60px auto; padding:28px; background:white; border-radius:12px; box-shadow:0 2px 10px rgba(0,0,0,0.08); }
         .auth-box h1 { margin:0 0 6px; color:#1565C0; }
-        .auth-box p.sub { color:#666; margin:0 0 24px; font-size:14px; }
-        .auth-box label { display:block; font-size:13px; color:#444; margin:14px 0 4px; }
+        .auth-box p.sub { color:#666; margin:0 0 18px; font-size:14px; }
+        .tabs { display:flex; gap:0; margin-bottom:18px; border-bottom:2px solid #eee; }
+        .tab { flex:1; padding:10px; text-align:center; cursor:pointer; color:#666; font-weight:600; font-size:14px; border-bottom:3px solid transparent; margin-bottom:-2px; }
+        .tab.active { color:#1565C0; border-bottom-color:#1565C0; }
+        .tab.code { color:#6A1B9A; }
+        .tab.code.active { color:#6A1B9A; border-bottom-color:#6A1B9A; }
+        .auth-box label { display:block; font-size:13px; color:#444; margin:12px 0 4px; }
         .auth-box input { width:100%; padding:10px 12px; border:1px solid #ccc; border-radius:6px; font-size:15px; box-sizing:border-box; }
-        .auth-box .btn-submit { width:100%; padding:12px; background:#1565C0; color:white; border:none; border-radius:6px; font-weight:600; font-size:15px; cursor:pointer; margin-top:20px; }
-        .auth-box .err { background:#ffebee; color:#c62828; padding:10px; border-radius:6px; margin:0 0 16px; font-size:13px; }
-        .auth-box .alt { text-align:center; margin-top:18px; font-size:13px; color:#666; }
-        .auth-box .alt a { color:#1565C0; text-decoration:none; }
+        .auth-box input[type=text].code-input { font-size:28px; font-weight:bold; letter-spacing:6px; text-align:center; text-transform:uppercase; }
+        .btn-submit { width:100%; padding:12px; color:white; border:none; border-radius:6px; font-weight:600; font-size:15px; cursor:pointer; margin-top:18px; }
+        .btn-submit.admin { background:#1565C0; }
+        .btn-submit.code { background:#6A1B9A; }
+        .err { background:#ffebee; color:#c62828; padding:10px; border-radius:6px; margin:0 0 12px; font-size:13px; }
+        .alt { text-align:center; margin-top:16px; font-size:13px; color:#666; }
+        .alt a { color:#1565C0; text-decoration:none; }
+        .panel { display:none; }
+        .panel.active { display:block; }
     </style>
 </head>
 <body>
 <div class="auth-box">
     <h1>Connexion</h1>
-    <p class="sub">Connectez-vous pour retrouver votre code et vos transactions.</p>
+    <p class="sub">Connectez-vous pour voir votre tableau de bord.</p>
 
     <% if (error) { %><div class="err"><%= error %></div><% } %>
 
-    <form method="POST" action="/connexion">
-        <label for="email">Email</label>
-        <input type="email" id="email" name="email" required value="<%= values.email || '' %>" />
-
-        <label for="password">Mot de passe</label>
-        <input type="password" id="password" name="password" required />
-
-        <button type="submit" class="btn-submit">Se connecter</button>
-    </form>
-
-    <div class="alt">
-        Pas encore de compte ? <a href="/inscription">Créer un compte</a>
+    <div class="tabs">
+        <div class="tab active" data-target="panel-admin">🔐 Admin</div>
+        <div class="tab code" data-target="panel-code">🔢 Code d'appareil</div>
     </div>
-    <div class="alt">
+
+    <div id="panel-admin" class="panel active">
+        <form method="POST" action="/connexion">
+            <label for="email">Email</label>
+            <input type="email" id="email" name="email" required value="<%= values.email || '' %>" />
+            <label for="password">Mot de passe</label>
+            <input type="password" id="password" name="password" required />
+            <button type="submit" class="btn-submit admin">Se connecter (compte admin)</button>
+        </form>
+        <div class="alt">
+            Pas encore de compte ? <a href="/inscription">Créer un compte</a>
+        </div>
+    </div>
+
+    <div id="panel-code" class="panel">
+        <form method="POST" action="/connexion-code">
+            <label for="code">Code à 6 caractères (donné par l'admin)</label>
+            <input type="text" id="code" name="code" class="code-input" required maxlength="8" placeholder="ABC123" />
+            <button type="submit" class="btn-submit code">Connexion sous-compte</button>
+        </form>
+        <div class="alt">
+            Vous ne voyez que vos propres transactions et PDF.
+        </div>
+    </div>
+
+    <div class="alt" style="margin-top:24px;">
         <a href="/telecharger">← Retour à la page de téléchargement</a>
     </div>
 </div>
+
+<script>
+document.querySelectorAll('.tab').forEach(t => {
+    t.addEventListener('click', () => {
+        document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+        document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+        t.classList.add('active');
+        document.getElementById(t.dataset.target).classList.add('active');
+    });
+});
+</script>
 </body>
 </html>
