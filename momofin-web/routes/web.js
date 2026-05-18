@@ -76,7 +76,7 @@ router.get('/', protect, async (req, res) => {
     const days = await loadDays(req.user, from, to);
     const totals = sumTotals(days);
     const accountName = req.user.isSubAccount ? `${req.user.deviceLabel} (sous-compte)` : (req.user.name || req.user.email.split('@')[0]);
-    res.render('index', { days, totals, fmt, from, to, accountName });
+    res.render('index', { user: req.user, days, totals, fmt, from, to, accountName });
 });
 
 function parseRange(q) {
