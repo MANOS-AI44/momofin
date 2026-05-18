@@ -20,10 +20,31 @@
     <form method="GET" action="/devices/<%= device.token %>/transactions" class="filter-row">
         <label>Du <input type="date" name="from" value="<%= from ? from.toISOString().substring(0,10) : '' %>"></label>
         <label>Au <input type="date" name="to" value="<%= to ? to.toISOString().substring(0,10) : '' %>"></label>
+        <% if (typeFilter) { %><input type="hidden" name="type" value="<%= typeFilter %>"><% } %>
         <button type="submit" class="btn primary">Filtrer</button>
-        <button type="button" onclick="window.print()" class="btn warn">🖨️ Imprimer</button>
-        <a href="/devices/<%= device.token %>/pdf<%= from ? ('?from=' + from.toISOString().substring(0,10) + '&to=' + (to ? to.toISOString().substring(0,10) : '')) : '' %>" target="_blank" class="btn danger">📄 PDF</a>
     </form>
+</section>
+
+<section class="panel">
+    <h3>📋 Type de transaction</h3>
+    <%
+        function qs(extra) {
+            var parts = [];
+            if (from) parts.push('from=' + from.toISOString().substring(0,10));
+            if (to)   parts.push('to=' + to.toISOString().substring(0,10));
+            if (extra) parts.push(extra);
+            return parts.length ? '?' + parts.join('&') : '';
+        }
+    %>
+    <div class="filter-bar">
+        <a href="/devices/<%= device.token %>/transactions<%= qs() %>" class="preset-btn <%= !typeFilter ? 'active' : '' %>">Tout</a>
+        <a href="/devices/<%= device.token %>/transactions<%= qs('type=RECU') %>" class="preset-btn <%= typeFilter === 'RECU' ? 'active' : '' %>">💰 Retrait uniquement</a>
+        <a href="/devices/<%= device.token %>/transactions<%= qs('type=SORTIE') %>" class="preset-btn <%= typeFilter === 'SORTIE' ? 'active' : '' %>">📤 Dépôt uniquement</a>
+    </div>
+    <div class="filter-row" style="margin-top:12px;">
+        <button type="button" onclick="window.print()" class="btn warn">🖨️ Imprimer la liste</button>
+        <a href="/devices/<%= device.token %>/pdf<%= qs(typeFilter ? 'type=' + typeFilter : '') %>" target="_blank" class="btn danger">📄 Télécharger PDF</a>
+    </div>
 </section>
 
 <% if (days.length === 0) { %>

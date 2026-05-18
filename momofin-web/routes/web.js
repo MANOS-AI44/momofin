@@ -314,10 +314,14 @@ router.get('/devices/:token/transactions', adminOnly, async (req, res) => {
     const device = drows[0];
 
     const { from, to } = parseRange(req.query);
+    const typeFilter = (req.query.type || '').toUpperCase();
     // Charger les jours filtres pour CET appareil uniquement
     const conds = ['device_id = $1']; const args = [token];
     if (from) { args.push(from.toISOString()); conds.push(`ts >= $${args.length}`); }
     if (to)   { args.push(to.toISOString());   conds.push(`ts <= $${args.length}`); }
+    if (typeFilter === 'RECU' || typeFilter === 'SORTIE') {
+        args.push(typeFilter); conds.push(`type = $${args.length}`);
+    }
     const { rows } = await pool.query(
         `SELECT operator, type, amount, currency, reference, phone_number, ts
          FROM transactions WHERE ${conds.join(' AND ')} ORDER BY ts DESC LIMIT 5000`,
@@ -338,7 +342,7 @@ router.get('/devices/:token/transactions', adminOnly, async (req, res) => {
             return { day, list, recu, sortie, solde: recu - sortie };
         });
     const totals = sumTotals(days);
-    res.render('device-transactions', { user: req.user, device, days, totals, from, to, fmt });
+    res.render('device-transactions', { user: req.user, device, days, totals, from, to, fmt, typeFilter });
 });
 
 // PDF des transactions d'un appareil precis
@@ -351,15 +355,20 @@ router.get('/devices/:token/pdf', adminOnly, async (req, res) => {
     if (drows.length === 0) return res.status(404).send('Appareil introuvable.');
     const device = drows[0];
     const { from, to } = parseRange(req.query);
+    const typeFilter = (req.query.type || '').toUpperCase();
     const conds = ['device_id = $1']; const args = [token];
     if (from) { args.push(from.toISOString()); conds.push(`ts >= $${args.length}`); }
     if (to)   { args.push(to.toISOString());   conds.push(`ts <= $${args.length}`); }
+    if (typeFilter === 'RECU' || typeFilter === 'SORTIE') {
+        args.push(typeFilter); conds.push(`type = $${args.length}`);
+    }
     const { rows: tx } = await pool.query(
         `SELECT operator, type, amount, currency, reference, phone_number, ts
          FROM transactions WHERE ${conds.join(' AND ')} ORDER BY ts DESC`,
         args
     );
-    const accountName = `${req.user.name || req.user.email.split('@')[0]} — ${device.label || 'Appareil'}`;
+    const typeLabel = typeFilter === 'RECU' ? ' (Retrait)' : (typeFilter === 'SORTIE' ? ' (Depot)' : '');
+    const accountName = `${req.user.name || req.user.email.split('@')[0]} — ${device.label || 'Appareil'}${typeLabel}`;
     const fmtDate = d => d ? d.toISOString().substring(0, 10) : null;
     const safe = accountName.replace(/[^A-Za-z0-9_-]/g, '_');
     const filename = (from && to) ? `${safe}_du_${fmtDate(from)}_au_${fmtDate(to)}.pdf` : `${safe}_${Date.now()}.pdf`;

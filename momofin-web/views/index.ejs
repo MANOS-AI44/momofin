@@ -45,9 +45,14 @@
                     <td style="text-align:right;"><%= d.nb_tx %></td>
                     <td style="text-align:right; color:#059669;"><strong><%= fmt(d.recu) %></strong></td>
                     <td style="text-align:right; color:#DC2626;"><strong><%= fmt(d.sortie) %></strong></td>
-                    <td style="text-align:right;">
-                        <a href="/devices/<%= d.token %>/transactions<%= from ? ('?from=' + from.toISOString().substring(0,10) + '&to=' + (to ? to.toISOString().substring(0,10) : '')) : '' %>"
-                           class="btn primary" style="padding:6px 12px; font-size:13px; text-decoration:none;">📊 Voir</a>
+                    <td style="text-align:right; white-space:nowrap;">
+                        <%
+                            var devQs = from ? ('?from=' + from.toISOString().substring(0,10) + '&to=' + (to ? to.toISOString().substring(0,10) : '')) : '';
+                        %>
+                        <a href="/devices/<%= d.token %>/transactions<%= devQs %>"
+                           class="btn primary" style="padding:6px 10px; font-size:13px; text-decoration:none;">📊 Voir</a>
+                        <a href="/devices/<%= d.token %>/pdf<%= devQs %>" target="_blank"
+                           class="btn danger" style="padding:6px 10px; font-size:13px; text-decoration:none; margin-left:4px;">📄 PDF</a>
                     </td>
                 </tr>
             <% }); %>
