@@ -35,6 +35,20 @@ app.use('/api', apiRoutes);
 app.use('/', accountRoutes);
 app.use('/', webRoutes);
 
+// Gestionnaire d'erreurs global : évite que les erreurs EJS plantent le serveur
+app.use((err, req, res, next) => {
+    console.error('ERROR:', err.message);
+    console.error(err.stack);
+    res.status(500).send(`
+        <html><body style="font-family:sans-serif;padding:40px;background:#fee2e2;">
+            <h1 style="color:#991B1B;">⚠️ Erreur serveur</h1>
+            <p>Une erreur est survenue. Détail :</p>
+            <pre style="background:white;padding:14px;border-radius:6px;overflow:auto;">${err.message}</pre>
+            <p><a href="/">Retour à l'accueil</a></p>
+        </body></html>
+    `);
+});
+
 db.init().then(() => {
     app.listen(PORT, () => {
         console.log(`MoMo Fin Web démarré sur le port ${PORT}`);

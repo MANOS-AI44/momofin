@@ -36,7 +36,9 @@
     <section class="day">
         <h2><%= new Date(d.day).toLocaleDateString('fr-FR', { weekday:'long', day:'2-digit', month:'long', year:'numeric' }) %></h2>
         <p class="day-totals">
-            Retrait <strong><%= fmt(d.recu) %></strong> · Dépôt <strong><%= fmt(d.sortie) %></strong> · Solde <strong><%= fmt(d.solde) %></strong>
+            <strong style="color:#059669;">Total Retrait : <%= fmt(d.recu) %></strong>
+             &nbsp;·&nbsp;
+            <strong style="color:#DC2626;">Total Dépôt : <%= fmt(d.sortie) %></strong>
         </p>
         <table>
             <thead>

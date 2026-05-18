@@ -112,7 +112,7 @@ router.get('/patron', protect, async (req, res) => {
     );
     const recu = entries.filter(e => e.type === 'RECU').reduce((s, e) => s + Number(e.amount), 0);
     const sortie = entries.filter(e => e.type === 'SORTIE').reduce((s, e) => s + Number(e.amount), 0);
-    res.render('patron', { entries, recu, sortie, total: recu - sortie, fmt });
+    res.render('patron', { user: req.user, entries, recu, sortie, total: recu - sortie, fmt });
 });
 
 // Ajouter une entrée PATRON depuis le web
@@ -180,7 +180,7 @@ router.get('/devices', protect, async (req, res) => {
         'SELECT token, label, code, created_at FROM devices WHERE user_id = $1 ORDER BY created_at DESC',
         [req.user.id]
     );
-    res.render('devices', { devices: rows });
+    res.render('devices', { user: req.user, devices: rows });
 });
 
 router.post('/devices', protect, async (req, res) => {
