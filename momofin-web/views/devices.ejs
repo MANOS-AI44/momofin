@@ -26,6 +26,7 @@
                     <td><%= new Date(d.created_at).toLocaleString('fr-FR') %></td>
                     <td style="white-space:nowrap;">
                         <a href="/devices/<%= d.token %>/transactions" class="btn primary" style="padding:6px 10px; font-size:13px; text-decoration:none;">📊 Transactions</a>
+                        <a href="/devices/<%= d.token %>/transactions?print=1" target="_blank" class="btn warn" style="padding:6px 10px; font-size:13px; text-decoration:none; margin-left:4px;">🖨️ Imprimer</a>
                         <a href="/devices/<%= d.token %>/pdf" target="_blank" class="btn danger" style="padding:6px 10px; font-size:13px; text-decoration:none; margin-left:4px;">📄 PDF</a>
                         <form method="POST" action="/devices/<%= d.token %>/delete" onsubmit="return confirm('Révoquer ce token ?')" style="display:inline; margin-left:8px;">
                             <button class="btn-link" type="submit">Révoquer</button>

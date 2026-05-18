@@ -65,9 +65,12 @@ function phoneOpColor(op) {
                     <td style="text-align:right; white-space:nowrap;">
                         <%
                             var devQs = from ? ('?from=' + from.toISOString().substring(0,10) + '&to=' + (to ? to.toISOString().substring(0,10) : '')) : '';
+                            var printQs = devQs ? devQs + '&print=1' : '?print=1';
                         %>
                         <a href="/devices/<%= d.token %>/transactions<%= devQs %>"
                            class="btn primary" style="padding:6px 10px; font-size:13px; text-decoration:none;">📊 Voir</a>
+                        <a href="/devices/<%= d.token %>/transactions<%= printQs %>" target="_blank"
+                           class="btn warn" style="padding:6px 10px; font-size:13px; text-decoration:none; margin-left:4px;">🖨️ Imprimer</a>
                         <a href="/devices/<%= d.token %>/pdf<%= devQs %>" target="_blank"
                            class="btn danger" style="padding:6px 10px; font-size:13px; text-decoration:none; margin-left:4px;">📄 PDF</a>
                     </td>

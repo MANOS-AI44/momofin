@@ -1,3 +1,8 @@
+<script id="autoprint-script">
+    if (new URLSearchParams(window.location.search).get('print') === '1') {
+        window.addEventListener('load', function() { setTimeout(function() { window.print(); }, 400); });
+    }
+</script>
 <%
 function phoneOp(phone) {
     if (!phone) return '';
