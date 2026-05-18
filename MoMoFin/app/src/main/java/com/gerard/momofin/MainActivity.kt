@@ -191,15 +191,17 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun refreshDateUi() {
-        val df = SimpleDateFormat("EEEE dd MMMM yyyy", Locale.FRENCH)
+        // Format court direct sur le bouton : "📅 18/05/26" (ou "📅 Toutes" sans filtre)
+        val dfShort = SimpleDateFormat("dd/MM/yy", Locale.FRENCH)
         if (filterDayMillis != null) {
-            binding.txtSelectedDate.text = "Date : " + df.format(Date(filterDayMillis!!))
-                .replaceFirstChar { it.uppercase() }
+            binding.btnPickDate.text = "📅 " + dfShort.format(Date(filterDayMillis!!))
             binding.btnClearDate.visibility = View.VISIBLE
         } else {
-            binding.txtSelectedDate.text = getString(R.string.date_all)
+            binding.btnPickDate.text = "📅 Toutes"
             binding.btnClearDate.visibility = View.GONE
         }
+        // TextView cachee gardee pour compat
+        binding.txtSelectedDate.text = binding.btnPickDate.text
     }
 
     private fun renderList() {

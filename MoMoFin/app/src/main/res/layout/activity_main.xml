@@ -17,38 +17,69 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content">
 
-            <!-- Header app -->
+            <!-- Header app (compact : titre + date + boutons sur 1 seule ligne) -->
             <LinearLayout
                 android:orientation="horizontal"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:gravity="center_vertical">
                 <TextView
-                    android:layout_width="0dp"
-                    android:layout_weight="1"
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     style="@style/Title.H1"
+                    android:textSize="16sp"
                     android:text="@string/app_name"/>
+                <Button
+                    android:id="@+id/btnPickDate"
+                    style="@style/Btn.Outline"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="38dp"
+                    android:layout_marginStart="8dp"
+                    android:text="📅 Toutes"
+                    android:textSize="12sp"
+                    android:paddingHorizontal="8dp"
+                    android:singleLine="true"
+                    android:ellipsize="end"/>
+                <Button
+                    android:id="@+id/btnClearDate"
+                    style="@style/Btn.Outline"
+                    android:layout_width="wrap_content"
+                    android:layout_height="38dp"
+                    android:layout_marginStart="4dp"
+                    android:text="✕"
+                    android:textSize="12sp"
+                    android:minWidth="38dp"
+                    android:paddingHorizontal="6dp"
+                    android:visibility="gone"/>
                 <Button
                     android:id="@+id/btnDevices"
                     style="@style/Btn.Outline"
                     android:layout_width="wrap_content"
-                    android:layout_height="40dp"
+                    android:layout_height="38dp"
+                    android:layout_marginStart="4dp"
                     android:text="📱"
-                    android:textSize="16sp"
-                    android:paddingHorizontal="12dp"
-                    android:minWidth="48dp"/>
+                    android:textSize="14sp"
+                    android:paddingHorizontal="10dp"
+                    android:minWidth="40dp"/>
                 <Button
                     android:id="@+id/btnSettings"
                     style="@style/Btn.Outline"
                     android:layout_width="wrap_content"
-                    android:layout_height="40dp"
-                    android:layout_marginStart="6dp"
+                    android:layout_height="38dp"
+                    android:layout_marginStart="4dp"
                     android:text="⚙️"
-                    android:textSize="16sp"
-                    android:paddingHorizontal="12dp"
-                    android:minWidth="48dp"/>
+                    android:textSize="14sp"
+                    android:paddingHorizontal="10dp"
+                    android:minWidth="40dp"/>
             </LinearLayout>
+
+            <!-- Texte selectionne (cache : on garde la TextView pour compat, mais invisible) -->
+            <TextView
+                android:id="@+id/txtSelectedDate"
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:visibility="gone"/>
 
             <!-- Bannière notifications -->
             <LinearLayout
@@ -128,51 +159,6 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="10dp"
                 style="@style/Subtitle"/>
-
-            <!-- Filtre date -->
-            <LinearLayout
-                android:orientation="horizontal"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
-                android:padding="12dp"
-                android:background="@drawable/banner_info"
-                android:gravity="center_vertical">
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:textSize="18sp"
-                    android:text="📅"/>
-                <TextView
-                    android:id="@+id/txtSelectedDate"
-                    android:layout_width="0dp"
-                    android:layout_weight="1"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="8dp"
-                    android:textSize="13sp"
-                    android:textStyle="bold"
-                    android:textColor="@color/primary_dark"
-                    android:text="@string/date_all"/>
-                <Button
-                    android:id="@+id/btnPickDate"
-                    style="@style/Btn.Primary"
-                    android:layout_width="wrap_content"
-                    android:layout_height="40dp"
-                    android:text="@string/btn_pick_date"
-                    android:textSize="12sp"
-                    android:paddingHorizontal="12dp"/>
-                <Button
-                    android:id="@+id/btnClearDate"
-                    style="@style/Btn.Outline"
-                    android:layout_width="wrap_content"
-                    android:layout_height="40dp"
-                    android:layout_marginStart="4dp"
-                    android:text="✕"
-                    android:textSize="14sp"
-                    android:minWidth="44dp"
-                    android:paddingHorizontal="10dp"
-                    android:visibility="gone"/>
-            </LinearLayout>
 
             <!-- Recherche par numero (discret) -->
             <LinearLayout
