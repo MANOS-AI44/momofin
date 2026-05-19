@@ -34,21 +34,43 @@ jobs:
         working-directory: MoMoFin
         run: gradle wrapper --gradle-version 8.5
 
-      - name: Build debug APK
+      - name: Decode release keystore (if secret present)
+        if: env.RELEASE_KEYSTORE_BASE64 != ''
+        env:
+          RELEASE_KEYSTORE_BASE64: ${{ secrets.RELEASE_KEYSTORE_BASE64 }}
+        run: |
+          echo "$RELEASE_KEYSTORE_BASE64" | base64 -d > MoMoFin/keystore.jks
+          ls -la MoMoFin/keystore.jks
+          echo "HAS_KEYSTORE=true" >> $GITHUB_ENV
+
+      - name: Build APK (release if keystore, else debug)
         working-directory: MoMoFin
+        env:
+          RELEASE_KEYSTORE_FILE: ${{ env.HAS_KEYSTORE == 'true' && '../keystore.jks' || '' }}
+          RELEASE_KEYSTORE_PASSWORD: ${{ secrets.RELEASE_KEYSTORE_PASSWORD }}
+          RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
+          RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
         run: |
           chmod +x ./gradlew
-          ./gradlew assembleDebug --no-daemon --stacktrace
-
-      - name: Rename APK
-        working-directory: MoMoFin/app/build/outputs/apk/debug
-        run: mv app-debug.apk MoMoFin-debug.apk
+          if [ "$HAS_KEYSTORE" = "true" ] && [ -n "$RELEASE_KEYSTORE_PASSWORD" ]; then
+            echo "🔐 Build RELEASE signe"
+            ./gradlew assembleRelease --no-daemon --stacktrace
+            mkdir -p app/build/outputs/apk/dist
+            cp app/build/outputs/apk/release/app-release.apk app/build/outputs/apk/dist/MoMoFin.apk
+          else
+            echo "🔓 Build DEBUG (pas de keystore configure)"
+            ./gradlew assembleDebug --no-daemon --stacktrace
+            mkdir -p app/build/outputs/apk/dist
+            cp app/build/outputs/apk/debug/app-debug.apk app/build/outputs/apk/dist/MoMoFin.apk
+            cp app/build/outputs/apk/debug/app-debug.apk app/build/outputs/apk/dist/MoMoFin-debug.apk
+          fi
+          ls -la app/build/outputs/apk/dist/
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: MoMoFin-debug-apk
-          path: MoMoFin/app/build/outputs/apk/debug/*.apk
+          name: MoMoFin-apk
+          path: MoMoFin/app/build/outputs/apk/dist/*.apk
           if-no-files-found: error
           retention-days: 90
 
@@ -57,13 +79,17 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: latest
-          name: "Dernière compilation"
+          name: "Derniere compilation"
           body: |
-            APK MoMo Fin compilé automatiquement à partir du commit ${{ github.sha }}.
+            APK MoMo Fin compile automatiquement depuis le commit ${{ github.sha }}.
 
-            **MoMoFin-debug.apk** — application tout-en-un (SMS + notifications + tableau de bord + comptes + points)
+            **MoMoFin.apk** — application tout-en-un (SMS + notifications + tableau de bord + comptes + points)
 
-            Téléchargez et installez sur votre téléphone Android.
-          files: MoMoFin/app/build/outputs/apk/debug/MoMoFin-debug.apk
+            Telechargez et installez sur Android. Si Google Play Protect bloque,
+            voir le guide sur la page /installer du site web.
+          files: |
+            MoMoFin/app/build/outputs/apk/dist/MoMoFin.apk
+            MoMoFin/app/build/outputs/apk/dist/MoMoFin-debug.apk
           prerelease: false
           make_latest: true
+          fail_on_unmatched_files: false

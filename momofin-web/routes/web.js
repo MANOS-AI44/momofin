@@ -659,5 +659,11 @@ router.get('/comptes/:id', adminOnly, async (req, res) => {
 });
 
 
+
+// Page publique : guide d'installation de l'APK
+router.get('/installer', async (req, res) => {
+    res.render('installer', { user: req.user || null, repo: process.env.GITHUB_REPO || '' });
+});
+
 module.exports = router;
 module.exports.effectiveOperator = effectiveOperator;
