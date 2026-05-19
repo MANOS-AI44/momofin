@@ -9,11 +9,15 @@ const AMOUNT_RE = new RegExp(`(?:^|[^A-Za-z0-9])([0-9][0-9 ,.]{0,15})\\s*${CURRE
 // Note : pas de \b apres caracteres accentues (echoue en JS Unicode)
 // ===========================================================================
 
-// --- SORTIE (Depot cote agent : client vient deposer, agent envoie) ---
-// (a) MTN/MOOV : "Vous avez envoye/envoye X FCFA ..."
+// --- SORTIE (Depot OU Transfert envoye cote agent) ---
+// (a) MTN/MOOV depot : "Vous avez envoye X FCFA ..."
 const PAT_SORTIE_GENERIC = /vous\s+avez\s+envoy[eé][\s\S]{0,250}?(?:FCFA|CFA|XOF|XAF|RWF|\bF\b)/i;
-// (b) Orange : "Le depot vers le X est reussi"
+// (b) Orange depot : "Le depot vers le X est reussi"
 const PAT_SORTIE_ORANGE = /(?:^|[\s.])(?:le\s+)?d[eé]p[oô]?t\s+vers\s+(?:le\s+)?\+?\d[\d\s\-.]{6,18}\d[\s\S]{0,80}?(?:est\s+r[eé]ussi|reussi)/i;
+// (c) MTN/MOOV transfert envoye : "Vous avez transfere/transféré X FCFA ..."
+const PAT_SORTIE_TRANSFERE = /vous\s+avez\s+transf[eé]r[eé][\s\S]{0,250}?(?:FCFA|CFA|XOF|XAF|RWF|\bF\b)/i;
+// (d) Orange transfert envoye : "Le transfert de X FCFA vers Y est un succes"
+const PAT_SORTIE_TRANSFERT_OK = /\btransfert\s+de\s+[\d\s.,]+\s*(?:FCFA|CFA|F)\s+vers[\s\S]{0,100}?(?:est\s+un\s+succ[eè]s|succes)/i;
 
 // --- RECU (Retrait cote agent : client vient retirer, agent recoit) ---
 // (a) generique : "Vous avez recu X FCFA"
@@ -29,7 +33,7 @@ const PAT_RECU_MTN = /retrait\s+initi[eé][\s\S]{0,250}?(?:a\s+[eé]t[eé]\s+eff
 // Reference, telephone, date
 // ===========================================================================
 const REF_PATTERNS = [
-    /(?:ID\s+Transaction|Transaction\s+ID|Transaction\s+Id|Financial Transaction Id|TxId|TXID|Txn Id|Trans\.? Id)\s*[:#]?\s*([A-Za-z0-9][A-Za-z0-9.\-_]{3,40})/i,
+    /(?:ID\s+(?:Transaction|Tr(?:ans)?)|Transaction\s+ID|Transaction\s+Id|Financial Transaction Id|TxId|TXID|Txn Id|Trans\.? Id)\s*[:#]?\s*([A-Za-z0-9][A-Za-z0-9.\-_]{3,40})/i,
     /\b(?:Ref(?:erence|érence)?|Réf)\.?\s*[:#]?\s*([A-Za-z0-9][A-Za-z0-9.\-_]{3,40})/i,
     /\bID\s*[:#]?\s*([A-Za-z0-9][A-Za-z0-9.\-_]{3,40})/i,
     /\b(\d{8,16})\b/
@@ -47,7 +51,7 @@ const PHONE_INTL = /(\+\d[\d\s.]{6,18}\d)/g;
 const PHONE_LONG = /(?<![\d])(\d{10,15})(?![\d])/g;
 const PHONE_LOCAL = /(?<![\d])(0\d[\d\s.]{6,12}\d)(?![\d])/g;
 
-const GOOD_KW = ['montant', 'recu', 'reçu', 'envoye', 'envoyé', 'a envoye', 'a envoyé', 'payer le montant'];
+const GOOD_KW = ['montant', 'recu', 'reçu', 'envoye', 'envoyé', 'a envoye', 'a envoyé', 'payer le montant', 'transfere', 'transféré', 'transfert de'];
 const BAD_KW = ['solde', 'frais', 'commission', 'balance', 'nouveau solde'];
 
 // ===========================================================================
@@ -57,6 +61,8 @@ function detectType(body) {
     if (PAT_RECU_ORANGE.test(body)) return 'RECU';
     if (PAT_RECU_MTN.test(body)) return 'RECU';
     if (PAT_SORTIE_GENERIC.test(body)) return 'SORTIE';
+    if (PAT_SORTIE_TRANSFERE.test(body)) return 'SORTIE';
+    if (PAT_SORTIE_TRANSFERT_OK.test(body)) return 'SORTIE';
     if (PAT_SORTIE_ORANGE.test(body)) return 'SORTIE';
     return null;
 }
@@ -158,7 +164,7 @@ function cleanPhone(raw) {
     return digitsOnly.startsWith('+') ? digitsOnly : justDigits;
 }
 
-function extractPhone(body) {
+function extractPhone(body, type) {
     // 1. "X a envoye" (Retrait MOOV : capter l'emetteur)
     const m1 = body.match(PHONE_SENDER);
     if (m1 && m1[1]) { const c = cleanPhone(m1[1]); if (c) return c; }
@@ -168,7 +174,24 @@ function extractPhone(body) {
     // 3. "depot vers (le) X" (Depot Orange)
     const m3 = body.match(PHONE_DEPOT_VERS);
     if (m3 && m3[1]) { const c = cleanPhone(m3[1]); if (c) return c; }
-    // 4. "numero X" en sautant "votre numero"
+    // 4. type-aware : SORTIE → prefere destination (vers/au) ; RECU → prefere source (de/du)
+    if (type === 'SORTIE') {
+        // vers (le) X
+        const mv = body.match(/\bvers\b\s+(?:le\s+|la\s+)?(\+?\d[\d\s.]{6,18}\d)/i);
+        if (mv) { const c = cleanPhone(mv[1]); if (c) return c; }
+        // au X (mais pas "au numero X")
+        const ma = body.match(/\bau\b\s+(?!num[eé]ro)(\+?\d[\d\s.]{6,18}\d)/i);
+        if (ma) { const c = cleanPhone(ma[1]); if (c) return c; }
+    }
+    if (type === 'RECU') {
+        // de X (priorite) — exclut "de la", "de votre"
+        const md = body.match(/\bde\b\s+(?!num[eé]ro|la\b|votre\b)(\+?\d[\d\s.]{6,18}\d)/i);
+        if (md) { const c = cleanPhone(md[1]); if (c) return c; }
+        // du X (mais pas "du numero" qui est l'agent)
+        const mdu = body.match(/\bdu\b\s+(?!num[eé]ro)(\+?\d[\d\s.]{6,18}\d)/i);
+        if (mdu) { const c = cleanPhone(mdu[1]); if (c) return c; }
+    }
+    // 5. "numero X" en sautant "votre numero"
     PHONE_NUMERO.lastIndex = 0;
     let m;
     while ((m = PHONE_NUMERO.exec(body)) !== null) {
@@ -178,7 +201,7 @@ function extractPhone(body) {
         const c = cleanPhone(m[1]);
         if (c) return c;
     }
-    // 5. preposition + telephone
+    // 6. fallback : preposition + telephone
     for (const p of [PHONE_NEAR, PHONE_INTL, PHONE_LONG, PHONE_LOCAL]) {
         p.lastIndex = 0;
         let mm;
@@ -211,7 +234,7 @@ function parse(sender, body, smsTimestamp) {
     if (amount <= 0) return null;
     const operator = detectOperator(sender, body);
     const reference = extractReference(body || '');
-    const phone_number = extractPhone(body || '');
+    const phone_number = extractPhone(body || '', type);
     const ts = extractDate(body || '') || new Date(smsTimestamp || Date.now()).toISOString();
     const normalizedPhone = normalizePhone(phone_number);
     return { operator, type, amount, currency, reference, phone_number: normalizedPhone, ts };

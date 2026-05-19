@@ -45,6 +45,12 @@ object TransactionParser {
     private val PAT_SORTIE_ORANGE = Pattern.compile(
         "(?i)(?:^|[\\s.])(?:le\\s+)?d[eé]p[oô]?t\\s+vers\\s+(?:le\\s+)?\\+?\\d[\\d\\s\\-\\.]{6,18}\\d[\\s\\S]{0,80}?(?:est\\s+r[eé]ussi|reussi)"
     )
+    private val PAT_SORTIE_TRANSFERE = Pattern.compile(
+        "(?i)vous\\s+avez\\s+transf[eé]r[eé][\\s\\S]{0,250}?(?:FCFA|CFA|XOF|XAF|RWF|\\bF\\b)"
+    )
+    private val PAT_SORTIE_TRANSFERT_OK = Pattern.compile(
+        "(?i)\\btransfert\\s+de\\s+[\\d\\s.,]+\\s*(?:FCFA|CFA|F)\\s+vers[\\s\\S]{0,100}?(?:est\\s+un\\s+succ[eè]s|succes)"
+    )
     private val PAT_RECU_DIRECT = Pattern.compile(
         "(?i)vous\\s+avez\\s+re[çc]u[\\s\\S]{0,250}?(?:FCFA|CFA|XOF|XAF|RWF|\\bF\\b)"
     )
@@ -59,7 +65,7 @@ object TransactionParser {
     )
 
     private val REF_PATTERNS = listOf(
-        Pattern.compile("(?:ID\\s+Transaction|Transaction\\s+ID|Transaction\\s+Id|Financial Transaction Id|TxId|TXID|Txn Id|Trans\\.? Id)\\s*[:#]?\\s*([A-Za-z0-9][A-Za-z0-9\\.\\-_]{3,40})", Pattern.CASE_INSENSITIVE),
+        Pattern.compile("(?:ID\\s+(?:Transaction|Tr(?:ans)?)|Transaction\\s+ID|Transaction\\s+Id|Financial Transaction Id|TxId|TXID|Txn Id|Trans\\.? Id)\\s*[:#]?\\s*([A-Za-z0-9][A-Za-z0-9\\.\\-_]{3,40})", Pattern.CASE_INSENSITIVE),
         Pattern.compile("\\b(?:Ref(?:erence|érence)?|Réf)\\.?\\s*[:#]?\\s*([A-Za-z0-9][A-Za-z0-9\\.\\-_]{3,40})", Pattern.CASE_INSENSITIVE),
         Pattern.compile("\\bID\\s*[:#]?\\s*([A-Za-z0-9][A-Za-z0-9\\.\\-_]{3,40})", Pattern.CASE_INSENSITIVE),
         Pattern.compile("\\b([0-9]{8,16})\\b")
@@ -83,7 +89,7 @@ object TransactionParser {
         "(\\d{2,4}[/-]\\d{2}[/-]\\d{2,4})\\s*(?:à\\s+|a\\s+)?(\\d{1,2}:\\d{2}(?::\\d{2})?)"
     )
 
-    private val AMOUNT_GOOD_KEYWORDS = listOf("montant", "recu", "reçu", "envoye", "envoyé", "a envoye", "a envoyé", "payer le montant")
+    private val AMOUNT_GOOD_KEYWORDS = listOf("montant", "recu", "reçu", "envoye", "envoyé", "a envoye", "a envoyé", "payer le montant", "transfere", "transféré", "transfert de")
     private val AMOUNT_BAD_KEYWORDS = listOf("solde", "frais", "commission", "nouveau solde", "balance")
 
     private fun detectType(body: String): TxType? {
@@ -92,6 +98,8 @@ object TransactionParser {
         if (PAT_RECU_ORANGE.matcher(body).find()) return TxType.RECU
         if (PAT_RECU_MTN.matcher(body).find()) return TxType.RECU
         if (PAT_SORTIE_GENERIC.matcher(body).find()) return TxType.SORTIE
+        if (PAT_SORTIE_TRANSFERE.matcher(body).find()) return TxType.SORTIE
+        if (PAT_SORTIE_TRANSFERT_OK.matcher(body).find()) return TxType.SORTIE
         if (PAT_SORTIE_ORANGE.matcher(body).find()) return TxType.SORTIE
         return null
     }
@@ -101,7 +109,7 @@ object TransactionParser {
         val (amount, currency) = extractAmount(body)
         if (amount <= 0.0) return null
         val reference = extractReference(body)
-        val phone = normalizePhone(extractPhone(body))
+        val phone = normalizePhone(extractPhone(body, type))
         val timestamp = extractDate(body) ?: smsTimestamp
         return Transaction(
             rawId = rawId,
@@ -170,10 +178,23 @@ object TransactionParser {
         return if (digitsOnly.startsWith("+")) "+$justDigits" else justDigits
     }
 
-    private fun extractPhone(body: String): String {
+    private fun extractPhone(body: String, type: TxType? = null): String {
         PHONE_SENDER.matcher(body).let { if (it.find()) { val c = cleanPhone(it.group(1) ?: ""); if (c.isNotEmpty()) return c } }
         PHONE_RETRAIT_DE.matcher(body).let { if (it.find()) { val c = cleanPhone(it.group(1) ?: ""); if (c.isNotEmpty()) return c } }
         PHONE_DEPOT_VERS.matcher(body).let { if (it.find()) { val c = cleanPhone(it.group(1) ?: ""); if (c.isNotEmpty()) return c } }
+        // 4. Type-aware : SORTIE -> destination (vers/au) ; RECU -> source (de/du)
+        if (type == TxType.SORTIE) {
+            val mv = Regex("(?i)\\bvers\\b\\s+(?:le\\s+|la\\s+)?(\\+?\\d[\\d\\s.]{6,18}\\d)").find(body)
+            if (mv != null) { val c = cleanPhone(mv.groupValues[1]); if (c.isNotEmpty()) return c }
+            val ma = Regex("(?i)\\bau\\b\\s+(?!num[eé]ro)(\\+?\\d[\\d\\s.]{6,18}\\d)").find(body)
+            if (ma != null) { val c = cleanPhone(ma.groupValues[1]); if (c.isNotEmpty()) return c }
+        }
+        if (type == TxType.RECU) {
+            val md = Regex("(?i)\\bde\\b\\s+(?!num[eé]ro|la\\b|votre\\b)(\\+?\\d[\\d\\s.]{6,18}\\d)").find(body)
+            if (md != null) { val c = cleanPhone(md.groupValues[1]); if (c.isNotEmpty()) return c }
+            val mdu = Regex("(?i)\\bdu\\b\\s+(?!num[eé]ro)(\\+?\\d[\\d\\s.]{6,18}\\d)").find(body)
+            if (mdu != null) { val c = cleanPhone(mdu.groupValues[1]); if (c.isNotEmpty()) return c }
+        }
         val m2 = PHONE_NUMERO.matcher(body)
         while (m2.find()) {
             val ctxStart = maxOf(0, m2.start() - 12)
