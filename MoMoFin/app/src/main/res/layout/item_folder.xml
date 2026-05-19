@@ -1,47 +1,64 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:orientation="vertical"
-    android:padding="14dp"
+<androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginBottom="8dp"
-    android:background="#F1F5FB">
+    android:layout_marginHorizontal="2dp"
+    android:layout_marginTop="8dp"
+    app:cardCornerRadius="12dp"
+    app:cardElevation="2dp"
+    app:cardBackgroundColor="@color/white">
 
     <LinearLayout
-        android:orientation="horizontal"
+        android:orientation="vertical"
+        android:padding="16dp"
         android:layout_width="match_parent"
         android:layout_height="wrap_content">
 
-        <TextView
-            android:id="@+id/txtFolderName"
-            android:layout_width="0dp"
-            android:layout_weight="1"
+        <LinearLayout
+            android:orientation="horizontal"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:textSize="17sp"
-            android:textStyle="bold"
-            android:textColor="#003366"/>
+            android:gravity="center_vertical">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textSize="20sp"
+                android:text="📓"
+                android:layout_marginEnd="10dp"/>
+
+            <TextView
+                android:id="@+id/txtFolderName"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:textSize="17sp"
+                android:textStyle="bold"
+                android:textColor="@color/primary_dark"/>
+
+            <TextView
+                android:id="@+id/txtFolderDate"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textSize="11sp"
+                android:textColor="@color/text_muted"/>
+        </LinearLayout>
 
         <TextView
-            android:id="@+id/txtFolderDate"
-            android:layout_width="wrap_content"
+            android:id="@+id/txtFolderTotals"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:textSize="12sp"
-            android:textColor="#888"/>
+            android:layout_marginTop="8dp"
+            android:textSize="13sp"
+            android:textColor="@color/text_primary"/>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:textSize="11sp"
+            android:textColor="@color/text_muted"
+            android:text="@string/folder_tap_to_open"/>
     </LinearLayout>
-
-    <TextView
-        android:id="@+id/txtFolderTotals"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="4dp"
-        android:textSize="13sp"
-        android:textColor="#444"/>
-
-    <TextView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="4dp"
-        android:textSize="11sp"
-        android:textColor="#999"
-        android:text="@string/folder_tap_to_open"/>
-</LinearLayout>
+</androidx.cardview.widget.CardView>

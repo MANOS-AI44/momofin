@@ -83,10 +83,17 @@ class DailyAdapter : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
                 TxType.SORTIE -> "DÉPÔT"
                 TxType.INCONNU -> "—"
             }
-            txtType.setBackgroundColor(when (tx.type) {
-                TxType.RECU -> 0xFF2E7D32.toInt()
-                TxType.SORTIE -> 0xFFC62828.toInt()
-                TxType.INCONNU -> 0xFF888888.toInt()
+            // Badge stylise (rounded corners + couleurs douces)
+            val ctx = itemView.context
+            txtType.background = ctx.getDrawable(when (tx.type) {
+                TxType.RECU -> R.drawable.badge_retrait
+                TxType.SORTIE -> R.drawable.badge_depot
+                TxType.INCONNU -> R.drawable.badge_depot
+            })
+            txtType.setTextColor(when (tx.type) {
+                TxType.RECU   -> ctx.getColor(R.color.badge_recu_text)
+                TxType.SORTIE -> ctx.getColor(R.color.badge_sortie_text)
+                TxType.INCONNU -> ctx.getColor(R.color.text_muted)
             })
             txtAmount.text = "${nf.format(tx.amount)} ${tx.currency}"
             txtAmount.setTextColor(when (tx.type) {

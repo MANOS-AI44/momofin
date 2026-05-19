@@ -1,24 +1,26 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:orientation="vertical"
-    android:padding="10dp"
+    android:padding="14dp"
+    android:layout_marginTop="14dp"
+    android:layout_marginBottom="4dp"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:background="#EEF3FA">
+    android:background="@drawable/day_header">
 
     <TextView
         android:id="@+id/txtDay"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:textSize="15sp"
+        android:textSize="16sp"
         android:textStyle="bold"
-        android:textColor="#003366"/>
+        android:textColor="@color/primary_dark"/>
 
     <TextView
         android:id="@+id/txtTotals"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="2dp"
-        android:textSize="12sp"
-        android:textColor="#003366"/>
+        android:layout_marginTop="4dp"
+        android:textSize="13sp"
+        android:textColor="@color/text_secondary"/>
 </LinearLayout>
