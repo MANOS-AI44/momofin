@@ -57,6 +57,30 @@ class SettingsActivity : AppCompatActivity() {
 
         binding.btnImportInbox.setOnClickListener { doImportInbox() }
         binding.btnReset.setOnClickListener { confirmReset() }
+
+        // Afficher l'utilisateur connecte
+        val url = Settings.getUrl(this)
+        val token = Settings.getToken(this)
+        binding.txtCurrentUser.text = if (token.isBlank()) "Aucun compte connecte" else "URL : $url\nToken : ${token.take(10)}..."
+
+        // Bouton Deconnexion
+        binding.btnLogout.setOnClickListener {
+            AlertDialog.Builder(this)
+                .setTitle("↩️ Se deconnecter")
+                .setMessage("Voulez-vous vraiment vous deconnecter ? Vous devrez ressaisir votre URL et token pour vous reconnecter.")
+                .setPositiveButton("Oui, me deconnecter") { _, _ ->
+                    Settings.clearAuth(this)
+                    Toast.makeText(this, "✅ Deconnecte", Toast.LENGTH_SHORT).show()
+                    val i = Intent(this, LoginActivity::class.java).addFlags(
+                        Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                    )
+                    startActivity(i)
+                    finish()
+                }
+                .setNegativeButton("Annuler", null)
+                .show()
+        }
+
     }
 
     private fun testConnection() {

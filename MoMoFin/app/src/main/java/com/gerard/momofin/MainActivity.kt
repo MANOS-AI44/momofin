@@ -30,7 +30,8 @@ class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
     private lateinit var adapter: DailyAdapter
     private var current: List<Transaction> = emptyList()
-    private var filterDayMillis: Long? = null
+    private var filterFromMillis: Long? = null
+    private var filterToMillis: Long? = null
     private var searchQuery: String = ""
     private var subtypeFilter: TxSubtype? = null  // null = Tout, ou subtype precis
     private var groupFilter: String? = null        // null, 'CAISSE' ou 'TRANSFERTS'
@@ -109,7 +110,8 @@ class MainActivity : AppCompatActivity() {
 
         binding.btnPickDate.setOnClickListener { pickDate() }
         binding.btnClearDate.setOnClickListener {
-            filterDayMillis = null
+            filterFromMillis = null
+            filterToMillis = null
             refreshDateUi()
             renderList()
         }
@@ -239,35 +241,52 @@ class MainActivity : AppCompatActivity() {
 
     
     private fun pickDate() {
-        val c = Calendar.getInstance()
-        filterDayMillis?.let { c.timeInMillis = it }
-        DatePickerDialog(this, { _, y, m, d ->
-            val cal = Calendar.getInstance().apply {
-                set(y, m, d, 0, 0, 0); set(Calendar.MILLISECOND, 0)
+        // 1. Picker DEBUT
+        val c1 = Calendar.getInstance()
+        filterFromMillis?.let { c1.timeInMillis = it }
+        val startPicker = DatePickerDialog(this, { _, y1, m1, d1 ->
+            val from = Calendar.getInstance().apply {
+                set(y1, m1, d1, 0, 0, 0); set(Calendar.MILLISECOND, 0)
             }
-            filterDayMillis = cal.timeInMillis
-            refreshDateUi()
-            renderList()
-        }, c.get(Calendar.YEAR), c.get(Calendar.MONTH), c.get(Calendar.DAY_OF_MONTH)).show()
+            // 2. Picker FIN (avec valeur par defaut = jour de debut)
+            val c2 = Calendar.getInstance().apply { timeInMillis = from.timeInMillis }
+            val endPicker = DatePickerDialog(this, { _, y2, m2, d2 ->
+                val to = Calendar.getInstance().apply {
+                    set(y2, m2, d2, 23, 59, 59); set(Calendar.MILLISECOND, 999)
+                }
+                filterFromMillis = from.timeInMillis
+                filterToMillis = to.timeInMillis
+                refreshDateUi()
+                renderList()
+            }, c2.get(Calendar.YEAR), c2.get(Calendar.MONTH), c2.get(Calendar.DAY_OF_MONTH))
+            endPicker.setTitle("📅 Date de fin")
+            endPicker.show()
+        }, c1.get(Calendar.YEAR), c1.get(Calendar.MONTH), c1.get(Calendar.DAY_OF_MONTH))
+        startPicker.setTitle("📅 Date de début")
+        startPicker.show()
     }
 
     private fun refreshDateUi() {
-        // Format court direct sur le bouton : "📅 18/05/26" (ou "📅 Toutes" sans filtre)
         val dfShort = SimpleDateFormat("dd/MM/yy", Locale.FRENCH)
-        if (filterDayMillis != null) {
-            binding.btnPickDate.text = "📅 " + dfShort.format(Date(filterDayMillis!!))
-            binding.btnClearDate.visibility = View.VISIBLE
-        } else {
-            binding.btnPickDate.text = "📅 Toutes"
-            binding.btnClearDate.visibility = View.GONE
+        val txt = when {
+            filterFromMillis != null && filterToMillis != null -> {
+                val sameDay = TransactionParser.dayKey(filterFromMillis!!) == TransactionParser.dayKey(filterToMillis!!)
+                if (sameDay) "📅 ${dfShort.format(Date(filterFromMillis!!))}"
+                else "📅 ${dfShort.format(Date(filterFromMillis!!))} → ${dfShort.format(Date(filterToMillis!!))}"
+            }
+            else -> "📅 Choisir période"
         }
-        // TextView cachee gardee pour compat
-        binding.txtSelectedDate.text = binding.btnPickDate.text
+        binding.btnPickDate.text = txt
+        binding.btnClearDate.visibility = if (filterFromMillis != null) View.VISIBLE else View.GONE
+        binding.txtSelectedDate.text = txt
     }
 
     private fun renderList() {
-        var list = if (filterDayMillis == null) current
-                   else current.filter { TransactionParser.dayKey(it.timestamp) == filterDayMillis }
+        var list = if (filterFromMillis == null) current
+                   else current.filter {
+                       val ts = it.timestamp
+                       ts >= filterFromMillis!! && (filterToMillis == null || ts <= filterToMillis!!)
+                   }
         if (subtypeFilter != null) {
             list = list.filter { it.subtype == subtypeFilter }
         } else if (groupFilter == "CAISSE") {

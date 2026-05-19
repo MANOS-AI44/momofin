@@ -166,35 +166,41 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="6dp"
-                android:gravity="center_vertical">
+                android:gravity="center_vertical"
+                android:background="@drawable/search_bg"
+                android:paddingHorizontal="10dp"
+                android:paddingVertical="3dp">
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:textSize="14sp"
-                    android:text="🔍"/>
+                    android:text="🔍"
+                    android:layout_marginEnd="6dp"/>
                 <EditText
                     android:id="@+id/edtSearch"
                     android:layout_width="0dp"
                     android:layout_weight="1"
-                    android:layout_height="38dp"
-                    android:layout_marginStart="6dp"
-                    android:hint="Rechercher un numero, une reference..."
-                    android:textSize="12sp"
+                    android:layout_height="40dp"
+                    android:hint="Rechercher un numéro, une référence..."
+                    android:textSize="13sp"
+                    android:textColorHint="@color/text_muted"
+                    android:textColor="@color/text_primary"
                     android:padding="6dp"
+                    android:background="@android:color/transparent"
                     android:singleLine="true"
                     android:inputType="text"
-                    android:imeOptions="actionSearch"/>
-                <Button
+                    android:imeOptions="actionDone"/>
+                <ImageButton
                     android:id="@+id/btnClearSearch"
-                    style="@style/Btn.Outline"
-                    android:layout_width="wrap_content"
-                    android:layout_height="38dp"
-                    android:layout_marginStart="4dp"
-                    android:text="✕"
-                    android:textSize="12sp"
-                    android:minWidth="40dp"
-                    android:paddingHorizontal="8dp"
-                    android:visibility="gone"/>
+                    android:layout_width="32dp"
+                    android:layout_height="32dp"
+                    android:background="@drawable/clear_search_bg"
+                    android:src="@android:drawable/ic_menu_close_clear_cancel"
+                    android:tint="@color/white"
+                    android:contentDescription="Effacer"
+                    android:visibility="gone"
+                    android:scaleType="centerInside"
+                    android:padding="6dp"/>
             </LinearLayout>
 
             <!-- Filtres categorie -->
