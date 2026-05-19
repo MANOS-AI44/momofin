@@ -24,7 +24,7 @@
     </style>
     <style name="Btn.Warning" parent="Btn">
         <item name="android:background">@drawable/btn_warning</item>
-        <item name="android:textColor">@color/text_primary</item>
+        <item name="android:textColor">@color/white</item>
     </style>
     <style name="Btn.Purple" parent="Btn">
         <item name="android:background">@drawable/btn_purple</item>
