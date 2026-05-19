@@ -1,83 +1,157 @@
-<%- include('_layout_head', { pageTitle: 'Installer MoMo Fin — Guide', activeNav: 'installer', user: typeof user !== 'undefined' ? user : null }) %>
+<!doctype html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Installer MoMo Fin — Guide pas à pas</title>
+    <meta name="theme-color" content="#1565C0">
+    <link rel="icon" type="image/svg+xml" href="/icon.svg">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+    <style>
+        * { box-sizing: border-box; }
+        html, body { margin: 0; padding: 0; }
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #F5F7FA; color: #1F2937; line-height: 1.55;
+        }
+        .container { max-width: 720px; margin: 0 auto; padding: 24px 16px 60px; }
+        .hero {
+            background: linear-gradient(135deg, #1565C0 0%, #0D47A1 100%);
+            color: white; padding: 40px 24px; border-radius: 16px; text-align: center;
+            margin-bottom: 24px;
+        }
+        .hero h1 { margin: 0 0 8px; font-size: 28px; }
+        .hero p { margin: 0 0 24px; opacity: 0.95; }
+        .btn-cta {
+            display: inline-block; background: #FFB300; color: #0D47A1;
+            padding: 16px 32px; font-size: 17px; font-weight: 700;
+            border-radius: 10px; text-decoration: none; margin: 4px;
+        }
+        .btn-cta.secondary { background: white; color: #1565C0; border: 2px solid white; }
+        .step {
+            background: white; padding: 24px; border-radius: 14px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.04); margin-bottom: 16px;
+            border: 1px solid #E5E7EB;
+        }
+        .step h2 { margin: 0 0 12px; font-size: 19px; color: #0D47A1; }
+        .step p { margin: 0 0 12px; }
+        .warn {
+            background: #FEF3C7; padding: 14px; border-radius: 8px;
+            border-left: 4px solid #F59E0B; margin: 12px 0;
+        }
+        .warn strong { color: #92400E; display: block; margin-bottom: 6px; }
+        .warn p, .warn ol { color: #78350F; margin: 6px 0 0; }
+        .warn ol { padding-left: 22px; }
+        .danger {
+            background: #FEE2E2; padding: 14px; border-radius: 8px;
+            border-left: 4px solid #DC2626; margin: 12px 0;
+        }
+        .danger strong { color: #991B1B; display: block; margin-bottom: 6px; }
+        .danger p, .danger ol { color: #7F1D1D; margin: 6px 0 0; }
+        .danger ol { padding-left: 22px; }
+        .success {
+            background: #D1FAE5; padding: 22px; border-radius: 14px;
+            text-align: center; margin-top: 20px;
+        }
+        .success h2 { margin: 0 0 8px; color: #065F46; }
+        .success p { margin: 0; color: #047857; }
+        details { margin: 10px 0; padding: 12px; background: #F9FAFB; border-radius: 8px; }
+        details summary { cursor: pointer; font-weight: 600; }
+        details p { margin: 10px 0 0; color: #374151; }
+        .nav-back {
+            display: inline-block; margin-bottom: 16px;
+            color: #1565C0; text-decoration: none; font-size: 14px;
+        }
+        .nav-back:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <a href="/" class="nav-back">← Retour à l'accueil</a>
 
-<h1>📲 Installer MoMo Fin sur Android</h1>
-<p class="subtitle">Suivez ces 4 étapes pour installer l'app en moins de 2 minutes, même si Android affiche un avertissement.</p>
-
-<%
-    var apkUrl = (typeof repo !== 'undefined' && repo) ? ('https://github.com/' + repo + '/releases/latest/download/MoMoFin.apk') : '#';
-%>
-
-<section class="panel" style="background:linear-gradient(135deg,#1565C0,#0D47A1); color:white;">
-    <h2 style="color:white; margin-bottom:8px;">📥 1. Télécharger l'APK</h2>
-    <p style="color:rgba(255,255,255,0.9); margin:0 0 16px;">Touchez le bouton ci-dessous pour télécharger MoMo Fin. Le fichier fait environ 8 Mo.</p>
-    <a href="<%= apkUrl %>" class="btn" style="background:#FFB300; color:#0D47A1; padding:14px 28px; font-size:16px; font-weight:bold;">⬇️ Télécharger MoMoFin.apk</a>
-</section>
-
-<section class="panel">
-    <h2>🔓 2. Autoriser les sources inconnues</h2>
-    <p>Au moment de l'installation, Android demande la permission d'installer des apps depuis Chrome / votre navigateur.</p>
-    <div style="background:#FEF3C7; padding:14px; border-radius:8px; border-left:4px solid #F59E0B; margin:12px 0;">
-        <strong style="color:#92400E;">📋 Ce qui s'affiche :</strong>
-        <p style="margin:6px 0 0; color:#78350F;">« Pour votre sécurité, votre téléphone n'autorise pas l'installation d'applications inconnues de cette source »</p>
-        <p style="margin:8px 0 0; color:#78350F;">👉 Touchez <strong>« Paramètres »</strong> puis activez <strong>« Autoriser de cette source »</strong>, puis revenez en arrière.</p>
+    <div class="hero">
+        <h1>📲 Installer MoMo Fin</h1>
+        <p>Suivez ce guide en 4 étapes — installation en moins de 2 minutes.</p>
+        <div>
+            <% var apkUrl = 'https://github.com/' + ((typeof repo !== 'undefined' && repo) ? repo : 'MANOS-AI44/momofin') + '/releases/latest/download/MoMoFin.apk'; %>
+            <a href="<%= apkUrl %>" class="btn-cta">⬇️ Télécharger l'APK</a>
+        </div>
     </div>
-</section>
 
-<section class="panel">
-    <h2>🛡️ 3. Bypasser Google Play Protect (si bloqué)</h2>
-    <p>Google Play Protect scanne automatiquement les apps installées hors Play Store. Pour MoMo Fin, ce n'est pas dangereux — voici comment continuer :</p>
-
-    <div style="background:#FEE2E2; padding:14px; border-radius:8px; border-left:4px solid #DC2626; margin:12px 0;">
-        <strong style="color:#991B1B;">⚠️ Si Play Protect affiche « App nuisible bloquée » :</strong>
-        <ol style="margin:8px 0 0; color:#7F1D1D; padding-left:20px;">
-            <li>Touchez <strong>« Plus de détails »</strong> ou <strong>« Plus d'infos »</strong></li>
-            <li>Touchez <strong>« Installer quand même »</strong> ou <strong>« Installer sans scanner »</strong></li>
-            <li>Confirmez en touchant <strong>« Installer »</strong></li>
-        </ol>
+    <div class="step">
+        <h2>📥 1. Télécharger l'APK</h2>
+        <p>Touchez le bouton orange ci-dessus depuis votre téléphone Android. Le fichier <strong>MoMoFin.apk</strong> (~8 Mo) commence à se télécharger dans Chrome.</p>
     </div>
 
-    <div style="background:#FEE2E2; padding:14px; border-radius:8px; border-left:4px solid #DC2626; margin:12px 0;">
-        <strong style="color:#991B1B;">⚠️ Si vous voyez « Suspendre l'installation » :</strong>
-        <p style="margin:8px 0 0; color:#7F1D1D;">Touchez <strong>« Plus de détails »</strong> → puis <strong>« Envoyer à Google pour analyse »</strong> n'est PAS nécessaire — touchez plutôt <strong>« Installer quand même »</strong> tout en bas.</p>
+    <div class="step">
+        <h2>🔓 2. Autoriser l'installation</h2>
+        <p>Une fois le téléchargement fini, ouvrez le fichier APK depuis votre dossier <strong>Téléchargements</strong> ou en touchant la notification.</p>
+        <div class="warn">
+            <strong>⚠️ Premier popup :</strong>
+            <p>« Pour votre sécurité, votre téléphone n'autorise pas l'installation d'applications de cette source »</p>
+            <p>👉 Touchez <strong>« Paramètres »</strong> → activez <strong>« Autoriser cette source »</strong> → revenez en arrière (flèche ←).</p>
+        </div>
     </div>
 
-    <p style="margin-top:14px; font-size:13px; color:#6B7280;">
-        💡 <strong>Pourquoi cet avertissement ?</strong> Toute app distribuée hors Play Store est marquée « inconnue » par Android — c'est normal et ça ne veut pas dire que l'app est dangereuse. MoMo Fin est compilée à partir du code public sur GitHub.
-    </p>
-</section>
+    <div class="step">
+        <h2>🛡️ 3. Passer Google Play Protect (si bloqué)</h2>
+        <p>Play Protect analyse les apps installées hors Play Store. C'est normal. Voici comment continuer :</p>
+        <div class="danger">
+            <strong>Si « App nuisible bloquée » apparaît :</strong>
+            <ol>
+                <li>Touchez <strong>« Plus de détails »</strong> ou <strong>« Plus d'infos »</strong></li>
+                <li>Touchez <strong>« Installer quand même »</strong> tout en bas</li>
+                <li>Confirmez avec <strong>« Installer »</strong></li>
+            </ol>
+        </div>
+        <div class="danger">
+            <strong>Si « Suspendre l'installation » apparaît :</strong>
+            <p>Cherchez <strong>« Installer quand même »</strong> tout en bas (parfois caché par « Envoyer à Google ») — touchez-le.</p>
+        </div>
+        <p style="font-size:13px; color:#6B7280; margin-top:16px;">
+            💡 Tout app hors Play Store déclenche ces avertissements — c'est normal et MoMo Fin n'est pas dangereuse (code source public sur GitHub).
+        </p>
+    </div>
 
-<section class="panel">
-    <h2>⚙️ 4. Activer les autorisations dans l'app</h2>
-    <p>Une fois MoMo Fin installée, ouvrez-la. Un assistant à 5 étapes apparaît automatiquement pour activer :</p>
-    <ul style="line-height:2;">
-        <li>✅ Lever la restriction de l'app (sur Honor / Xiaomi)</li>
-        <li>✅ Désactiver l'optimisation batterie</li>
-        <li>✅ Autoriser la lecture des SMS</li>
-        <li>✅ Autoriser les notifications</li>
-        <li>✅ Activer l'accès aux notifications (NotificationListener)</li>
-    </ul>
-    <p>L'assistant détecte automatiquement ce qui est OK et ce qui reste à faire. Tout est guidé.</p>
-</section>
+    <div class="step">
+        <h2>⚙️ 4. Activer les autorisations dans l'app</h2>
+        <p>Ouvrez MoMo Fin. Un assistant à 5 étapes apparaît automatiquement pour activer :</p>
+        <ul style="line-height:2; margin:0;">
+            <li>✅ Lever la restriction de l'app (Honor / Xiaomi)</li>
+            <li>✅ Désactiver l'optimisation batterie</li>
+            <li>✅ Autoriser la lecture des SMS</li>
+            <li>✅ Autoriser les notifications</li>
+            <li>✅ Activer l'accès aux notifications</li>
+        </ul>
+        <p style="margin-top:12px;">L'assistant détecte automatiquement ce qui reste à faire. Suivez chaque bouton.</p>
+    </div>
 
-<section class="panel" style="background:#D1FAE5;">
-    <h2 style="color:#065F46;">🎉 C'est tout !</h2>
-    <p style="color:#047857; margin:0;">Après ces 4 étapes, MoMo Fin capte vos SMS Orange / MTN / MOOV automatiquement et les synchronise avec votre tableau de bord.</p>
-</section>
+    <div class="success">
+        <h2>🎉 C'est tout !</h2>
+        <p>Après ces 4 étapes, MoMo Fin capte vos SMS Orange / MTN / MOOV automatiquement.</p>
+    </div>
 
-<section class="panel">
-    <h3>❓ Problèmes fréquents</h3>
-    <details style="margin:8px 0;">
-        <summary style="cursor:pointer; padding:8px 0; font-weight:600;">L'installation est complètement bloquée, pas de bouton « Installer quand même »</summary>
-        <p style="padding:8px 12px;">Allez dans <strong>Paramètres → Sécurité → Google Play Protect</strong> et désactivez temporairement « Analyser les apps avec Play Protect ». Réactivez après installation.</p>
-    </details>
-    <details style="margin:8px 0;">
-        <summary style="cursor:pointer; padding:8px 0; font-weight:600;">« L'application a été restreinte » apparaît après installation</summary>
-        <p style="padding:8px 12px;">C'est l'étape 1 de l'assistant. Ouvrez MoMo Fin → suivez le bouton « Ouvrir Infos appli » → cliquez « Annuler l'interdiction ».</p>
-    </details>
-    <details style="margin:8px 0;">
-        <summary style="cursor:pointer; padding:8px 0; font-weight:600;">Les SMS ne sont pas captés après installation</summary>
-        <p style="padding:8px 12px;">L'étape 5 de l'assistant (Accès aux notifications) n'est probablement pas activée. C'est la seule méthode fiable sur Android 13+.</p>
-    </details>
-</section>
-
-<%- include('_layout_foot') %>
+    <div class="step" style="margin-top:24px;">
+        <h2>❓ Problèmes fréquents</h2>
+        <details>
+            <summary>L'installation est complètement bloquée, pas de bouton « Installer quand même »</summary>
+            <p>Allez dans <strong>Paramètres → Sécurité → Google Play Protect</strong> et désactivez temporairement « Analyser les apps avec Play Protect ». Réactivez après l'installation.</p>
+        </details>
+        <details>
+            <summary>« L'application a été restreinte » après installation</summary>
+            <p>Ouvrez MoMo Fin → l'assistant montre l'étape 1 → bouton <strong>« Ouvrir Infos appli »</strong> → cliquez <strong>« Annuler l'interdiction »</strong>.</p>
+        </details>
+        <details>
+            <summary>Les SMS ne sont pas captés</summary>
+            <p>L'étape 5 (Accès aux notifications) n'est probablement pas activée. C'est la seule méthode fiable sur Android 13+.</p>
+        </details>
+        <details>
+            <summary>« App incompatible avec cette version d'Android »</summary>
+            <p>MoMo Fin demande Android 8 (API 26) ou plus récent. Vérifiez votre version dans Paramètres → À propos.</p>
+        </details>
+    </div>
+</div>
+</body>
+</html>
