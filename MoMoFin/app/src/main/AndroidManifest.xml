@@ -72,5 +72,6 @@
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/file_paths" />
         </provider>
+            <activity android:name=".TransactionDetailActivity" android:exported="false" android:label="Détail transaction" />
     </application>
 </manifest>

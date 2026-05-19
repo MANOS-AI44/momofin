@@ -10,7 +10,7 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-class DailyAdapter : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
+class DailyAdapter(private val onClickTx: (Transaction) -> Unit = {}) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
 
     sealed class Row {
         data class DayHeader(val dayMillis: Long, val recu: Double, val sortie: Double) : Row()
@@ -77,6 +77,7 @@ class DailyAdapter : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
         private val txtOp: TextView = v.findViewById(R.id.txtOperator)
 
         fun bind(tx: Transaction) {
+            itemView.setOnClickListener { onClickTx(tx) }
             txtTime.text = dfDateTime.format(Date(tx.timestamp))
             txtType.text = when (tx.subtype) {
                 TxSubtype.DEPOT -> "DÉPÔT"

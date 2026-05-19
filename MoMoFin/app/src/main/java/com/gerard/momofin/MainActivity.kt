@@ -51,7 +51,20 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        adapter = DailyAdapter()
+        adapter = DailyAdapter { tx ->
+            val i = Intent(this, TransactionDetailActivity::class.java)
+            i.putExtra("tx_amount", tx.amount)
+            i.putExtra("tx_currency", tx.currency)
+            i.putExtra("tx_type", tx.type.name)
+            i.putExtra("tx_subtype", tx.subtype.name)
+            i.putExtra("tx_operator", tx.operator)
+            i.putExtra("tx_phone", tx.phoneNumber)
+            i.putExtra("tx_reference", tx.reference)
+            i.putExtra("tx_timestamp", tx.timestamp)
+            i.putExtra("tx_sender", tx.rawSender)
+            i.putExtra("tx_body", tx.rawBody)
+            startActivity(i)
+        }
         binding.recycler.layoutManager = LinearLayoutManager(this)
         binding.recycler.adapter = adapter
 

@@ -188,3 +188,8 @@ table tbody td:first-child { font-weight: 500; color: #111827; }
     table { font-size: 10px; }
     table th, table td { padding: 3px 4px; }
 }
+
+/* Lignes transactions cliquables */
+.tx-row td { transition: background 0.15s; }
+.tx-row:hover td { background: #EFF6FF; }
+.tx-detail.show { display: table-row !important; }
