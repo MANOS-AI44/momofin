@@ -162,13 +162,13 @@ class MainActivity : AppCompatActivity() {
         updateChips()
 
         binding.btnNotifAccess.setOnClickListener {
-            showNotificationAccessGuide()
+            startActivity(Intent(this, PermissionWizardActivity::class.java))
         }
         binding.btnOpenAppSettings.setOnClickListener {
             PermissionHelper.openAppSettings(this)
         }
         binding.btnRequestPerms.setOnClickListener {
-            askSmsPermissions()
+            startActivity(Intent(this, PermissionWizardActivity::class.java))
         }
         binding.btnDismissNotif.setOnClickListener {
             Settings.setBannerDismissed(this, "notif")
@@ -384,26 +384,22 @@ class MainActivity : AppCompatActivity() {
             }
         }
     }
-    /** Verifie si l'app est restreinte par Android (battery saver, app restrictions)
-     *  et affiche un guide a l'utilisateur. */
     private fun checkRestrictions() {
         val pm = getSystemService(android.content.Context.POWER_SERVICE) as android.os.PowerManager
-        val isIgnoring = pm.isIgnoringBatteryOptimizations(packageName)
-        if (!isIgnoring) {
-            // Optionnel : afficher dialog au premier lancement seulement
+        val needsWizard = !pm.isIgnoringBatteryOptimizations(packageName)
+                || !PermissionHelper.hasSmsPermission(this)
+                || !PermissionHelper.hasNotificationAccess(this)
+        if (needsWizard) {
             val prefs = getSharedPreferences("restrictions", android.content.Context.MODE_PRIVATE)
-            if (!prefs.getBoolean("warned", false)) {
+            if (!prefs.getBoolean("wizard_shown", false)) {
                 AlertDialog.Builder(this)
-                    .setTitle("⚠️ L'app est restreinte")
-                    .setMessage("Android limite MoMo Fin en arriere-plan. Cela empeche la lecture des SMS et notifications.
-
-Voulez-vous lever cette restriction maintenant ?")
-                    .setPositiveButton("Lever la restriction") { _, _ ->
-                        PermissionHelper.requestIgnoreBatteryOptimizations(this)
+                    .setTitle("⚙️ Activer les SMS")
+                    .setMessage("MoMo Fin a besoin de quelques autorisations pour lire les SMS Orange/MTN/MOOV. Ouvrir l\'assistant ?")
+                    .setPositiveButton("Ouvrir l\'assistant") { _, _ ->
+                        prefs.edit().putBoolean("wizard_shown", true).apply()
+                        startActivity(Intent(this, PermissionWizardActivity::class.java))
                     }
-                    .setNegativeButton("Plus tard") { _, _ ->
-                        prefs.edit().putBoolean("warned", true).apply()
-                    }
+                    .setNegativeButton("Plus tard", null)
                     .show()
             }
         }

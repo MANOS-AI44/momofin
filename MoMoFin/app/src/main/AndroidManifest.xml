@@ -73,5 +73,6 @@
                 android:resource="@xml/file_paths" />
         </provider>
             <activity android:name=".TransactionDetailActivity" android:exported="false" android:label="Détail transaction" />
+            <activity android:name=".PermissionWizardActivity" android:exported="false" android:label="Activer les SMS" />
     </application>
 </manifest>
