@@ -96,7 +96,8 @@ function protect(req, res, next) {
 // Dashboard principal — liste regroupée par jour
 router.get('/', protect, async (req, res) => {
     const { from, to } = parseRange(req.query);
-    const days = await loadDays(req.user, from, to);
+    const subtypeFilter = (req.query.subtype || '').toUpperCase();
+    const days = await loadDays(req.user, from, to, subtypeFilter);
     const totals = sumTotals(days);
     const accountName = req.user.isSubAccount ? `${req.user.deviceLabel} (sous-compte)` : (req.user.name || req.user.email.split('@')[0]);
 
@@ -164,7 +165,7 @@ router.get('/', protect, async (req, res) => {
         });
     }
 
-    res.render('index', { user: req.user, days, totals, fmt, from, to, accountName, deviceTotals });
+    res.render('index', { user: req.user, days, totals, fmt, from, to, accountName, deviceTotals, subtypeFilter });
 });
 
 function parseRange(q) {
@@ -226,9 +227,13 @@ router.post('/patron/:id/delete', protect, async (req, res) => {
 // Génération PDF (avec ou sans le pwd dans la requête)
 router.get('/pdf', protect, async (req, res) => {
     const { from, to } = parseRange(req.query);
+    const subtypeFilter = (req.query.subtype || '').toUpperCase();
     const conds = []; const args = [];
     if (from) { args.push(from.toISOString()); conds.push(`ts >= $${args.length}`); }
     if (to) { args.push(to.toISOString()); conds.push(`ts <= $${args.length}`); }
+    if (['DEPOT','RETRAIT','TRANSFERT_ENVOYE','TRANSFERT_RECU'].includes(subtypeFilter)) {
+        args.push(subtypeFilter); conds.push(`(subtype = $${args.length} OR subtype IS NULL)`);
+    }
     const where = conds.length ? 'WHERE ' + conds.join(' AND ') : '';
     const { rows: tx } = await pool.query(
         `SELECT operator, type, subtype, amount, currency, reference, phone_number, ts, raw_sender, raw_body FROM transactions ${where} ORDER BY ts DESC`,
@@ -309,18 +314,20 @@ function reparseRow(t) {
 
 // --- Helpers ---
 
-async function loadDays(user, from, to) {
+async function loadDays(user, from, to, subtypeFilter) {
     let where, args;
     if (user.deviceToken) {
-        // sous-compte : filtre par device
         where = `WHERE device_id = $1`; args = [user.deviceToken];
     } else {
-        // admin : tous les devices de l'utilisateur
         where = `WHERE device_id IN (SELECT token FROM devices WHERE user_id = $1)`;
         args = [user.id];
     }
     if (from) { args.push(from.toISOString()); where += ` AND ts >= $${args.length}`; }
-    if (to) { args.push(to.toISOString()); where += ` AND ts <= $${args.length}`; }
+    if (to)   { args.push(to.toISOString());   where += ` AND ts <= $${args.length}`; }
+    // Filtre subtype : applique avant reparseRow (sur valeur stockee) ; le filet de securite filtrera apres
+    if (['DEPOT','RETRAIT','TRANSFERT_ENVOYE','TRANSFERT_RECU'].includes(subtypeFilter)) {
+        args.push(subtypeFilter); where += ` AND (subtype = $${args.length} OR subtype IS NULL)`;
+    }
     const { rows } = await pool.query(
         `SELECT operator, type, subtype, amount, currency, reference, phone_number, ts, raw_sender, raw_body
          FROM transactions ${where} ORDER BY ts DESC LIMIT 5000`,
@@ -329,6 +336,9 @@ async function loadDays(user, from, to) {
     const grouped = new Map();
     for (const raw of rows) {
         const r = reparseRow(raw);
+        // Filet de securite : si filtre subtype, ecarter les lignes qui ne correspondent pas apres re-parse
+        if (['DEPOT','RETRAIT','TRANSFERT_ENVOYE','TRANSFERT_RECU'].includes(subtypeFilter)
+            && r.subtype && r.subtype !== subtypeFilter) continue;
         const d = new Date(r.ts);
         const k = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate())).toISOString();
         if (!grouped.has(k)) grouped.set(k, []);
@@ -392,6 +402,9 @@ router.get('/devices/:token/transactions', adminOnly, async (req, res) => {
     const grouped = new Map();
     for (const raw of rows) {
         const r = reparseRow(raw);
+        // Filet de securite : si filtre subtype, ecarter les lignes qui ne correspondent pas apres re-parse
+        if (['DEPOT','RETRAIT','TRANSFERT_ENVOYE','TRANSFERT_RECU'].includes(subtypeFilter)
+            && r.subtype && r.subtype !== subtypeFilter) continue;
         const d = new Date(r.ts);
         const k = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate())).toISOString();
         if (!grouped.has(k)) grouped.set(k, []);

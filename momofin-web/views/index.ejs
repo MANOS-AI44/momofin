@@ -51,12 +51,43 @@ function phoneOpColor(op) {
     <form method="GET" action="/" class="filter-row">
         <label>Du <input type="date" name="from" value="<%= from ? from.toISOString().substring(0,10) : '' %>"></label>
         <label>Au <input type="date" name="to" value="<%= to ? to.toISOString().substring(0,10) : '' %>"></label>
+        <% if (typeof subtypeFilter !== "undefined" && subtypeFilter) { %><input type="hidden" name="subtype" value="<%= subtypeFilter %>"><% } %>
         <button type="submit" class="btn primary">Filtrer</button>
         <button type="button" onclick="window.print()" class="btn warn">🖨️ Imprimer</button>
-        <a href="/pdf<%= from ? ('?from=' + from.toISOString().substring(0,10) + '&to=' + (to ? to.toISOString().substring(0,10) : '')) : '' %>" target="_blank" class="btn danger">📄 PDF</a>
+        <%
+            var pdfQs = [];
+            if (from) pdfQs.push('from=' + from.toISOString().substring(0,10));
+            if (to)   pdfQs.push('to=' + to.toISOString().substring(0,10));
+            if (typeof subtypeFilter !== "undefined" && subtypeFilter) pdfQs.push('subtype=' + subtypeFilter);
+            var pdfQsStr = pdfQs.length ? '?' + pdfQs.join('&') : '';
+        %>
+        <a href="/pdf<%= pdfQsStr %>" target="_blank" class="btn danger">📄 PDF</a>
         <% if (typeof user !== "undefined" && user && !user.isSubAccount) { %><a href="/nettoyer-transactions" class="btn warn" style="margin-left:auto;" title="Re-parser toutes les transactions, deduplique et corrige les types/montants">🔄 Re-traiter</a><% } %>
     </form>
 </section>
+
+<!-- Filtre type de transaction (4 categories) -->
+<section class="panel print-hide">
+    <h3>📋 Type de transaction</h3>
+    <%
+        function fqs(extraSubtype) {
+            var parts = [];
+            if (from) parts.push('from=' + from.toISOString().substring(0,10));
+            if (to)   parts.push('to=' + to.toISOString().substring(0,10));
+            if (extraSubtype) parts.push('subtype=' + extraSubtype);
+            return parts.length ? '?' + parts.join('&') : '';
+        }
+        var sf = (typeof subtypeFilter !== 'undefined') ? subtypeFilter : '';
+    %>
+    <div class="filter-bar">
+        <a href="/<%= fqs() %>" class="preset-btn <%= !sf ? 'active' : '' %>">Tout</a>
+        <a href="/<%= fqs('DEPOT') %>" class="preset-btn <%= sf === 'DEPOT' ? 'active' : '' %>">📥 Dépôt</a>
+        <a href="/<%= fqs('RETRAIT') %>" class="preset-btn <%= sf === 'RETRAIT' ? 'active' : '' %>">💸 Retrait</a>
+        <a href="/<%= fqs('TRANSFERT_ENVOYE') %>" class="preset-btn <%= sf === 'TRANSFERT_ENVOYE' ? 'active' : '' %>">📤 Transfert envoyé</a>
+        <a href="/<%= fqs('TRANSFERT_RECU') %>" class="preset-btn <%= sf === 'TRANSFERT_RECU' ? 'active' : '' %>">📩 Transfert reçu</a>
+    </div>
+</section>
+
 
 <% if (typeof deviceTotals !== 'undefined' && deviceTotals && deviceTotals.length > 0) { %>
     <section class="panel">
