@@ -104,6 +104,21 @@ object TransactionParser {
         return null
     }
 
+    private fun detectSubtype(body: String, type: TxType): TxSubtype {
+        if (type == TxType.SORTIE) {
+            if (PAT_SORTIE_TRANSFERE.matcher(body).find()) return TxSubtype.TRANSFERT_ENVOYE
+            if (PAT_SORTIE_TRANSFERT_OK.matcher(body).find()) return TxSubtype.TRANSFERT_ENVOYE
+            return TxSubtype.DEPOT
+        }
+        if (type == TxType.RECU) {
+            if (PAT_RECU_INDIRECT.matcher(body).find()) return TxSubtype.RETRAIT
+            if (PAT_RECU_ORANGE.matcher(body).find()) return TxSubtype.RETRAIT
+            if (PAT_RECU_MTN.matcher(body).find()) return TxSubtype.RETRAIT
+            return TxSubtype.TRANSFERT_RECU
+        }
+        return TxSubtype.INCONNU
+    }
+
     fun parse(rawId: Long, sender: String, body: String, smsTimestamp: Long, operator: String): Transaction? {
         val type = detectType(body) ?: return null
         val (amount, currency) = extractAmount(body)
@@ -115,6 +130,7 @@ object TransactionParser {
             rawId = rawId,
             operator = operator,
             type = type,
+            subtype = detectSubtype(body, type),
             amount = amount,
             currency = if (currency == "F") "FCFA" else currency,
             reference = reference,

@@ -97,7 +97,7 @@ function generate(res, transactions, patron = [], meta = {}) {
         const yStart = doc.y;
         doc.fontSize(10).fillColor('#555');
         doc.text('Date/Heure', MARGIN, yStart);
-        doc.text('Type', 110, yStart);
+        doc.text('Type', 110, yStart);  // colonne 55px car 'T. envoyé' plus long
         doc.text('Montant', 160, yStart);
         doc.text('Numéro', 235, yStart);
         doc.text('Référence', 335, yStart);
@@ -112,7 +112,14 @@ function generate(res, transactions, patron = [], meta = {}) {
             const y = doc.y;
             doc.fontSize(9).fillColor('black');
             doc.text(dfDateTime(t.ts), MARGIN, y, { width: 70 });
-            doc.text(t.type === 'RECU' ? 'Retrait' : 'Dépôt', 110, y, { width: 45 });
+            const label = (function() {
+                if (t.subtype === 'DEPOT') return 'Dépôt';
+                if (t.subtype === 'RETRAIT') return 'Retrait';
+                if (t.subtype === 'TRANSFERT_ENVOYE') return 'T. envoyé';
+                if (t.subtype === 'TRANSFERT_RECU') return 'T. reçu';
+                return t.type === 'RECU' ? 'Retrait' : 'Dépôt';
+            })();
+            doc.text(label, 110, y, { width: 55 });
             doc.text(`${fmtNumber(t.amount)} ${t.currency || 'FCFA'}`, 160, y, { width: 70 });
             doc.text((t.phone_number || '—').substring(0, 14), 235, y, { width: 95 });
             doc.text((t.reference || '—').substring(0, 24), 335, y, { width: 140 });

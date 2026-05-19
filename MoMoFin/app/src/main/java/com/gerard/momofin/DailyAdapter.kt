@@ -78,10 +78,16 @@ class DailyAdapter : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
 
         fun bind(tx: Transaction) {
             txtTime.text = dfDateTime.format(Date(tx.timestamp))
-            txtType.text = when (tx.type) {
-                TxType.RECU -> "RETRAIT"
-                TxType.SORTIE -> "DÉPÔT"
-                TxType.INCONNU -> "—"
+            txtType.text = when (tx.subtype) {
+                TxSubtype.DEPOT -> "DÉPÔT"
+                TxSubtype.RETRAIT -> "RETRAIT"
+                TxSubtype.TRANSFERT_ENVOYE -> "T. ENVOYÉ"
+                TxSubtype.TRANSFERT_RECU -> "T. REÇU"
+                else -> when (tx.type) {
+                    TxType.RECU -> "RETRAIT"
+                    TxType.SORTIE -> "DÉPÔT"
+                    TxType.INCONNU -> "—"
+                }
             }
             // Badge stylise (rounded corners + couleurs douces)
             val ctx = itemView.context

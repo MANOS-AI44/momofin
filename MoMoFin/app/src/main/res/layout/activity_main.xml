@@ -197,6 +197,34 @@
                     android:visibility="gone"/>
             </LinearLayout>
 
+            <!-- Filtres categorie -->
+            <HorizontalScrollView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:scrollbars="none">
+                <LinearLayout
+                    android:orientation="horizontal"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content">
+                    <TextView android:id="@+id/chipAll"      android:layout_width="wrap_content" android:layout_height="32dp"
+                              android:text="Tout"             android:textSize="12sp" android:gravity="center" android:paddingHorizontal="14dp"
+                              android:layout_marginEnd="6dp" android:background="@drawable/chip_active" android:clickable="true" android:focusable="true"/>
+                    <TextView android:id="@+id/chipDepot"    android:layout_width="wrap_content" android:layout_height="32dp"
+                              android:text="📥 Dépôt"         android:textSize="12sp" android:gravity="center" android:paddingHorizontal="14dp"
+                              android:layout_marginEnd="6dp" android:background="@drawable/chip_inactive" android:clickable="true" android:focusable="true"/>
+                    <TextView android:id="@+id/chipRetrait"  android:layout_width="wrap_content" android:layout_height="32dp"
+                              android:text="💸 Retrait"       android:textSize="12sp" android:gravity="center" android:paddingHorizontal="14dp"
+                              android:layout_marginEnd="6dp" android:background="@drawable/chip_inactive" android:clickable="true" android:focusable="true"/>
+                    <TextView android:id="@+id/chipTEnvoye"  android:layout_width="wrap_content" android:layout_height="32dp"
+                              android:text="📤 T. envoyé"     android:textSize="12sp" android:gravity="center" android:paddingHorizontal="14dp"
+                              android:layout_marginEnd="6dp" android:background="@drawable/chip_inactive" android:clickable="true" android:focusable="true"/>
+                    <TextView android:id="@+id/chipTRecu"    android:layout_width="wrap_content" android:layout_height="32dp"
+                              android:text="📩 T. reçu"       android:textSize="12sp" android:gravity="center" android:paddingHorizontal="14dp"
+                              android:background="@drawable/chip_inactive" android:clickable="true" android:focusable="true"/>
+                </LinearLayout>
+            </HorizontalScrollView>
+
             <!-- Résumé -->
             <TextView
                 android:id="@+id/txtSummary"

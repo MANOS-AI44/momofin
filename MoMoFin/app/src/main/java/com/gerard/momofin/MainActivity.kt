@@ -32,6 +32,7 @@ class MainActivity : AppCompatActivity() {
     private var current: List<Transaction> = emptyList()
     private var filterDayMillis: Long? = null
     private var searchQuery: String = ""
+    private var subtypeFilter: TxSubtype? = null  // null = Tout
 
     private val permLauncher = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
@@ -111,6 +112,29 @@ class MainActivity : AppCompatActivity() {
         })
         binding.btnClearSearch.setOnClickListener {
             binding.edtSearch.setText("")
+        }
+
+        // Chips de filtre par categorie
+        val chips = listOf(
+            binding.chipAll to null,
+            binding.chipDepot to TxSubtype.DEPOT,
+            binding.chipRetrait to TxSubtype.RETRAIT,
+            binding.chipTEnvoye to TxSubtype.TRANSFERT_ENVOYE,
+            binding.chipTRecu to TxSubtype.TRANSFERT_RECU
+        )
+        chips.forEach { (chip, sub) ->
+            chip.setOnClickListener {
+                subtypeFilter = sub
+                chips.forEach { (c, s) -> c.setBackgroundResource(
+                    if (s == sub) R.drawable.chip_active else R.drawable.chip_inactive
+                ); c.setTextColor(if (s == sub) 0xFFFFFFFF.toInt() else 0xFF1565C0.toInt()) }
+                renderList()
+            }
+        }
+        // Init colors
+        binding.chipAll.setTextColor(0xFFFFFFFF.toInt())
+        listOf(binding.chipDepot, binding.chipRetrait, binding.chipTEnvoye, binding.chipTRecu).forEach {
+            it.setTextColor(0xFF1565C0.toInt())
         }
 
         binding.btnNotifAccess.setOnClickListener {
@@ -219,6 +243,9 @@ class MainActivity : AppCompatActivity() {
     private fun renderList() {
         var list = if (filterDayMillis == null) current
                    else current.filter { TransactionParser.dayKey(it.timestamp) == filterDayMillis }
+        if (subtypeFilter != null) {
+            list = list.filter { it.subtype == subtypeFilter }
+        }
         if (searchQuery.isNotEmpty()) {
             val q = searchQuery.lowercase()
             list = list.filter {

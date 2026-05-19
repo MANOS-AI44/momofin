@@ -1,4 +1,23 @@
 <%
+function subtypeLabel(st, type) {
+    if (st === 'DEPOT') return 'Dépôt';
+    if (st === 'RETRAIT') return 'Retrait';
+    if (st === 'TRANSFERT_ENVOYE') return 'Transfert envoyé';
+    if (st === 'TRANSFERT_RECU') return 'Transfert reçu';
+    // Fallback sur type si subtype absent
+    if (type === 'RECU') return 'Retrait';
+    if (type === 'SORTIE') return 'Dépôt';
+    return '—';
+}
+function subtypeBadge(st, type) {
+    if (st === 'DEPOT' || type === 'SORTIE') return 'sortie';
+    if (st === 'RETRAIT' || type === 'RECU') return 'recu';
+    if (st === 'TRANSFERT_ENVOYE') return 'sortie';
+    if (st === 'TRANSFERT_RECU') return 'recu';
+    return '';
+}
+%>
+<%
 function phoneOp(phone) {
     if (!phone) return '';
     const p2 = String(phone).substring(0, 2);
@@ -121,7 +140,7 @@ function phoneOpColor(op) {
             <% d.list.forEach(function(t) { %>
                 <tr>
                     <td><%= new Date(t.ts).toLocaleString('fr-FR') %></td>
-                    <td><span class="badge <%= t.type === 'RECU' ? 'recu' : 'sortie' %>"><%= t.type === 'RECU' ? 'Retrait' : (t.type === 'SORTIE' ? 'Dépôt' : '—') %></span></td>
+                    <td><span class="badge <%= subtypeBadge(t.subtype, t.type) %>"><%= subtypeLabel(t.subtype, t.type) %></span></td>
                     <td><strong><%= fmt(t.amount) %></strong> <%= t.currency || '' %></td>
                     <td><%= t.phone_number || '—' %></td>
                     <td><code><%= t.reference || '—' %></code></td>

@@ -78,14 +78,15 @@ router.post('/transactions/sync', authDevice, async (req, res) => {
 
             const r = await client.query(
                 `INSERT INTO transactions
-                    (device_id, operator, type, amount, currency, reference, phone_number, ts, raw_sender, raw_body)
-                 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
+                    (device_id, operator, type, subtype, amount, currency, reference, phone_number, ts, raw_sender, raw_body)
+                 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
                  ON CONFLICT (device_id, raw_body, ts) DO NOTHING
                  RETURNING id`,
                 [
                     req.deviceToken,
                     parsed.operator,
                     parsed.type,
+                    parsed.subtype,
                     parsed.amount,
                     parsed.currency,
                     parsed.reference,
@@ -111,7 +112,7 @@ router.post('/transactions/sync', authDevice, async (req, res) => {
 // GET /api/transactions — pour debug / consultation depuis l'APK
 router.get('/transactions', authDevice, async (req, res) => {
     const { rows } = await pool.query(
-        `SELECT id, operator, type, amount, currency, reference, phone_number, ts, raw_sender
+        `SELECT id, operator, type, subtype, amount, currency, reference, phone_number, ts, raw_sender
          FROM transactions
          WHERE device_id = $1
          ORDER BY ts DESC

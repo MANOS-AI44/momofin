@@ -45,6 +45,7 @@ object RailwayClient {
                     .put("smsTimestamp", t.timestamp)
                     .put("operator", t.operator)
                     .put("type", t.type.name)
+                    .put("subtype", t.subtype.name)
                     .put("amount", t.amount)
                     .put("currency", t.currency)
                     .put("reference", t.reference)
@@ -178,10 +179,18 @@ object RailwayClient {
                 if (type == TxType.INCONNU) continue
                 val amount = o.optDouble("amount", 0.0)
                 if (amount <= 0.0) continue
+                val subtype = when (o.optString("subtype").uppercase()) {
+                    "DEPOT" -> TxSubtype.DEPOT
+                    "RETRAIT" -> TxSubtype.RETRAIT
+                    "TRANSFERT_ENVOYE" -> TxSubtype.TRANSFERT_ENVOYE
+                    "TRANSFERT_RECU" -> TxSubtype.TRANSFERT_RECU
+                    else -> if (type == TxType.RECU) TxSubtype.RETRAIT else TxSubtype.DEPOT
+                }
                 list.add(Transaction(
                     rawId = o.optLong("id"),
                     operator = o.optString("operator", "Autre"),
                     type = type,
+                    subtype = subtype,
                     amount = amount,
                     currency = o.optString("currency").ifBlank { "FCFA" },
                     reference = o.optString("reference", ""),

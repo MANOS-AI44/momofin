@@ -118,6 +118,11 @@ async function init() {
         await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS logo_data BYTEA;`);
         await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS logo_mime TEXT;`);
         await client.query(`ALTER TABLE transactions ADD COLUMN IF NOT EXISTS phone_number TEXT;`);
+        await client.query(`ALTER TABLE transactions ADD COLUMN IF NOT EXISTS subtype TEXT;`);
+        // Backfill subtype DEPOT par defaut pour anciens SORTIE / RETRAIT pour anciens RECU
+        // Le filet de securite re-parse a la volee donc l'affichage sera correct meme avant backfill complet
+        await client.query(`UPDATE transactions SET subtype='DEPOT'   WHERE subtype IS NULL AND type='SORTIE'`);
+        await client.query(`UPDATE transactions SET subtype='RETRAIT' WHERE subtype IS NULL AND type='RECU'`);
 
         // === 3) Migrations de donnees (idempotentes : conditions WHERE filtrent) ===
         // Normaliser les numeros CI (strip prefixe 225) sur les anciennes lignes

@@ -67,6 +67,22 @@ function detectType(body) {
     return null;
 }
 
+// Sous-categorie : DEPOT / RETRAIT / TRANSFERT_ENVOYE / TRANSFERT_RECU
+function detectSubtype(body, type) {
+    if (type === 'SORTIE') {
+        if (PAT_SORTIE_TRANSFERE.test(body)) return 'TRANSFERT_ENVOYE';
+        if (PAT_SORTIE_TRANSFERT_OK.test(body)) return 'TRANSFERT_ENVOYE';
+        return 'DEPOT';
+    }
+    if (type === 'RECU') {
+        if (PAT_RECU_INDIRECT.test(body)) return 'RETRAIT';
+        if (PAT_RECU_ORANGE.test(body)) return 'RETRAIT';
+        if (PAT_RECU_MTN.test(body)) return 'RETRAIT';
+        return 'TRANSFERT_RECU';
+    }
+    return null;
+}
+
 function isMomoSms(sender, body) {
     return detectType(body || '') !== null;
 }
@@ -235,9 +251,10 @@ function parse(sender, body, smsTimestamp) {
     const operator = detectOperator(sender, body);
     const reference = extractReference(body || '');
     const phone_number = extractPhone(body || '', type);
+    const subtype = detectSubtype(body || '', type);
     const ts = extractDate(body || '') || new Date(smsTimestamp || Date.now()).toISOString();
     const normalizedPhone = normalizePhone(phone_number);
-    return { operator, type, amount, currency, reference, phone_number: normalizedPhone, ts };
+    return { operator, type, subtype, amount, currency, reference, phone_number: normalizedPhone, ts };
 }
 
-module.exports = { parse, isMomoSms, detectOperator, detectType, normalizePhone, phoneOperator };
+module.exports = { parse, isMomoSms, detectOperator, detectType, detectSubtype, normalizePhone, phoneOperator };

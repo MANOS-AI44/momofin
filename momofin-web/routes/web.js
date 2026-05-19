@@ -231,7 +231,7 @@ router.get('/pdf', protect, async (req, res) => {
     if (to) { args.push(to.toISOString()); conds.push(`ts <= $${args.length}`); }
     const where = conds.length ? 'WHERE ' + conds.join(' AND ') : '';
     const { rows: tx } = await pool.query(
-        `SELECT operator, type, amount, currency, reference, phone_number, ts, raw_sender, raw_body FROM transactions ${where} ORDER BY ts DESC`,
+        `SELECT operator, type, subtype, amount, currency, reference, phone_number, ts, raw_sender, raw_body FROM transactions ${where} ORDER BY ts DESC`,
         args
     );
     const accountName = req.user.isSubAccount ? `${req.user.deviceLabel} (sous-compte)` : (req.user.name || req.user.email.split('@')[0]);
@@ -298,6 +298,7 @@ function reparseRow(t) {
     return {
         ...t,
         type: r.type,
+        subtype: r.subtype || t.subtype,
         amount: r.amount,
         currency: r.currency || t.currency,
         phone_number: r.phone_number || t.phone_number,
@@ -321,7 +322,7 @@ async function loadDays(user, from, to) {
     if (from) { args.push(from.toISOString()); where += ` AND ts >= $${args.length}`; }
     if (to) { args.push(to.toISOString()); where += ` AND ts <= $${args.length}`; }
     const { rows } = await pool.query(
-        `SELECT operator, type, amount, currency, reference, phone_number, ts, raw_sender, raw_body
+        `SELECT operator, type, subtype, amount, currency, reference, phone_number, ts, raw_sender, raw_body
          FROM transactions ${where} ORDER BY ts DESC LIMIT 5000`,
         args
     );
@@ -377,11 +378,14 @@ router.get('/devices/:token/transactions', adminOnly, async (req, res) => {
     const conds = ['device_id = $1']; const args = [token];
     if (from) { args.push(from.toISOString()); conds.push(`ts >= $${args.length}`); }
     if (to)   { args.push(to.toISOString());   conds.push(`ts <= $${args.length}`); }
-    if (typeFilter === 'RECU' || typeFilter === 'SORTIE') {
+    // typeFilter peut etre subtype (DEPOT/RETRAIT/TRANSFERT_ENVOYE/TRANSFERT_RECU) ou type (RECU/SORTIE)
+    if (['DEPOT','RETRAIT','TRANSFERT_ENVOYE','TRANSFERT_RECU'].includes(typeFilter)) {
+        args.push(typeFilter); conds.push(`subtype = $${args.length}`);
+    } else if (typeFilter === 'RECU' || typeFilter === 'SORTIE') {
         args.push(typeFilter); conds.push(`type = $${args.length}`);
     }
     const { rows } = await pool.query(
-        `SELECT operator, type, amount, currency, reference, phone_number, ts, raw_sender, raw_body
+        `SELECT operator, type, subtype, amount, currency, reference, phone_number, ts, raw_sender, raw_body
          FROM transactions WHERE ${conds.join(' AND ')} ORDER BY ts DESC LIMIT 5000`,
         args
     );
@@ -418,15 +422,21 @@ router.get('/devices/:token/pdf', adminOnly, async (req, res) => {
     const conds = ['device_id = $1']; const args = [token];
     if (from) { args.push(from.toISOString()); conds.push(`ts >= $${args.length}`); }
     if (to)   { args.push(to.toISOString());   conds.push(`ts <= $${args.length}`); }
-    if (typeFilter === 'RECU' || typeFilter === 'SORTIE') {
+    if (['DEPOT','RETRAIT','TRANSFERT_ENVOYE','TRANSFERT_RECU'].includes(typeFilter)) {
+        args.push(typeFilter); conds.push(`subtype = $${args.length}`);
+    } else if (typeFilter === 'RECU' || typeFilter === 'SORTIE') {
         args.push(typeFilter); conds.push(`type = $${args.length}`);
     }
     const { rows: tx } = await pool.query(
-        `SELECT operator, type, amount, currency, reference, phone_number, ts, raw_sender, raw_body
+        `SELECT operator, type, subtype, amount, currency, reference, phone_number, ts, raw_sender, raw_body
          FROM transactions WHERE ${conds.join(' AND ')} ORDER BY ts DESC`,
         args
     );
-    const typeLabel = typeFilter === 'RECU' ? ' (Retrait)' : (typeFilter === 'SORTIE' ? ' (Depot)' : '');
+    const typeLabel = {
+        'DEPOT': ' (Depot)', 'RETRAIT': ' (Retrait)',
+        'TRANSFERT_ENVOYE': ' (Transfert envoye)', 'TRANSFERT_RECU': ' (Transfert recu)',
+        'RECU': ' (Retrait)', 'SORTIE': ' (Depot)'
+    }[typeFilter] || '';
     const accountName = `${req.user.name || req.user.email.split('@')[0]} — ${device.label || 'Appareil'}${typeLabel}`;
     const fmtDate = d => d ? d.toISOString().substring(0, 10) : null;
     const safe = accountName.replace(/[^A-Za-z0-9_-]/g, '_');
