@@ -32,7 +32,8 @@ class MainActivity : AppCompatActivity() {
     private var current: List<Transaction> = emptyList()
     private var filterDayMillis: Long? = null
     private var searchQuery: String = ""
-    private var subtypeFilter: TxSubtype? = null  // null = Tout
+    private var subtypeFilter: TxSubtype? = null  // null = Tout, ou subtype precis
+    private var groupFilter: String? = null        // null, 'CAISSE' ou 'TRANSFERTS'
 
     private val permLauncher = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
@@ -127,28 +128,38 @@ class MainActivity : AppCompatActivity() {
             binding.edtSearch.setText("")
         }
 
-        // Chips de filtre par categorie
-        val chips = listOf(
-            binding.chipAll to null,
-            binding.chipDepot to TxSubtype.DEPOT,
-            binding.chipRetrait to TxSubtype.RETRAIT,
-            binding.chipTEnvoye to TxSubtype.TRANSFERT_ENVOYE,
-            binding.chipTRecu to TxSubtype.TRANSFERT_RECU
+        // === Chips de filtre ===
+        // chipAll -> null/null, chipCaisse -> group CAISSE, chipTransferts -> group TRANSFERTS
+        // chipDepot/Retrait -> subtype precis (DEPOT/RETRAIT)
+        // chipTEnvoye/TRecu -> subtype precis (TRANSFERT_ENVOYE/TRANSFERT_RECU)
+        val allChips = listOf(
+            binding.chipAll, binding.chipCaisse, binding.chipTransferts,
+            binding.chipDepot, binding.chipRetrait, binding.chipTEnvoye, binding.chipTRecu
         )
-        chips.forEach { (chip, sub) ->
-            chip.setOnClickListener {
-                subtypeFilter = sub
-                chips.forEach { (c, s) -> c.setBackgroundResource(
-                    if (s == sub) R.drawable.chip_active else R.drawable.chip_inactive
-                ); c.setTextColor(if (s == sub) 0xFFFFFFFF.toInt() else 0xFF1565C0.toInt()) }
-                renderList()
+        fun updateChips() {
+            for (c in allChips) {
+                val isActive = when (c.id) {
+                    R.id.chipAll -> subtypeFilter == null && groupFilter == null
+                    R.id.chipCaisse -> groupFilter == "CAISSE"
+                    R.id.chipTransferts -> groupFilter == "TRANSFERTS"
+                    R.id.chipDepot -> subtypeFilter == TxSubtype.DEPOT
+                    R.id.chipRetrait -> subtypeFilter == TxSubtype.RETRAIT
+                    R.id.chipTEnvoye -> subtypeFilter == TxSubtype.TRANSFERT_ENVOYE
+                    R.id.chipTRecu -> subtypeFilter == TxSubtype.TRANSFERT_RECU
+                    else -> false
+                }
+                c.setBackgroundResource(if (isActive) R.drawable.chip_active else R.drawable.chip_inactive)
+                c.setTextColor(if (isActive) 0xFFFFFFFF.toInt() else 0xFF1565C0.toInt())
             }
         }
-        // Init colors
-        binding.chipAll.setTextColor(0xFFFFFFFF.toInt())
-        listOf(binding.chipDepot, binding.chipRetrait, binding.chipTEnvoye, binding.chipTRecu).forEach {
-            it.setTextColor(0xFF1565C0.toInt())
-        }
+        binding.chipAll.setOnClickListener { subtypeFilter = null; groupFilter = null; updateChips(); renderList() }
+        binding.chipCaisse.setOnClickListener { subtypeFilter = null; groupFilter = "CAISSE"; updateChips(); renderList() }
+        binding.chipTransferts.setOnClickListener { subtypeFilter = null; groupFilter = "TRANSFERTS"; updateChips(); renderList() }
+        binding.chipDepot.setOnClickListener { subtypeFilter = TxSubtype.DEPOT; groupFilter = null; updateChips(); renderList() }
+        binding.chipRetrait.setOnClickListener { subtypeFilter = TxSubtype.RETRAIT; groupFilter = null; updateChips(); renderList() }
+        binding.chipTEnvoye.setOnClickListener { subtypeFilter = TxSubtype.TRANSFERT_ENVOYE; groupFilter = null; updateChips(); renderList() }
+        binding.chipTRecu.setOnClickListener { subtypeFilter = TxSubtype.TRANSFERT_RECU; groupFilter = null; updateChips(); renderList() }
+        updateChips()
 
         binding.btnNotifAccess.setOnClickListener {
             showNotificationAccessGuide()
@@ -180,6 +191,7 @@ class MainActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
+        checkRestrictions()
         updateBanners()
         loadData()
     }
@@ -258,6 +270,10 @@ class MainActivity : AppCompatActivity() {
                    else current.filter { TransactionParser.dayKey(it.timestamp) == filterDayMillis }
         if (subtypeFilter != null) {
             list = list.filter { it.subtype == subtypeFilter }
+        } else if (groupFilter == "CAISSE") {
+            list = list.filter { it.subtype == TxSubtype.DEPOT || it.subtype == TxSubtype.RETRAIT }
+        } else if (groupFilter == "TRANSFERTS") {
+            list = list.filter { it.subtype == TxSubtype.TRANSFERT_ENVOYE || it.subtype == TxSubtype.TRANSFERT_RECU }
         }
         if (searchQuery.isNotEmpty()) {
             val q = searchQuery.lowercase()
@@ -368,4 +384,29 @@ class MainActivity : AppCompatActivity() {
             }
         }
     }
+    /** Verifie si l'app est restreinte par Android (battery saver, app restrictions)
+     *  et affiche un guide a l'utilisateur. */
+    private fun checkRestrictions() {
+        val pm = getSystemService(android.content.Context.POWER_SERVICE) as android.os.PowerManager
+        val isIgnoring = pm.isIgnoringBatteryOptimizations(packageName)
+        if (!isIgnoring) {
+            // Optionnel : afficher dialog au premier lancement seulement
+            val prefs = getSharedPreferences("restrictions", android.content.Context.MODE_PRIVATE)
+            if (!prefs.getBoolean("warned", false)) {
+                AlertDialog.Builder(this)
+                    .setTitle("⚠️ L'app est restreinte")
+                    .setMessage("Android limite MoMo Fin en arriere-plan. Cela empeche la lecture des SMS et notifications.
+
+Voulez-vous lever cette restriction maintenant ?")
+                    .setPositiveButton("Lever la restriction") { _, _ ->
+                        PermissionHelper.requestIgnoreBatteryOptimizations(this)
+                    }
+                    .setNegativeButton("Plus tard") { _, _ ->
+                        prefs.edit().putBoolean("warned", true).apply()
+                    }
+                    .show()
+            }
+        }
+    }
+
 }

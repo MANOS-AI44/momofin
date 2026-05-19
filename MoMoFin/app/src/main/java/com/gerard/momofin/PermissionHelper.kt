@@ -103,4 +103,21 @@ object PermissionHelper {
         }
         return "$name (API $api)"
     }
+
+    /** Ouvrir les parametres de batterie/optimisation (utile quand 'L'app a ete restreinte') */
+    fun openBatteryOptimizationSettings(context: Context) {
+        val intent = Intent(AndroidSettings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS).apply {
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+        try { context.startActivity(intent) } catch (_: Exception) { openAppSettings(context) }
+    }
+
+    /** Demande explicitement a etre exempte des optimisations batterie */
+    fun requestIgnoreBatteryOptimizations(context: Context) {
+        val intent = Intent(AndroidSettings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {
+            data = Uri.parse("package:${context.packageName}")
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+        try { context.startActivity(intent) } catch (_: Exception) { openAppSettings(context) }
+    }
 }

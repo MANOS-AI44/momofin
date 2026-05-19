@@ -190,22 +190,36 @@ function extractPhone(body, type) {
     // 3. "depot vers (le) X" (Depot Orange)
     const m3 = body.match(PHONE_DEPOT_VERS);
     if (m3 && m3[1]) { const c = cleanPhone(m3[1]); if (c) return c; }
-    // 4. type-aware : SORTIE → prefere destination (vers/au) ; RECU → prefere source (de/du)
+    // 4. type-aware : SORTIE → destination (vers/au) ; RECU → source (de/du)
+    // ⚠️ Skip les candidats qui sont des montants ('101000.00 FCFA' n'est pas un phone)
+    function isMontant(cand, fullBody, matchIdx) {
+        if (/\.\d/.test(cand)) return true;   // contient .X → montant
+        const after = fullBody.substring(matchIdx + cand.length, matchIdx + cand.length + 12).toUpperCase();
+        return /^\s*(?:FCFA|CFA|\bF\b|XOF|XAF|RWF)/.test(after);
+    }
+    function findAfterKw(re) {
+        re.lastIndex = 0;
+        let m;
+        while ((m = re.exec(body)) !== null) {
+            const cand = m[1];
+            const phoneStart = m.index + m[0].lastIndexOf(cand);
+            if (isMontant(cand, body, phoneStart)) continue;
+            const c = cleanPhone(cand);
+            if (c) return c;
+        }
+        return '';
+    }
     if (type === 'SORTIE') {
-        // vers (le) X
-        const mv = body.match(/\bvers\b\s+(?:le\s+|la\s+)?(\+?\d[\d\s.]{6,18}\d)/i);
-        if (mv) { const c = cleanPhone(mv[1]); if (c) return c; }
-        // au X (mais pas "au numero X")
-        const ma = body.match(/\bau\b\s+(?!num[eé]ro)(\+?\d[\d\s.]{6,18}\d)/i);
-        if (ma) { const c = cleanPhone(ma[1]); if (c) return c; }
+        const r1 = findAfterKw(/\bvers\b\s+(?:le\s+|la\s+)?(\+?\d[\d\s.]{6,18}\d)/gi);
+        if (r1) return r1;
+        const r2 = findAfterKw(/\bau\b\s+(?!num[eé]ro)(\+?\d[\d\s.]{6,18}\d)/gi);
+        if (r2) return r2;
     }
     if (type === 'RECU') {
-        // de X (priorite) — exclut "de la", "de votre"
-        const md = body.match(/\bde\b\s+(?!num[eé]ro|la\b|votre\b)(\+?\d[\d\s.]{6,18}\d)/i);
-        if (md) { const c = cleanPhone(md[1]); if (c) return c; }
-        // du X (mais pas "du numero" qui est l'agent)
-        const mdu = body.match(/\bdu\b\s+(?!num[eé]ro)(\+?\d[\d\s.]{6,18}\d)/i);
-        if (mdu) { const c = cleanPhone(mdu[1]); if (c) return c; }
+        const r1 = findAfterKw(/\bdu\b\s+(?!num[eé]ro)(\+?\d[\d\s.]{6,18}\d)/gi);
+        if (r1) return r1;
+        const r2 = findAfterKw(/\bde\b\s+(?!num[eé]ro|la\b|votre\b)(\+?\d[\d\s.]{6,18}\d)/gi);
+        if (r2) return r2;
     }
     // 5. "numero X" en sautant "votre numero"
     PHONE_NUMERO.lastIndex = 0;

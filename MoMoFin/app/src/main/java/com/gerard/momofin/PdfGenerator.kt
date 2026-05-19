@@ -111,10 +111,16 @@ object PdfGenerator {
             altRow = !altRow
 
             val ty = y + 17f
-            val typeLabel = when (tx.type) {
-                TxType.RECU -> "Retrait"
-                TxType.SORTIE -> "Dépôt"
-                else -> "—"
+            val typeLabel = when (tx.subtype) {
+                TxSubtype.DEPOT -> "Dépôt"
+                TxSubtype.RETRAIT -> "Retrait"
+                TxSubtype.TRANSFERT_ENVOYE -> "T. envoyé"
+                TxSubtype.TRANSFERT_RECU -> "T. reçu"
+                else -> when (tx.type) {
+                    TxType.RECU -> "Retrait"
+                    TxType.SORTIE -> "Dépôt"
+                    else -> "—"
+                }
             }
             val typePaint = Paint(cellBoldP).apply {
                 color = when (tx.type) {
@@ -214,7 +220,13 @@ object PdfGenerator {
             var dayRecu = 0.0; var daySortie = 0.0
             for (tx in txs) {
                 newPageIfNeeded(12f)
-                val lbl = when (tx.type) { TxType.RECU -> "Retrait"; TxType.SORTIE -> "Dépôt"; else -> "—" }
+                val lbl = when (tx.subtype) {
+                    TxSubtype.DEPOT -> "Dépôt"
+                    TxSubtype.RETRAIT -> "Retrait"
+                    TxSubtype.TRANSFERT_ENVOYE -> "T. envoyé"
+                    TxSubtype.TRANSFERT_RECU -> "T. reçu"
+                    else -> when (tx.type) { TxType.RECU -> "Retrait"; TxType.SORTIE -> "Dépôt"; else -> "—" }
+                }
                 canvas.drawText(lbl, xType, y, text)
                 canvas.drawText("${nf.format(tx.amount)} ${tx.currency}", xAmount, y, text)
                 val op2 = TransactionParser.phoneOperator(tx.phoneNumber)

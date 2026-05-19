@@ -79,13 +79,30 @@ function phoneOpColor(op) {
         }
         var sf = (typeof subtypeFilter !== 'undefined') ? subtypeFilter : '';
     %>
+    <!-- Groupes principaux -->
     <div class="filter-bar">
-        <a href="/<%= fqs() %>" class="preset-btn <%= !sf ? 'active' : '' %>">Tout</a>
-        <a href="/<%= fqs('DEPOT') %>" class="preset-btn <%= sf === 'DEPOT' ? 'active' : '' %>">📥 Dépôt</a>
-        <a href="/<%= fqs('RETRAIT') %>" class="preset-btn <%= sf === 'RETRAIT' ? 'active' : '' %>">💸 Retrait</a>
-        <a href="/<%= fqs('TRANSFERT_ENVOYE') %>" class="preset-btn <%= sf === 'TRANSFERT_ENVOYE' ? 'active' : '' %>">📤 Transfert envoyé</a>
-        <a href="/<%= fqs('TRANSFERT_RECU') %>" class="preset-btn <%= sf === 'TRANSFERT_RECU' ? 'active' : '' %>">📩 Transfert reçu</a>
+        <a href="/<%= fqs() %>" class="preset-btn <%= !sf ? 'active' : '' %>">🌐 Tout</a>
+        <a href="/<%= fqs('CAISSE') %>" class="preset-btn <%= (sf === 'CAISSE' || sf === 'DEPOT' || sf === 'RETRAIT') ? 'active' : '' %>" style="background:#FEF3C7; color:#92400E; border-color:#FDE68A;">💼 Caisse (Dépôt + Retrait)</a>
+        <a href="/<%= fqs('TRANSFERTS') %>" class="preset-btn <%= (sf === 'TRANSFERTS' || sf === 'TRANSFERT_ENVOYE' || sf === 'TRANSFERT_RECU') ? 'active' : '' %>" style="background:#DBEAFE; color:#1E40AF; border-color:#BFDBFE;">💱 Transferts (Envoyé + Reçu)</a>
     </div>
+    <!-- Sous-filtres CAISSE -->
+    <% if (sf === 'CAISSE' || sf === 'DEPOT' || sf === 'RETRAIT') { %>
+        <div class="filter-bar" style="margin-top:10px;">
+            <span style="font-size:11px; color:#6B7280; text-transform:uppercase;">Détail :</span>
+            <a href="/<%= fqs('CAISSE') %>" class="preset-btn <%= sf === 'CAISSE' ? 'active' : '' %>">Les deux</a>
+            <a href="/<%= fqs('DEPOT') %>" class="preset-btn <%= sf === 'DEPOT' ? 'active' : '' %>">📥 Dépôt seul</a>
+            <a href="/<%= fqs('RETRAIT') %>" class="preset-btn <%= sf === 'RETRAIT' ? 'active' : '' %>">💸 Retrait seul</a>
+        </div>
+    <% } %>
+    <!-- Sous-filtres TRANSFERTS -->
+    <% if (sf === 'TRANSFERTS' || sf === 'TRANSFERT_ENVOYE' || sf === 'TRANSFERT_RECU') { %>
+        <div class="filter-bar" style="margin-top:10px;">
+            <span style="font-size:11px; color:#6B7280; text-transform:uppercase;">Détail :</span>
+            <a href="/<%= fqs('TRANSFERTS') %>" class="preset-btn <%= sf === 'TRANSFERTS' ? 'active' : '' %>">Les deux</a>
+            <a href="/<%= fqs('TRANSFERT_ENVOYE') %>" class="preset-btn <%= sf === 'TRANSFERT_ENVOYE' ? 'active' : '' %>">📤 Envoyé seul</a>
+            <a href="/<%= fqs('TRANSFERT_RECU') %>" class="preset-btn <%= sf === 'TRANSFERT_RECU' ? 'active' : '' %>">📩 Reçu seul</a>
+        </div>
+    <% } %>
 </section>
 
 

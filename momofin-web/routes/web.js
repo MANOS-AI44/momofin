@@ -231,7 +231,11 @@ router.get('/pdf', protect, async (req, res) => {
     const conds = []; const args = [];
     if (from) { args.push(from.toISOString()); conds.push(`ts >= $${args.length}`); }
     if (to) { args.push(to.toISOString()); conds.push(`ts <= $${args.length}`); }
-    if (['DEPOT','RETRAIT','TRANSFERT_ENVOYE','TRANSFERT_RECU'].includes(subtypeFilter)) {
+    if (subtypeFilter === 'CAISSE') {
+        conds.push(`(subtype IN ('DEPOT','RETRAIT') OR subtype IS NULL)`);
+    } else if (subtypeFilter === 'TRANSFERTS') {
+        conds.push(`(subtype IN ('TRANSFERT_ENVOYE','TRANSFERT_RECU') OR subtype IS NULL)`);
+    } else if (['DEPOT','RETRAIT','TRANSFERT_ENVOYE','TRANSFERT_RECU'].includes(subtypeFilter)) {
         args.push(subtypeFilter); conds.push(`(subtype = $${args.length} OR subtype IS NULL)`);
     }
     const where = conds.length ? 'WHERE ' + conds.join(' AND ') : '';
@@ -303,7 +307,8 @@ function reparseRow(t) {
     return {
         ...t,
         type: r.type,
-        subtype: r.subtype || t.subtype,
+        // ⚠️ Toujours utiliser le subtype du parser actuel (ecrase le stocke potentiellement obsolete)
+        subtype: r.subtype,
         amount: r.amount,
         currency: r.currency || t.currency,
         phone_number: r.phone_number || t.phone_number,
@@ -325,7 +330,11 @@ async function loadDays(user, from, to, subtypeFilter) {
     if (from) { args.push(from.toISOString()); where += ` AND ts >= $${args.length}`; }
     if (to)   { args.push(to.toISOString());   where += ` AND ts <= $${args.length}`; }
     // Filtre subtype : applique avant reparseRow (sur valeur stockee) ; le filet de securite filtrera apres
-    if (['DEPOT','RETRAIT','TRANSFERT_ENVOYE','TRANSFERT_RECU'].includes(subtypeFilter)) {
+    if (subtypeFilter === 'CAISSE') {
+        where += ` AND (subtype IN ('DEPOT','RETRAIT') OR subtype IS NULL)`;
+    } else if (subtypeFilter === 'TRANSFERTS') {
+        where += ` AND (subtype IN ('TRANSFERT_ENVOYE','TRANSFERT_RECU') OR subtype IS NULL)`;
+    } else if (['DEPOT','RETRAIT','TRANSFERT_ENVOYE','TRANSFERT_RECU'].includes(subtypeFilter)) {
         args.push(subtypeFilter); where += ` AND (subtype = $${args.length} OR subtype IS NULL)`;
     }
     const { rows } = await pool.query(
@@ -337,8 +346,10 @@ async function loadDays(user, from, to, subtypeFilter) {
     for (const raw of rows) {
         const r = reparseRow(raw);
         // Filet de securite : si filtre subtype, ecarter les lignes qui ne correspondent pas apres re-parse
-        if (['DEPOT','RETRAIT','TRANSFERT_ENVOYE','TRANSFERT_RECU'].includes(subtypeFilter)
-            && r.subtype && r.subtype !== subtypeFilter) continue;
+        if (subtypeFilter === 'CAISSE' && r.subtype && !['DEPOT','RETRAIT'].includes(r.subtype)) continue;
+        else if (subtypeFilter === 'TRANSFERTS' && r.subtype && !['TRANSFERT_ENVOYE','TRANSFERT_RECU'].includes(r.subtype)) continue;
+        else if (['DEPOT','RETRAIT','TRANSFERT_ENVOYE','TRANSFERT_RECU'].includes(subtypeFilter)
+                 && r.subtype && r.subtype !== subtypeFilter) continue;
         const d = new Date(r.ts);
         const k = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate())).toISOString();
         if (!grouped.has(k)) grouped.set(k, []);
@@ -389,7 +400,11 @@ router.get('/devices/:token/transactions', adminOnly, async (req, res) => {
     if (from) { args.push(from.toISOString()); conds.push(`ts >= $${args.length}`); }
     if (to)   { args.push(to.toISOString());   conds.push(`ts <= $${args.length}`); }
     // typeFilter peut etre subtype (DEPOT/RETRAIT/TRANSFERT_ENVOYE/TRANSFERT_RECU) ou type (RECU/SORTIE)
-    if (['DEPOT','RETRAIT','TRANSFERT_ENVOYE','TRANSFERT_RECU'].includes(typeFilter)) {
+    if (typeFilter === 'CAISSE') {
+        conds.push(`subtype IN ('DEPOT','RETRAIT')`);
+    } else if (typeFilter === 'TRANSFERTS') {
+        conds.push(`subtype IN ('TRANSFERT_ENVOYE','TRANSFERT_RECU')`);
+    } else if (['DEPOT','RETRAIT','TRANSFERT_ENVOYE','TRANSFERT_RECU'].includes(typeFilter)) {
         args.push(typeFilter); conds.push(`subtype = $${args.length}`);
     } else if (typeFilter === 'RECU' || typeFilter === 'SORTIE') {
         args.push(typeFilter); conds.push(`type = $${args.length}`);
@@ -403,8 +418,10 @@ router.get('/devices/:token/transactions', adminOnly, async (req, res) => {
     for (const raw of rows) {
         const r = reparseRow(raw);
         // Filet de securite : si filtre subtype, ecarter les lignes qui ne correspondent pas apres re-parse
-        if (['DEPOT','RETRAIT','TRANSFERT_ENVOYE','TRANSFERT_RECU'].includes(subtypeFilter)
-            && r.subtype && r.subtype !== subtypeFilter) continue;
+        if (subtypeFilter === 'CAISSE' && r.subtype && !['DEPOT','RETRAIT'].includes(r.subtype)) continue;
+        else if (subtypeFilter === 'TRANSFERTS' && r.subtype && !['TRANSFERT_ENVOYE','TRANSFERT_RECU'].includes(r.subtype)) continue;
+        else if (['DEPOT','RETRAIT','TRANSFERT_ENVOYE','TRANSFERT_RECU'].includes(subtypeFilter)
+                 && r.subtype && r.subtype !== subtypeFilter) continue;
         const d = new Date(r.ts);
         const k = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate())).toISOString();
         if (!grouped.has(k)) grouped.set(k, []);
@@ -435,7 +452,11 @@ router.get('/devices/:token/pdf', adminOnly, async (req, res) => {
     const conds = ['device_id = $1']; const args = [token];
     if (from) { args.push(from.toISOString()); conds.push(`ts >= $${args.length}`); }
     if (to)   { args.push(to.toISOString());   conds.push(`ts <= $${args.length}`); }
-    if (['DEPOT','RETRAIT','TRANSFERT_ENVOYE','TRANSFERT_RECU'].includes(typeFilter)) {
+    if (typeFilter === 'CAISSE') {
+        conds.push(`subtype IN ('DEPOT','RETRAIT')`);
+    } else if (typeFilter === 'TRANSFERTS') {
+        conds.push(`subtype IN ('TRANSFERT_ENVOYE','TRANSFERT_RECU')`);
+    } else if (['DEPOT','RETRAIT','TRANSFERT_ENVOYE','TRANSFERT_RECU'].includes(typeFilter)) {
         args.push(typeFilter); conds.push(`subtype = $${args.length}`);
     } else if (typeFilter === 'RECU' || typeFilter === 'SORTIE') {
         args.push(typeFilter); conds.push(`type = $${args.length}`);

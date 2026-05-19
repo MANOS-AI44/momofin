@@ -208,8 +208,14 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content">
                     <TextView android:id="@+id/chipAll"      android:layout_width="wrap_content" android:layout_height="32dp"
-                              android:text="Tout"             android:textSize="12sp" android:gravity="center" android:paddingHorizontal="14dp"
+                              android:text="🌐 Tout"          android:textSize="12sp" android:gravity="center" android:paddingHorizontal="14dp"
                               android:layout_marginEnd="6dp" android:background="@drawable/chip_active" android:clickable="true" android:focusable="true"/>
+                    <TextView android:id="@+id/chipCaisse"   android:layout_width="wrap_content" android:layout_height="32dp"
+                              android:text="💼 Caisse"        android:textSize="12sp" android:gravity="center" android:paddingHorizontal="14dp"
+                              android:layout_marginEnd="6dp" android:background="@drawable/chip_inactive" android:clickable="true" android:focusable="true"/>
+                    <TextView android:id="@+id/chipTransferts" android:layout_width="wrap_content" android:layout_height="32dp"
+                              android:text="💱 Transferts"    android:textSize="12sp" android:gravity="center" android:paddingHorizontal="14dp"
+                              android:layout_marginEnd="12dp" android:background="@drawable/chip_inactive" android:clickable="true" android:focusable="true"/>
                     <TextView android:id="@+id/chipDepot"    android:layout_width="wrap_content" android:layout_height="32dp"
                               android:text="📥 Dépôt"         android:textSize="12sp" android:gravity="center" android:paddingHorizontal="14dp"
                               android:layout_marginEnd="6dp" android:background="@drawable/chip_inactive" android:clickable="true" android:focusable="true"/>

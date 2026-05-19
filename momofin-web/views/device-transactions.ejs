@@ -77,12 +77,26 @@ function phoneOpColor(op) {
         }
     %>
     <div class="filter-bar">
-        <a href="/devices/<%= device.token %>/transactions<%= qs() %>" class="preset-btn <%= !typeFilter ? 'active' : '' %>">Tout</a>
-        <a href="/devices/<%= device.token %>/transactions<%= qs('type=DEPOT') %>" class="preset-btn <%= typeFilter === 'DEPOT' ? 'active' : '' %>">📥 Dépôt</a>
-        <a href="/devices/<%= device.token %>/transactions<%= qs('type=RETRAIT') %>" class="preset-btn <%= typeFilter === 'RETRAIT' ? 'active' : '' %>">💸 Retrait</a>
-        <a href="/devices/<%= device.token %>/transactions<%= qs('type=TRANSFERT_ENVOYE') %>" class="preset-btn <%= typeFilter === 'TRANSFERT_ENVOYE' ? 'active' : '' %>">📤 Transfert envoyé</a>
-        <a href="/devices/<%= device.token %>/transactions<%= qs('type=TRANSFERT_RECU') %>" class="preset-btn <%= typeFilter === 'TRANSFERT_RECU' ? 'active' : '' %>">📥 Transfert reçu</a>
+        <a href="/devices/<%= device.token %>/transactions<%= qs() %>" class="preset-btn <%= !typeFilter ? 'active' : '' %>">🌐 Tout</a>
+        <a href="/devices/<%= device.token %>/transactions<%= qs('type=CAISSE') %>" class="preset-btn <%= (typeFilter === 'CAISSE' || typeFilter === 'DEPOT' || typeFilter === 'RETRAIT') ? 'active' : '' %>" style="background:#FEF3C7; color:#92400E; border-color:#FDE68A;">💼 Caisse</a>
+        <a href="/devices/<%= device.token %>/transactions<%= qs('type=TRANSFERTS') %>" class="preset-btn <%= (typeFilter === 'TRANSFERTS' || typeFilter === 'TRANSFERT_ENVOYE' || typeFilter === 'TRANSFERT_RECU') ? 'active' : '' %>" style="background:#DBEAFE; color:#1E40AF; border-color:#BFDBFE;">💱 Transferts</a>
     </div>
+    <% if (typeFilter === 'CAISSE' || typeFilter === 'DEPOT' || typeFilter === 'RETRAIT') { %>
+        <div class="filter-bar" style="margin-top:10px;">
+            <span style="font-size:11px; color:#6B7280; text-transform:uppercase;">Détail :</span>
+            <a href="/devices/<%= device.token %>/transactions<%= qs('type=CAISSE') %>" class="preset-btn <%= typeFilter === 'CAISSE' ? 'active' : '' %>">Les deux</a>
+            <a href="/devices/<%= device.token %>/transactions<%= qs('type=DEPOT') %>" class="preset-btn <%= typeFilter === 'DEPOT' ? 'active' : '' %>">📥 Dépôt seul</a>
+            <a href="/devices/<%= device.token %>/transactions<%= qs('type=RETRAIT') %>" class="preset-btn <%= typeFilter === 'RETRAIT' ? 'active' : '' %>">💸 Retrait seul</a>
+        </div>
+    <% } %>
+    <% if (typeFilter === 'TRANSFERTS' || typeFilter === 'TRANSFERT_ENVOYE' || typeFilter === 'TRANSFERT_RECU') { %>
+        <div class="filter-bar" style="margin-top:10px;">
+            <span style="font-size:11px; color:#6B7280; text-transform:uppercase;">Détail :</span>
+            <a href="/devices/<%= device.token %>/transactions<%= qs('type=TRANSFERTS') %>" class="preset-btn <%= typeFilter === 'TRANSFERTS' ? 'active' : '' %>">Les deux</a>
+            <a href="/devices/<%= device.token %>/transactions<%= qs('type=TRANSFERT_ENVOYE') %>" class="preset-btn <%= typeFilter === 'TRANSFERT_ENVOYE' ? 'active' : '' %>">📤 Envoyé seul</a>
+            <a href="/devices/<%= device.token %>/transactions<%= qs('type=TRANSFERT_RECU') %>" class="preset-btn <%= typeFilter === 'TRANSFERT_RECU' ? 'active' : '' %>">📩 Reçu seul</a>
+        </div>
+    <% } %>
     <div class="filter-row" style="margin-top:12px;">
         <button type="button" onclick="window.print()" class="btn warn">🖨️ Imprimer la liste</button>
         <a href="/devices/<%= device.token %>/pdf<%= qs(typeFilter ? 'type=' + typeFilter : '') %>" target="_blank" class="btn danger">📄 Télécharger PDF</a>
