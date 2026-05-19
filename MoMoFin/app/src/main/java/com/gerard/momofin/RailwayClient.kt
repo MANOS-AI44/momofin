@@ -196,6 +196,55 @@ object RailwayClient {
     }
 
 
+
+    data class RemoteFolder(
+        val name: String,
+        val deviceLabel: String,
+        val deviceCode: String,
+        val isOwn: Boolean,
+        val totalEntree: Double,
+        val totalSortie: Double,
+        val nbEntries: Int,
+        val createdAt: Long
+    )
+
+    /** Pull TOUS les folders de tous les devices du meme user (proprietaire).
+     *  Utilise par l'admin pour voir les Mes Comptes des autres boutiques. */
+    fun pullAllFolders(baseUrl: String, token: String): List<RemoteFolder> {
+        return try {
+            val (code, resp) = httpGet("$baseUrl/api/folders/all", token)
+            if (code !in 200..299) return emptyList()
+            val arr = JSONArray(resp)
+            val out = mutableListOf<RemoteFolder>()
+            for (i in 0 until arr.length()) {
+                val o = arr.getJSONObject(i)
+                val entries = o.optJSONArray("entries") ?: JSONArray()
+                var tE = 0.0; var tS = 0.0
+                for (j in 0 until entries.length()) {
+                    val e = entries.getJSONObject(j)
+                    val amt = e.optDouble("amount", 0.0)
+                    when (e.optString("type")) {
+                        "RECU"   -> tE += amt
+                        "SORTIE" -> tS += amt
+                    }
+                }
+                val createdAt = try { ISO.parse(o.optString("created_at"))?.time ?: 0L } catch (_: Exception) { 0L }
+                out.add(RemoteFolder(
+                    name = o.optString("name", ""),
+                    deviceLabel = o.optString("device_label", "—"),
+                    deviceCode = o.optString("device_code", ""),
+                    isOwn = o.optBoolean("is_own", false),
+                    totalEntree = tE, totalSortie = tS,
+                    nbEntries = entries.length(),
+                    createdAt = createdAt
+                ))
+            }
+            out
+        } catch (e: Exception) {
+            emptyList()
+        }
+    }
+
     private fun httpPost(url: String, token: String, body: String): Pair<Int, String> {
         val conn = (URL(url).openConnection() as HttpURLConnection).apply {
             requestMethod = "POST"

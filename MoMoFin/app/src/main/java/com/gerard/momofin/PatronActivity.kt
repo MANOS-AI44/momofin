@@ -12,6 +12,11 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import android.widget.LinearLayout
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import com.gerard.momofin.databinding.ActivityPatronBinding
 import java.text.NumberFormat
 import java.text.SimpleDateFormat
@@ -51,6 +56,60 @@ class PatronActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         refresh()
+        pullOthers()
+    }
+
+    private fun pullOthers() {
+        if (!Settings.isConfigured(this)) return
+        val url = Settings.getUrl(this); val token = Settings.getToken(this)
+        CoroutineScope(Dispatchers.IO).launch {
+            val list = RailwayClient.pullAllFolders(url, token)
+            val others = list.filter { !it.isOwn }
+            withContext(Dispatchers.Main) { renderOthers(others) }
+        }
+    }
+
+    private fun renderOthers(others: List<RailwayClient.RemoteFolder>) {
+        val section = findViewById<LinearLayout>(R.id.sectionOthers)
+        val container = findViewById<LinearLayout>(R.id.listOthers)
+        container.removeAllViews()
+        if (others.isEmpty()) { section.visibility = View.GONE; return }
+        section.visibility = View.VISIBLE
+        // Regrouper par boutique
+        val byShop = others.groupBy { it.deviceLabel }
+        for ((shop, list) in byShop) {
+            val shopHeader = TextView(this).apply {
+                text = "🏪 $shop"
+                setTextColor(0xFF1565C0.toInt())
+                textSize = 14f
+                setTypeface(typeface, android.graphics.Typeface.BOLD)
+                setPadding(12, 12, 12, 4)
+            }
+            container.addView(shopHeader)
+            for (f in list) {
+                val row = TextView(this).apply {
+                    val solde = f.totalEntree - f.totalSortie
+                    val soldeColor = if (solde >= 0) "#059669" else "#DC2626"
+                    text = android.text.Html.fromHtml(
+                        "<b>${f.name}</b><br/>" +
+                        "<small>${f.nbEntries} saisies • " +
+                        "<font color='#059669'>Entrée ${nf.format(f.totalEntree)}</font> • " +
+                        "<font color='#DC2626'>Sortie ${nf.format(f.totalSortie)}</font> • " +
+                        "<font color='$soldeColor'><b>Solde ${nf.format(solde)}</b></font></small>",
+                        android.text.Html.FROM_HTML_MODE_COMPACT
+                    )
+                    textSize = 13f
+                    setPadding(20, 8, 12, 8)
+                    setBackgroundColor(0xFFF9FAFB.toInt())
+                }
+                val lp = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                )
+                lp.setMargins(0, 0, 0, 6)
+                container.addView(row, lp)
+            }
+        }
     }
 
     private fun askNewFolder() {

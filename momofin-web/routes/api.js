@@ -307,4 +307,48 @@ router.get('/folders', authDevice, async (req, res) => {
 });
 
 
+
+// GET /api/folders/all — retourne TOUS les folders des devices appartenant au meme user
+// (l'admin et tous ses sous-comptes voient les meme comptes des autres boutiques en lecture)
+router.get('/folders/all', authDevice, async (req, res) => {
+    const { pool } = require('../lib/db');
+    // 1. Trouver le user_id proprietaire du device authentifie
+    const { rows: drows } = await pool.query(
+        'SELECT user_id FROM devices WHERE token = $1', [req.deviceToken]
+    );
+    if (drows.length === 0 || !drows[0].user_id) {
+        return res.status(403).json({ error: 'Device sans utilisateur rattache' });
+    }
+    const userId = drows[0].user_id;
+
+    // 2. Charger tous les folders + entries des devices de ce user
+    const { rows: folders } = await pool.query(
+        `SELECT f.id, f.client_id, f.name, f.created_at, f.device_id,
+                d.label AS device_label, d.code AS device_code
+         FROM folders f
+         JOIN devices d ON d.token = f.device_id
+         WHERE d.user_id = $1
+         ORDER BY d.label, f.created_at DESC`,
+        [userId]
+    );
+    const { rows: entries } = await pool.query(
+        `SELECT folder_id, client_id, type, amount, note, ts
+         FROM folder_entries e
+         WHERE folder_id IN (SELECT f.id FROM folders f JOIN devices d ON d.token = f.device_id WHERE d.user_id = $1)
+         ORDER BY ts DESC`,
+        [userId]
+    );
+    const byFolder = new Map();
+    for (const e of entries) {
+        if (!byFolder.has(e.folder_id)) byFolder.set(e.folder_id, []);
+        byFolder.get(e.folder_id).push(e);
+    }
+    res.json(folders.map(f => ({
+        id: f.id, client_id: f.client_id, name: f.name, created_at: f.created_at,
+        device_id: f.device_id, device_label: f.device_label, device_code: f.device_code,
+        is_own: f.device_id === req.deviceToken,
+        entries: byFolder.get(f.id) || []
+    })));
+});
+
 module.exports = router;
