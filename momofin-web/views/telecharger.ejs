@@ -3,120 +3,281 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>MoMo Fin — Télécharger</title>
+    <title>MoMo Fin — Télécharger l'application</title>
     <meta name="theme-color" content="#1565C0">
+    <meta name="description" content="Téléchargez MoMo Fin pour Android : suivi automatique de vos transactions Mobile Money (Orange, MTN, MOOV).">
     <link rel="manifest" href="/manifest.webmanifest">
     <link rel="icon" type="image/svg+xml" href="/icon.svg">
     <link rel="apple-touch-icon" href="/icon-192.svg">
-    <link rel="stylesheet" href="/style.css?v=<%= Date.now() %>">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
     <style>
-        .topbar { display:flex; justify-content:space-between; align-items:center; padding:14px 16px; background:#1565C0; color:white; }
-        .topbar strong { font-size:18px; }
-        .topbar a { color:white; text-decoration:none; padding:8px 14px; border-radius:6px; font-size:14px; margin-left:8px; }
-        .topbar a.primary { background:#FFB300; color:#000; font-weight:600; }
-        .topbar a.outline { border:1px solid rgba(255,255,255,0.6); }
-        .hero { text-align:center; padding:36px 16px 24px; }
-        .hero h1 { font-size:32px; margin:0; color:#1565C0; }
-        .hero p { color:#555; margin:8px 0 0; }
-        .signup-banner {
-            max-width:680px; margin:20px auto 0; padding:18px 22px;
-            background:linear-gradient(135deg,#FFF8E1,#FFE082);
-            border-radius:12px; border-left:4px solid #FFB300;
-            color:#5d4037; font-size:15px;
+        * { box-sizing: border-box; }
+        html, body { margin: 0; padding: 0; }
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #F5F7FA; color: #1F2937; line-height: 1.55;
+            -webkit-font-smoothing: antialiased;
         }
-        .signup-banner h3 { margin:0 0 6px; color:#000; }
-        .signup-banner a.cta {
-            display:inline-block; margin-top:10px; padding:10px 22px;
-            background:#1565C0; color:white; text-decoration:none; border-radius:6px;
-            font-weight:600;
+        .nav {
+            background: white; border-bottom: 1px solid #E5E7EB;
+            padding: 14px 20px; display: flex; align-items: center; gap: 12px;
+            position: sticky; top: 0; z-index: 10;
         }
-        .dl-grid { display:grid; gap:18px; grid-template-columns:1fr; max-width:560px; max-width:680px; margin:24px auto; padding:0 16px; }
-        @media (min-width: 720px) { .dl-grid { grid-template-columns: 1fr 1fr; } }
-        .dl-card { background:white; border-radius:12px; padding:22px; box-shadow:0 2px 8px rgba(0,0,0,0.08); text-align:center; }
-        .dl-card .icon { font-size:48px; line-height:1; margin-bottom:8px; }
-        .dl-card h2 { margin:0 0 6px; font-size:20px; color:#1a1a1a; }
-        .dl-card p { color:#666; font-size:14px; margin:0 0 16px; min-height:42px; }
-        .dl-btn { display:inline-block; padding:14px 22px; background:#1565C0; color:white; text-decoration:none; border-radius:8px; font-weight:600; font-size:15px; width:100%; box-sizing:border-box; }
-        .dl-btn:hover { background:#0D47A1; }
-        .dl-btn.alt { background:#2E7D32; }
-        .dl-btn.web { background:#FFB300; color:#000; }
-        .dl-btn.disabled { background:#bbb; cursor:not-allowed; pointer-events:none; }
-        .install-info { max-width:680px; margin:0 auto 32px; padding:18px; background:#fff8e1; border-left:4px solid #FFB300; border-radius:6px; color:#5d4037; font-size:14px; }
-        .install-info h3 { margin:0 0 8px; color:#000; font-size:15px; }
-        .install-info ol { margin:6px 0 0 18px; padding:0; }
-        .install-info li { margin-bottom:4px; }
-        .footer-mini { text-align:center; color:#888; font-size:13px; padding:24px; }
+        .nav .brand { font-size: 18px; font-weight: 700; color: #0D47A1; flex: 1; }
+        .nav a {
+            color: #1565C0; text-decoration: none; font-size: 14px; padding: 6px 14px;
+            border-radius: 6px; transition: background 0.15s;
+        }
+        .nav a:hover { background: #EFF6FF; }
+        .container { max-width: 900px; margin: 0 auto; padding: 32px 16px 60px; }
+
+        /* Hero */
+        .hero {
+            background: linear-gradient(135deg, #1565C0 0%, #0D47A1 100%);
+            color: white; padding: 48px 32px; border-radius: 20px;
+            margin-bottom: 28px; text-align: center;
+            box-shadow: 0 8px 24px rgba(13, 71, 161, 0.25);
+        }
+        .hero .logo-circle {
+            display: inline-flex; align-items: center; justify-content: center;
+            width: 80px; height: 80px; background: rgba(255,255,255,0.15);
+            border-radius: 50%; font-size: 40px; margin-bottom: 16px;
+        }
+        .hero h1 {
+            margin: 0 0 8px; font-size: 36px; font-weight: 800;
+            letter-spacing: -0.02em;
+        }
+        .hero .tagline { margin: 0 0 28px; opacity: 0.95; font-size: 17px; }
+        .hero .btns { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+        .btn-main {
+            display: inline-flex; align-items: center; gap: 10px;
+            background: #FFB300; color: #0D47A1;
+            padding: 18px 36px; font-size: 18px; font-weight: 700;
+            border-radius: 12px; text-decoration: none;
+            box-shadow: 0 4px 12px rgba(255, 179, 0, 0.4);
+            transition: transform 0.15s, box-shadow 0.15s;
+        }
+        .btn-main:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(255, 179, 0, 0.5); }
+        .btn-second {
+            display: inline-flex; align-items: center; gap: 10px;
+            background: rgba(255,255,255,0.15); color: white;
+            padding: 18px 28px; font-size: 16px; font-weight: 600;
+            border-radius: 12px; text-decoration: none;
+            border: 2px solid rgba(255,255,255,0.4);
+        }
+        .btn-second:hover { background: rgba(255,255,255,0.25); }
+        .meta {
+            margin-top: 24px; font-size: 13px; opacity: 0.8;
+            display: flex; gap: 20px; justify-content: center; flex-wrap: wrap;
+        }
+        .meta span { display: inline-flex; align-items: center; gap: 6px; }
+
+        /* Cards section */
+        .grid {
+            display: grid; gap: 16px;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            margin-bottom: 28px;
+        }
+        .card {
+            background: white; padding: 22px; border-radius: 14px;
+            border: 1px solid #E5E7EB;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+        }
+        .card .icon { font-size: 28px; margin-bottom: 10px; }
+        .card h3 { margin: 0 0 8px; font-size: 16px; color: #0D47A1; }
+        .card p { margin: 0; font-size: 14px; color: #4B5563; }
+
+        /* Steps section */
+        .section {
+            background: white; padding: 28px; border-radius: 14px;
+            border: 1px solid #E5E7EB; margin-bottom: 20px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+        }
+        .section h2 {
+            margin: 0 0 18px; font-size: 22px; color: #0D47A1;
+            font-weight: 700; letter-spacing: -0.01em;
+        }
+        .steps { counter-reset: step; }
+        .step {
+            display: flex; align-items: flex-start; gap: 16px;
+            padding: 14px 0; border-bottom: 1px solid #F3F4F6;
+        }
+        .step:last-child { border-bottom: none; }
+        .step .num {
+            flex-shrink: 0; width: 32px; height: 32px;
+            background: #1565C0; color: white;
+            border-radius: 50%; display: flex; align-items: center; justify-content: center;
+            font-weight: 700; font-size: 14px;
+        }
+        .step .text { flex: 1; }
+        .step .text strong { color: #0D47A1; }
+        .step .text p { margin: 4px 0 0; color: #6B7280; font-size: 14px; }
+
+        /* CTA bottom */
+        .cta-bottom {
+            background: linear-gradient(135deg, #059669 0%, #047857 100%);
+            color: white; padding: 32px; border-radius: 16px;
+            text-align: center;
+        }
+        .cta-bottom h2 { margin: 0 0 8px; font-size: 24px; }
+        .cta-bottom p { margin: 0 0 20px; opacity: 0.95; }
+        .cta-bottom a {
+            display: inline-block; background: white; color: #047857;
+            padding: 14px 28px; font-weight: 700; border-radius: 10px;
+            text-decoration: none;
+        }
+        .badge-version {
+            display: inline-block; background: rgba(255,255,255,0.2);
+            padding: 3px 10px; border-radius: 12px;
+            font-size: 12px; font-weight: 600;
+            margin-left: 10px;
+        }
+        @media (max-width: 600px) {
+            .hero h1 { font-size: 28px; }
+            .hero .tagline { font-size: 15px; }
+            .btn-main { font-size: 16px; padding: 16px 24px; }
+            .section h2 { font-size: 19px; }
+        }
     </style>
 </head>
 <body>
 
-<div class="topbar">
-    <strong>📱 MoMo Fin</strong>
-    <div>
-        <% if (typeof user !== 'undefined' && user) { %>
-            <a href="/mon-compte" class="primary">Mon compte</a>
-            <a href="/deconnexion" class="outline">Déconnexion</a>
+<nav class="nav">
+    <span class="brand">💰 MoMo Fin</span>
+    <a href="/">Accueil</a>
+    <a href="/installer">Guide install</a>
+    <% if (typeof user !== 'undefined' && user) { %>
+        <a href="/" style="background:#1565C0; color:white;">Mon tableau de bord</a>
+    <% } else { %>
+        <a href="/connexion" style="background:#1565C0; color:white;">Se connecter</a>
+    <% } %>
+</nav>
+
+<div class="container">
+
+    <!-- Hero -->
+    <section class="hero">
+        <div class="logo-circle">💰</div>
+        <h1>MoMo Fin <span class="badge-version">v1.0</span></h1>
+        <p class="tagline">Suivi automatique de vos transactions Mobile Money — Orange · MTN · MOOV</p>
+
+        <div class="btns">
+            <% var apkUrl = finApk || ('https://github.com/' + ((typeof repo !== 'undefined' && repo) ? repo : 'MANOS-AI44/momofin') + '/releases/latest/download/MoMoFin.apk'); %>
+            <a href="<%= apkUrl %>" class="btn-main">⬇️ Télécharger l'APK Android</a>
+            <a href="/installer" class="btn-second">📲 Guide d'installation</a>
+        </div>
+
+        <div class="meta">
+            <span>📦 ~8 Mo</span>
+            <span>🤖 Android 8.0+</span>
+            <span>🆓 100% gratuit</span>
+            <span>🔒 Vos données restent privées</span>
+        </div>
+    </section>
+
+    <!-- Fonctionnalités -->
+    <div class="grid">
+        <div class="card">
+            <div class="icon">📱</div>
+            <h3>Lecture automatique des SMS</h3>
+            <p>Capte tous les SMS Mobile Money (Orange, MTN, MOOV) en temps réel.</p>
+        </div>
+        <div class="card">
+            <div class="icon">📊</div>
+            <h3>Statistiques quotidiennes</h3>
+            <p>Totaux Dépôts, Retraits, Transferts envoyés/reçus, et solde de la journée.</p>
+        </div>
+        <div class="card">
+            <div class="icon">📄</div>
+            <h3>Export PDF</h3>
+            <p>Générez un PDF imprimable de toutes vos transactions filtrées par date.</p>
+        </div>
+        <div class="card">
+            <div class="icon">🏪</div>
+            <h3>Multi-boutiques</h3>
+            <p>Suivez plusieurs boutiques via codes courts. L'admin voit le bilan de chaque assistant.</p>
+        </div>
+        <div class="card">
+            <div class="icon">💼</div>
+            <h3>Mes Comptes manuels</h3>
+            <p>Saisissez aussi les opérations en espèces qui ne passent pas par SMS.</p>
+        </div>
+        <div class="card">
+            <div class="icon">☁️</div>
+            <h3>Synchronisation cloud</h3>
+            <p>Vos données synchronisées sur votre tableau de bord web — accessible partout.</p>
+        </div>
+    </div>
+
+    <!-- Étapes d'installation -->
+    <section class="section">
+        <h2>🚀 Comment démarrer en 3 étapes</h2>
+        <div class="steps">
+            <div class="step">
+                <div class="num">1</div>
+                <div class="text">
+                    <strong>Créer votre compte sur le site web</strong>
+                    <p>Inscription gratuite en 30 secondes — vous recevrez un code personnel à coller dans l'application.</p>
+                </div>
+            </div>
+            <div class="step">
+                <div class="num">2</div>
+                <div class="text">
+                    <strong>Télécharger l'APK et l'installer</strong>
+                    <p>Cliquez sur le bouton orange ci-dessus. Si Google Play Protect affiche un avertissement, suivez notre <a href="/installer" style="color:#1565C0;">guide d'installation</a>.</p>
+                </div>
+            </div>
+            <div class="step">
+                <div class="num">3</div>
+                <div class="text">
+                    <strong>Activer les autorisations & se connecter</strong>
+                    <p>L'assistant à 5 étapes dans l'app vous guide pour autoriser la lecture des SMS. Puis collez votre code personnel — c'est tout.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Sécurité / Vie privée -->
+    <section class="section">
+        <h2>🔒 Vie privée &amp; sécurité</h2>
+        <div class="steps">
+            <div class="step">
+                <div class="num">✓</div>
+                <div class="text">
+                    <strong>Tout reste sur votre infrastructure</strong>
+                    <p>Vos données sont stockées sur votre propre base de données Railway. Personne d'autre n'y a accès.</p>
+                </div>
+            </div>
+            <div class="step">
+                <div class="num">✓</div>
+                <div class="text">
+                    <strong>Aucune publicité, aucun pistage</strong>
+                    <p>Pas d'API tierce, pas de tracker. L'app communique uniquement avec votre propre serveur.</p>
+                </div>
+            </div>
+            <div class="step">
+                <div class="num">✓</div>
+                <div class="text">
+                    <strong>Code source ouvert</strong>
+                    <p>Vous pouvez vérifier exactement ce que fait l'application sur <a href="https://github.com/MANOS-AI44/momofin" style="color:#1565C0;">GitHub</a>.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA final -->
+    <section class="cta-bottom">
+        <h2>Prêt à automatiser votre comptabilité Mobile Money ?</h2>
+        <p>Commencez maintenant — installation en moins de 5 minutes.</p>
+        <% if (typeof user === 'undefined' || !user) { %>
+            <a href="/inscription">✨ Créer mon compte gratuit →</a>
         <% } else { %>
-            <a href="/connexion" class="outline">Connexion</a>
-            <a href="/inscription" class="primary">Créer un compte</a>
+            <a href="<%= apkUrl %>">⬇️ Télécharger l'APK maintenant</a>
         <% } %>
-    </div>
+    </section>
+
 </div>
-
-<div class="hero">
-    <h1>MoMo Fin</h1>
-    <p>Suivi des transactions Mobile Money — téléchargement direct, sans Play Store.</p>
-    <div style="margin-top:24px;">
-        <a href="https://github.com/<%= (typeof repo !== 'undefined' && repo) ? repo : 'MANOS-AI44/momofin' %>/releases/latest/download/MoMoFin.apk"
-           style="display:inline-block; background:#FFB300; color:#0D47A1; padding:16px 32px; font-size:18px; font-weight:bold; border-radius:10px; text-decoration:none; margin:6px;">
-           ⬇️ Télécharger MoMoFin.apk
-        </a>
-        <a href="/installer"
-           style="display:inline-block; background:white; color:#1565C0; padding:16px 32px; font-size:16px; font-weight:bold; border-radius:10px; text-decoration:none; border:2px solid white; margin:6px;">
-           📲 Guide d'installation
-        </a>
-    </div>
-    <p style="margin-top:12px; font-size:13px; opacity:0.85;">Si Google Play Protect bloque, cliquez « Plus de détails » puis « Installer quand même ». <a href="/installer" style="color:#FFB300;">Voir le guide complet →</a></p>
-</div>
-
-<% if (typeof user === 'undefined' || !user) { %>
-    <div class="signup-banner" style="max-width:680px;">
-        <h3>💡 Avant d'installer l'application</h3>
-        <p style="margin:6px 0 0;">Créez un compte gratuit pour obtenir votre <strong>code personnel</strong>. Vous le collerez dans l'application Android pour qu'elle envoie vos transactions vers votre tableau de bord privé.</p>
-        <a href="/inscription" class="cta">Créer mon compte gratuit →</a>
-    </div>
-<% } %>
-
-<div class="dl-grid">
-    
-
-<div class="install-info">
-    <h3>Comment installer et activer</h3>
-    <ol>
-        <li><strong>Créez votre compte</strong> sur ce site → vous recevez un <em>code personnel</em></li>
-        <li>Téléchargez l'APK <strong>MoMo Fin</strong> avec le bouton vert ci-dessus</li>
-        <li>Ouvrez le fichier <code>.apk</code> téléchargé → autoriser <em>« Installer des applications inconnues »</em></li>
-        <li>Lancez MoMo Fin → bouton <strong>Paramètres</strong></li>
-        <li>Collez votre code personnel dans <strong>Token du téléphone</strong></li>
-        <li>Appuyez sur <strong>Tester</strong>, puis <strong>Enregistrer</strong></li>
-        <li>De retour à l'écran principal, appuyez sur <strong>Synchroniser</strong> — vos SMS apparaissent dans votre tableau de bord</li>
-    </ol>
-</div>
-
-<div class="footer-mini">
-    Code source ouvert · <a href="/" style="color:#1565C0;">Tableau de bord (admin)</a>
-</div>
-
-<script>
-    let deferredPrompt = null;
-    window.addEventListener('beforeinstallprompt', (e) => {
-        e.preventDefault();
-        deferredPrompt = e;
-    });
-    if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('/sw.js').catch(() => {});
-    }
-</script>
-
 </body>
 </html>
