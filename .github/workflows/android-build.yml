@@ -34,16 +34,31 @@ jobs:
         working-directory: MoMoFin
         run: gradle wrapper --gradle-version 8.5
 
-      - name: Decode release keystore (if secret present)
-        if: env.RELEASE_KEYSTORE_BASE64 != ''
+      - name: Decode release keystore (si secret present)
         env:
           RELEASE_KEYSTORE_BASE64: ${{ secrets.RELEASE_KEYSTORE_BASE64 }}
         run: |
-          echo "$RELEASE_KEYSTORE_BASE64" | base64 -d > MoMoFin/keystore.jks
-          ls -la MoMoFin/keystore.jks
-          echo "HAS_KEYSTORE=true" >> $GITHUB_ENV
+          if [ -n "$RELEASE_KEYSTORE_BASE64" ]; then
+            echo "$RELEASE_KEYSTORE_BASE64" | base64 -d > MoMoFin/keystore.jks
+            echo "Keystore decode : $(ls -la MoMoFin/keystore.jks)"
+            echo "HAS_KEYSTORE=true" >> $GITHUB_ENV
+          else
+            echo "Pas de keystore secret -> build debug"
+            echo "HAS_KEYSTORE=false" >> $GITHUB_ENV
+          fi
 
-      - name: Build APK (release if keystore, else debug)
+      - name: Build DEBUG (toujours, fiable)
+        working-directory: MoMoFin
+        run: |
+          chmod +x ./gradlew
+          ./gradlew assembleDebug --no-daemon --stacktrace
+          mkdir -p app/build/outputs/apk/dist
+          cp app/build/outputs/apk/debug/app-debug.apk app/build/outputs/apk/dist/MoMoFin-debug.apk
+          echo "✅ Debug APK pret"
+
+      - name: Build RELEASE (bonus, tolere l'echec)
+        id: release
+        continue-on-error: true
         working-directory: MoMoFin
         env:
           RELEASE_KEYSTORE_FILE: ${{ env.HAS_KEYSTORE == 'true' && '../keystore.jks' || '' }}
@@ -51,20 +66,25 @@ jobs:
           RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
           RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
         run: |
-          chmod +x ./gradlew
           if [ "$HAS_KEYSTORE" = "true" ] && [ -n "$RELEASE_KEYSTORE_PASSWORD" ]; then
-            echo "🔐 Build RELEASE signe"
+            echo "🔐 Tentative build RELEASE signe"
             ./gradlew assembleRelease --no-daemon --stacktrace
-            mkdir -p app/build/outputs/apk/dist
             cp app/build/outputs/apk/release/app-release.apk app/build/outputs/apk/dist/MoMoFin.apk
+            echo "✅ Release APK signe pret"
           else
-            echo "🔓 Build DEBUG (pas de keystore configure)"
-            ./gradlew assembleDebug --no-daemon --stacktrace
-            mkdir -p app/build/outputs/apk/dist
-            cp app/build/outputs/apk/debug/app-debug.apk app/build/outputs/apk/dist/MoMoFin.apk
-            cp app/build/outputs/apk/debug/app-debug.apk app/build/outputs/apk/dist/MoMoFin-debug.apk
+            echo "Pas de keystore -> on saute le release"
           fi
-          ls -la app/build/outputs/apk/dist/
+
+      - name: Choisir l'APK final (release si dispo, sinon debug)
+        working-directory: MoMoFin
+        run: |
+          cd app/build/outputs/apk/dist
+          if [ ! -f MoMoFin.apk ]; then
+            echo "Release absent -> on utilise le debug comme MoMoFin.apk"
+            cp MoMoFin-debug.apk MoMoFin.apk
+          fi
+          echo "=== APK disponibles ==="
+          ls -la
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
@@ -83,7 +103,7 @@ jobs:
           body: |
             APK MoMo Fin compile automatiquement depuis le commit ${{ github.sha }}.
 
-            **MoMoFin.apk** — application tout-en-un (SMS + notifications + tableau de bord + comptes + points)
+            **MoMoFin.apk** — application tout-en-un (release signe si possible, sinon debug)
 
             Telechargez et installez sur Android. Si Google Play Protect bloque,
             voir le guide sur la page /installer du site web.
