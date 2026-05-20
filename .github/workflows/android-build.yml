@@ -40,21 +40,33 @@ jobs:
         run: |
           if [ -n "$RELEASE_KEYSTORE_BASE64" ]; then
             echo "$RELEASE_KEYSTORE_BASE64" | base64 -d > MoMoFin/keystore.jks
-            echo "Keystore decode : $(ls -la MoMoFin/keystore.jks)"
             echo "HAS_KEYSTORE=true" >> $GITHUB_ENV
           else
-            echo "Pas de keystore secret -> build debug"
             echo "HAS_KEYSTORE=false" >> $GITHUB_ENV
           fi
 
-      - name: Build DEBUG (toujours, fiable)
+      - name: Build DEBUG (capture le log d'erreur)
+        id: debug
+        continue-on-error: true
         working-directory: MoMoFin
         run: |
           chmod +x ./gradlew
-          ./gradlew assembleDebug --no-daemon --stacktrace -x lint -x lintVitalRelease -x lintVitalDebug
+          set -o pipefail
+          ./gradlew assembleDebug --no-daemon --stacktrace 2>&1 | tee /tmp/build-debug.log
           mkdir -p app/build/outputs/apk/dist
-          cp app/build/outputs/apk/debug/app-debug.apk app/build/outputs/apk/dist/MoMoFin-debug.apk
-          echo "✅ Debug APK pret"
+          if [ -f app/build/outputs/apk/debug/app-debug.apk ]; then
+            cp app/build/outputs/apk/debug/app-debug.apk app/build/outputs/apk/dist/MoMoFin-debug.apk
+            echo "DEBUG_OK=true" >> $GITHUB_ENV
+          fi
+
+      - name: Afficher les erreurs DEBUG (si echec)
+        if: steps.debug.outcome == 'failure'
+        run: |
+          echo "===== DERNIERES LIGNES DU LOG DEBUG (erreurs) ====="
+          grep -E "^e: |error:|FAILED|Caused by|Unresolved|> Task .* FAILED|what went wrong" /tmp/build-debug.log | head -60 || true
+          echo "===== FIN ====="
+          echo "----- 80 dernieres lignes brutes -----"
+          tail -80 /tmp/build-debug.log
 
       - name: Build RELEASE (bonus, tolere l'echec)
         id: release
@@ -67,24 +79,23 @@ jobs:
           RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
         run: |
           if [ "$HAS_KEYSTORE" = "true" ] && [ -n "$RELEASE_KEYSTORE_PASSWORD" ]; then
-            echo "🔐 Tentative build RELEASE signe"
-            ./gradlew assembleRelease --no-daemon --stacktrace -x lint -x lintVitalRelease
-            cp app/build/outputs/apk/release/app-release.apk app/build/outputs/apk/dist/MoMoFin.apk
-            echo "✅ Release APK signe pret"
-          else
-            echo "Pas de keystore -> on saute le release"
+            ./gradlew assembleRelease --no-daemon --stacktrace -x lintVitalRelease 2>&1 | tee /tmp/build-release.log || true
+            if [ -f app/build/outputs/apk/release/app-release.apk ]; then
+              cp app/build/outputs/apk/release/app-release.apk app/build/outputs/apk/dist/MoMoFin.apk
+            fi
           fi
 
-      - name: Choisir l'APK final (release si dispo, sinon debug)
+      - name: Choisir l'APK final
         working-directory: MoMoFin
         run: |
-          cd app/build/outputs/apk/dist
-          if [ ! -f MoMoFin.apk ]; then
-            echo "Release absent -> on utilise le debug comme MoMoFin.apk"
+          cd app/build/outputs/apk/dist 2>/dev/null || { echo "Aucun dossier dist - les 2 builds ont echoue"; exit 1; }
+          if [ ! -f MoMoFin.apk ] && [ -f MoMoFin-debug.apk ]; then
             cp MoMoFin-debug.apk MoMoFin.apk
           fi
-          echo "=== APK disponibles ==="
-          ls -la
+          if [ ! -f MoMoFin.apk ]; then
+            echo "❌ Aucun APK produit"; exit 1
+          fi
+          echo "=== APK disponibles ==="; ls -la
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
@@ -102,11 +113,8 @@ jobs:
           name: "Derniere compilation"
           body: |
             APK MoMo Fin compile automatiquement depuis le commit ${{ github.sha }}.
-
-            **MoMoFin.apk** — application tout-en-un (release signe si possible, sinon debug)
-
-            Telechargez et installez sur Android. Si Google Play Protect bloque,
-            voir le guide sur la page /installer du site web.
+            **MoMoFin.apk** — application tout-en-un.
+            Guide d'installation sur la page /installer du site web.
           files: |
             MoMoFin/app/build/outputs/apk/dist/MoMoFin.apk
             MoMoFin/app/build/outputs/apk/dist/MoMoFin-debug.apk
