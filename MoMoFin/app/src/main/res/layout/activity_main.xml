@@ -72,6 +72,17 @@
                     android:textSize="14sp"
                     android:paddingHorizontal="10dp"
                     android:minWidth="40dp"/>
+                <Button
+                    android:id="@+id/btnHeaderLogout"
+                    style="@style/Btn.Outline"
+                    android:layout_width="wrap_content"
+                    android:layout_height="38dp"
+                    android:layout_marginStart="4dp"
+                    android:text="🚪"
+                    android:textSize="14sp"
+                    android:paddingHorizontal="10dp"
+                    android:minWidth="40dp"
+                    android:contentDescription="Se déconnecter"/>
             </LinearLayout>
 
             <!-- Texte selectionne (cache : on garde la TextView pour compat, mais invisible) -->

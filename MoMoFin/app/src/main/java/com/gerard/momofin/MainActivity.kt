@@ -95,6 +95,21 @@ class MainActivity : AppCompatActivity() {
         binding.btnSettings.setOnClickListener {
             startActivity(Intent(this, SettingsActivity::class.java))
         }
+        binding.btnHeaderLogout.setOnClickListener {
+            AlertDialog.Builder(this)
+                .setTitle("↩️ Se déconnecter")
+                .setMessage("Voulez-vous vraiment vous déconnecter ?")
+                .setPositiveButton("Oui, déconnexion") { _, _ ->
+                    Settings.clearAuth(this)
+                    Toast.makeText(this, "✅ Déconnecté", Toast.LENGTH_SHORT).show()
+                    val i = Intent(this, LoginActivity::class.java).addFlags(
+                        Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                    )
+                    startActivity(i); finish()
+                }
+                .setNegativeButton("Annuler", null)
+                .show()
+        }
         binding.btnDevices.setOnClickListener {
             if (Settings.isAdmin(this)) {
                 startActivity(Intent(this, DevicesActivity::class.java))
