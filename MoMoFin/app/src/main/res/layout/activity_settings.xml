@@ -23,6 +23,50 @@
             android:textSize="13sp"
             android:text="Réglez ici votre serveur. Le code/token sont gérés automatiquement, vous n'avez pas à les modifier."/>
 
+        <!-- ============ COMPTE / DECONNEXION (en haut, bien visible) ============ -->
+        <androidx.cardview.widget.CardView
+            xmlns:app="http://schemas.android.com/apk/res-auto"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="14dp"
+            app:cardCornerRadius="12dp"
+            app:cardElevation="2dp"
+            app:cardBackgroundColor="@color/white">
+            <LinearLayout
+                android:orientation="vertical"
+                android:padding="16dp"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="👤 MON COMPTE"
+                    android:textSize="11sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/text_muted"
+                    android:letterSpacing="0.1"/>
+                <TextView
+                    android:id="@+id/txtCurrentUserTop"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/text_primary"
+                    android:text="—"/>
+                <Button
+                    android:id="@+id/btnLogoutTop"
+                    style="@style/Btn.Danger"
+                    android:layout_width="match_parent"
+                    android:layout_height="48dp"
+                    android:layout_marginTop="12dp"
+                    android:text="↩️  Se déconnecter"
+                    android:textColor="@color/white"
+                    android:textStyle="bold"
+                    android:textSize="14sp"/>
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"

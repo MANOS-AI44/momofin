@@ -189,7 +189,7 @@
                     android:background="@android:color/transparent"
                     android:singleLine="true"
                     android:inputType="text"
-                    android:imeOptions="actionDone"/>
+                    android:imeOptions="actionNone|flagNoExtractUi"/>
                 <ImageButton
                     android:id="@+id/btnClearSearch"
                     android:layout_width="32dp"

@@ -64,22 +64,10 @@ class SettingsActivity : AppCompatActivity() {
         binding.txtCurrentUser.text = if (token.isBlank()) "Aucun compte connecte" else "URL : $url\nToken : ${token.take(10)}..."
 
         // Bouton Deconnexion
-        binding.btnLogout.setOnClickListener {
-            AlertDialog.Builder(this)
-                .setTitle("↩️ Se deconnecter")
-                .setMessage("Voulez-vous vraiment vous deconnecter ? Vous devrez ressaisir votre URL et token pour vous reconnecter.")
-                .setPositiveButton("Oui, me deconnecter") { _, _ ->
-                    Settings.clearAuth(this)
-                    Toast.makeText(this, "✅ Deconnecte", Toast.LENGTH_SHORT).show()
-                    val i = Intent(this, LoginActivity::class.java).addFlags(
-                        Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-                    )
-                    startActivity(i)
-                    finish()
-                }
-                .setNegativeButton("Annuler", null)
-                .show()
-        }
+        // Bouton logout EN HAUT (carte Mon compte) — duplique du listener du bas
+        binding.txtCurrentUserTop.text = if (token.isBlank()) "Non connecte" else url
+        binding.btnLogoutTop.setOnClickListener { doLogout() }
+        binding.btnLogout.setOnClickListener { doLogout() }
 
     }
 
@@ -154,4 +142,21 @@ class SettingsActivity : AppCompatActivity() {
             Toast.makeText(this, "Erreur : ${e.message}", Toast.LENGTH_LONG).show()
         }
     }
+    private fun doLogout() {
+            AlertDialog.Builder(this)
+                .setTitle("↩️ Se deconnecter")
+                .setMessage("Voulez-vous vraiment vous deconnecter ? Vous devrez ressaisir votre URL et token pour vous reconnecter.")
+                .setPositiveButton("Oui, me deconnecter") { _, _ ->
+                    Settings.clearAuth(this)
+                    Toast.makeText(this, "✅ Deconnecte", Toast.LENGTH_SHORT).show()
+                    val i = Intent(this, LoginActivity::class.java).addFlags(
+                        Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                    )
+                    startActivity(i)
+                    finish()
+                }
+                .setNegativeButton("Annuler", null)
+                .show()
+        }
+
 }
