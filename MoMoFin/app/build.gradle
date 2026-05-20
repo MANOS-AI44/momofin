@@ -7,13 +7,6 @@ android {
     namespace 'com.gerard.momofin'
     compileSdk 34
 
-    // Ne JAMAIS bloquer le build release sur les warnings lint
-    lint {
-        abortOnError false
-        checkReleaseBuilds false
-        ignoreWarnings true
-    }
-
     defaultConfig {
         applicationId "com.gerard.momofin"
         minSdk 26

@@ -51,7 +51,7 @@ jobs:
         working-directory: MoMoFin
         run: |
           chmod +x ./gradlew
-          ./gradlew assembleDebug --no-daemon --stacktrace
+          ./gradlew assembleDebug --no-daemon --stacktrace -x lint -x lintVitalRelease -x lintVitalDebug
           mkdir -p app/build/outputs/apk/dist
           cp app/build/outputs/apk/debug/app-debug.apk app/build/outputs/apk/dist/MoMoFin-debug.apk
           echo "✅ Debug APK pret"
@@ -68,7 +68,7 @@ jobs:
         run: |
           if [ "$HAS_KEYSTORE" = "true" ] && [ -n "$RELEASE_KEYSTORE_PASSWORD" ]; then
             echo "🔐 Tentative build RELEASE signe"
-            ./gradlew assembleRelease --no-daemon --stacktrace
+            ./gradlew assembleRelease --no-daemon --stacktrace -x lint -x lintVitalRelease
             cp app/build/outputs/apk/release/app-release.apk app/build/outputs/apk/dist/MoMoFin.apk
             echo "✅ Release APK signe pret"
           else
