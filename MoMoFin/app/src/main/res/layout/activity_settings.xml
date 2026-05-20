@@ -161,5 +161,29 @@
             android:text="@string/reset_button"
             style="@style/Btn.Danger"/>
 
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:layout_marginVertical="18dp"
+            android:background="@color/border"/>
+
+        <TextView
+            android:id="@+id/txtCurrentUser"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textSize="12sp"
+            android:textColor="@color/text_secondary"
+            android:layout_marginBottom="8dp"
+            android:text=""/>
+
+        <Button
+            android:id="@+id/btnLogout"
+            android:layout_width="match_parent"
+            android:layout_height="52dp"
+            android:text="↩️  Se déconnecter"
+            android:textColor="@color/white"
+            android:textStyle="bold"
+            style="@style/Btn.Warning"/>
+
     </LinearLayout>
 </ScrollView>
