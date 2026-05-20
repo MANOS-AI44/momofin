@@ -375,16 +375,23 @@ class MainActivity : AppCompatActivity() {
             Toast.makeText(this, R.string.no_data, Toast.LENGTH_SHORT).show()
             return
         }
-        val filtered = if (filterDayMillis == null) current
-                       else current.filter { TransactionParser.dayKey(it.timestamp) == filterDayMillis }
+        val filtered = if (filterFromMillis == null) current
+                       else current.filter {
+                           val ts = it.timestamp
+                           ts >= filterFromMillis!! && (filterToMillis == null || ts <= filterToMillis!!)
+                       }
         if (filtered.isEmpty()) {
             Toast.makeText(this, R.string.no_data_for_date, Toast.LENGTH_SHORT).show()
             return
         }
+        // Si la periode = un seul jour, on garde la presentation "jour unique"
+        val singleDay = if (filterFromMillis != null && filterToMillis != null
+            && TransactionParser.dayKey(filterFromMillis!!) == TransactionParser.dayKey(filterToMillis!!))
+            filterFromMillis else null
         CoroutineScope(Dispatchers.IO).launch {
             val file = PdfGenerator.generateDailyReport(
                 this@MainActivity, filtered, FolderStore(this@MainActivity),
-                singleDayMillis = filterDayMillis
+                singleDayMillis = singleDay
             )
             val uri: Uri = FileProvider.getUriForFile(
                 this@MainActivity,
