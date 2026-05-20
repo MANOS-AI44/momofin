@@ -206,7 +206,6 @@ object RailwayClient {
 
 
 
-    data class RemoteEntry(val type: String, val amount: Double, val note: String, val ts: Long)
     data class RemoteFolder(
         val name: String,
         val deviceLabel: String,
@@ -215,8 +214,7 @@ object RailwayClient {
         val totalEntree: Double,
         val totalSortie: Double,
         val nbEntries: Int,
-        val createdAt: Long,
-        val entries: List<RemoteEntry> = emptyList()
+        val createdAt: Long
     )
 
     /** Pull TOUS les folders de tous les devices du meme user (proprietaire).
@@ -231,17 +229,13 @@ object RailwayClient {
                 val o = arr.getJSONObject(i)
                 val entries = o.optJSONArray("entries") ?: JSONArray()
                 var tE = 0.0; var tS = 0.0
-                val parsedEntries = mutableListOf<RemoteEntry>()
                 for (j in 0 until entries.length()) {
                     val e = entries.getJSONObject(j)
                     val amt = e.optDouble("amount", 0.0)
-                    val typ = e.optString("type")
-                    when (typ) {
+                    when (e.optString("type")) {
                         "RECU"   -> tE += amt
                         "SORTIE" -> tS += amt
                     }
-                    val tsE = try { ISO.parse(e.optString("ts"))?.time ?: 0L } catch (_: Exception) { 0L }
-                    parsedEntries.add(RemoteEntry(typ, amt, e.optString("note", ""), tsE))
                 }
                 val createdAt = try { ISO.parse(o.optString("created_at"))?.time ?: 0L } catch (_: Exception) { 0L }
                 out.add(RemoteFolder(
@@ -251,8 +245,7 @@ object RailwayClient {
                     isOwn = o.optBoolean("is_own", false),
                     totalEntree = tE, totalSortie = tS,
                     nbEntries = entries.length(),
-                    createdAt = createdAt,
-                    entries = parsedEntries
+                    createdAt = createdAt
                 ))
             }
             out

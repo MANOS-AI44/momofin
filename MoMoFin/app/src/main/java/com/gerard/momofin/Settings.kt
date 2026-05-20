@@ -25,16 +25,6 @@ object Settings {
             .putBoolean(K_IS_ADMIN, isAdmin).apply()
     }
 
-    /** Efface URL + token + admin flag (deconnexion) */
-    fun clearAuth(c: Context) {
-        c.getSharedPreferences(PREF, Context.MODE_PRIVATE).edit()
-            .remove(K_URL)
-            .remove(K_TOKEN)
-            .remove(K_IS_ADMIN)
-            .remove(K_LAST_SYNC)
-            .apply()
-    }
-
     fun save(c: Context, url: String, token: String) {
         c.getSharedPreferences(PREF, Context.MODE_PRIVATE).edit()
             .putString(K_URL, url.trim().removeSuffix("/"))

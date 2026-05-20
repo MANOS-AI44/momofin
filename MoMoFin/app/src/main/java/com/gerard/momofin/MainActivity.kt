@@ -30,8 +30,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
     private lateinit var adapter: DailyAdapter
     private var current: List<Transaction> = emptyList()
-    private var filterFromMillis: Long? = null
-    private var filterToMillis: Long? = null
+    private var filterDayMillis: Long? = null
     private var searchQuery: String = ""
     private var subtypeFilter: TxSubtype? = null  // null = Tout, ou subtype precis
     private var groupFilter: String? = null        // null, 'CAISSE' ou 'TRANSFERTS'
@@ -95,7 +94,6 @@ class MainActivity : AppCompatActivity() {
         binding.btnSettings.setOnClickListener {
             startActivity(Intent(this, SettingsActivity::class.java))
         }
-
         binding.btnDevices.setOnClickListener {
             if (Settings.isAdmin(this)) {
                 startActivity(Intent(this, DevicesActivity::class.java))
@@ -111,8 +109,7 @@ class MainActivity : AppCompatActivity() {
 
         binding.btnPickDate.setOnClickListener { pickDate() }
         binding.btnClearDate.setOnClickListener {
-            filterFromMillis = null
-            filterToMillis = null
+            filterDayMillis = null
             refreshDateUi()
             renderList()
         }
@@ -242,52 +239,35 @@ class MainActivity : AppCompatActivity() {
 
     
     private fun pickDate() {
-        // 1. Picker DEBUT
-        val c1 = Calendar.getInstance()
-        filterFromMillis?.let { c1.timeInMillis = it }
-        val startPicker = DatePickerDialog(this, { _, y1, m1, d1 ->
-            val from = Calendar.getInstance().apply {
-                set(y1, m1, d1, 0, 0, 0); set(Calendar.MILLISECOND, 0)
+        val c = Calendar.getInstance()
+        filterDayMillis?.let { c.timeInMillis = it }
+        DatePickerDialog(this, { _, y, m, d ->
+            val cal = Calendar.getInstance().apply {
+                set(y, m, d, 0, 0, 0); set(Calendar.MILLISECOND, 0)
             }
-            // 2. Picker FIN (avec valeur par defaut = jour de debut)
-            val c2 = Calendar.getInstance().apply { timeInMillis = from.timeInMillis }
-            val endPicker = DatePickerDialog(this, { _, y2, m2, d2 ->
-                val to = Calendar.getInstance().apply {
-                    set(y2, m2, d2, 23, 59, 59); set(Calendar.MILLISECOND, 999)
-                }
-                filterFromMillis = from.timeInMillis
-                filterToMillis = to.timeInMillis
-                refreshDateUi()
-                renderList()
-            }, c2.get(Calendar.YEAR), c2.get(Calendar.MONTH), c2.get(Calendar.DAY_OF_MONTH))
-            endPicker.setTitle("📅 Date de fin")
-            endPicker.show()
-        }, c1.get(Calendar.YEAR), c1.get(Calendar.MONTH), c1.get(Calendar.DAY_OF_MONTH))
-        startPicker.setTitle("📅 Date de début")
-        startPicker.show()
+            filterDayMillis = cal.timeInMillis
+            refreshDateUi()
+            renderList()
+        }, c.get(Calendar.YEAR), c.get(Calendar.MONTH), c.get(Calendar.DAY_OF_MONTH)).show()
     }
 
     private fun refreshDateUi() {
+        // Format court direct sur le bouton : "📅 18/05/26" (ou "📅 Toutes" sans filtre)
         val dfShort = SimpleDateFormat("dd/MM/yy", Locale.FRENCH)
-        val txt = when {
-            filterFromMillis != null && filterToMillis != null -> {
-                val sameDay = TransactionParser.dayKey(filterFromMillis!!) == TransactionParser.dayKey(filterToMillis!!)
-                if (sameDay) "📅 ${dfShort.format(Date(filterFromMillis!!))}"
-                else "📅 ${dfShort.format(Date(filterFromMillis!!))} → ${dfShort.format(Date(filterToMillis!!))}"
-            }
-            else -> "📅 Choisir période"
+        if (filterDayMillis != null) {
+            binding.btnPickDate.text = "📅 " + dfShort.format(Date(filterDayMillis!!))
+            binding.btnClearDate.visibility = View.VISIBLE
+        } else {
+            binding.btnPickDate.text = "📅 Toutes"
+            binding.btnClearDate.visibility = View.GONE
         }
-        binding.btnPickDate.text = txt
-        binding.btnClearDate.visibility = if (filterFromMillis != null) View.VISIBLE else View.GONE
-        binding.txtSelectedDate.text = txt
+        // TextView cachee gardee pour compat
+        binding.txtSelectedDate.text = binding.btnPickDate.text
     }
 
     private fun renderList() {
-        var list = if (filterFromMillis == null) current
-                   else current.filter {
-                       val ts = it.timestamp
-                       ts >= filterFromMillis!! && (filterToMillis == null || ts <= filterToMillis!!)
-                   }
+        var list = if (filterDayMillis == null) current
+                   else current.filter { TransactionParser.dayKey(it.timestamp) == filterDayMillis }
         if (subtypeFilter != null) {
             list = list.filter { it.subtype == subtypeFilter }
         } else if (groupFilter == "CAISSE") {
@@ -375,23 +355,16 @@ class MainActivity : AppCompatActivity() {
             Toast.makeText(this, R.string.no_data, Toast.LENGTH_SHORT).show()
             return
         }
-        val filtered = if (filterFromMillis == null) current
-                       else current.filter {
-                           val ts = it.timestamp
-                           ts >= filterFromMillis!! && (filterToMillis == null || ts <= filterToMillis!!)
-                       }
+        val filtered = if (filterDayMillis == null) current
+                       else current.filter { TransactionParser.dayKey(it.timestamp) == filterDayMillis }
         if (filtered.isEmpty()) {
             Toast.makeText(this, R.string.no_data_for_date, Toast.LENGTH_SHORT).show()
             return
         }
-        // Si la periode = un seul jour, on garde la presentation "jour unique"
-        val singleDay = if (filterFromMillis != null && filterToMillis != null
-            && TransactionParser.dayKey(filterFromMillis!!) == TransactionParser.dayKey(filterToMillis!!))
-            filterFromMillis else null
         CoroutineScope(Dispatchers.IO).launch {
             val file = PdfGenerator.generateDailyReport(
                 this@MainActivity, filtered, FolderStore(this@MainActivity),
-                singleDayMillis = singleDay
+                singleDayMillis = filterDayMillis
             )
             val uri: Uri = FileProvider.getUriForFile(
                 this@MainActivity,

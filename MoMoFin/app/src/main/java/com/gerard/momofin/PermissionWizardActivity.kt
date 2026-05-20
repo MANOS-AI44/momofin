@@ -234,31 +234,10 @@ class PermissionWizardActivity : AppCompatActivity() {
     }
 
     private fun requestIgnoreBatteryOpt() {
-        // 1ere tentative : popup systeme direct (necessite permission REQUEST_IGNORE_BATTERY_OPTIMIZATIONS au manifest)
-        try {
-            val i = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS)
-                .setData(Uri.parse("package:$packageName"))
-                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            startActivity(i)
-            return
-        } catch (e: Exception) {
-            android.util.Log.w("PermWizard", "Direct ignore-batt failed: $e")
-        }
-        // 2eme tentative : ouvre la liste des apps avec optimisation batterie
-        try {
-            startActivity(Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)
-                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
-            AlertDialog.Builder(this)
-                .setTitle("📋 Trouver MoMo Fin")
-                .setMessage("Dans la liste qui s'est ouverte :\n\n1. Touchez le filtre en haut, choisissez 'Toutes les applications'\n2. Trouvez 'MoMo Fin'\n3. Selectionnez 'Ne pas optimiser'")
-                .setPositiveButton("Compris", null).show()
-            return
-        } catch (e: Exception) {
-            android.util.Log.w("PermWizard", "Battery settings list failed: $e")
-        }
-        // 3eme tentative : ouvrir Infos appli + instructions textuelles
-        openAppInfo()
-        Toast.makeText(this, "⚠️ Allez dans Batterie → Optimisation batterie → MoMo Fin → Ne pas optimiser", Toast.LENGTH_LONG).show()
+        val i = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS)
+            .setData(Uri.parse("package:$packageName"))
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        try { startActivity(i) } catch (_: Exception) { openAppInfo() }
     }
 
     private fun requestSmsPermission() {
@@ -273,30 +252,12 @@ class PermissionWizardActivity : AppCompatActivity() {
     }
 
     private fun openNotifListenerSettings() {
-        // 1ere tentative : intent direct vers Acces aux notifications
-        var opened = false
-        try {
-            val i = Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)
-                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            startActivity(i); opened = true
-        } catch (e: Exception) {
-            android.util.Log.w("PermWizard", "ACTION_NOTIFICATION_LISTENER_SETTINGS failed: $e")
-        }
-        // 2eme : intent privé (marche sur Honor/Huawei)
-        if (!opened) try {
-            val i = Intent()
-            i.setClassName("com.android.settings", "com.android.settings.Settings\$NotificationAccessSettingsActivity")
-            i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            startActivity(i); opened = true
-        } catch (e: Exception) {
-            android.util.Log.w("PermWizard", "NotificationAccessSettingsActivity failed: $e")
-        }
-        // 3eme : fallback Infos appli
-        if (!opened) openAppInfo()
-
+        val i = Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        try { startActivity(i) } catch (_: Exception) { openAppInfo() }
         AlertDialog.Builder(this)
             .setTitle("📋 Activer MoMo Fin")
-            .setMessage("Dans la liste 'Acces aux notifications' qui doit s'ouvrir :\n\n1. Defilez jusqu'a 'MoMo Fin'\n2. Touchez le toggle pour l'activer\n3. Confirmez 'Autoriser' dans le popup\n\nSI LE TOGGLE EST GRIS (Controle par parametre restreint) :\n→ Retournez a l'Etape 1 et touchez 'Annuler l'interdiction' dans Infos appli.")
+            .setMessage("Dans la liste qui s'ouvre, faites défiler jusqu'à 'MoMo Fin' et activez le toggle.\n\nSi vous voyez 'Contrôlé par un paramètre restreint' (grisé), retournez à l'étape 1 d'abord.")
             .setPositiveButton("Compris", null)
             .show()
     }

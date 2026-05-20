@@ -91,7 +91,7 @@ class PatronActivity : AppCompatActivity() {
                     val solde = f.totalEntree - f.totalSortie
                     val soldeColor = if (solde >= 0) "#059669" else "#DC2626"
                     text = android.text.Html.fromHtml(
-                        "<b>${f.name}</b>  <small style='color:#6B7280'>(touchez pour voir)</small><br/>" +
+                        "<b>${f.name}</b><br/>" +
                         "<small>${f.nbEntries} saisies • " +
                         "<font color='#059669'>Entrée ${nf.format(f.totalEntree)}</font> • " +
                         "<font color='#DC2626'>Sortie ${nf.format(f.totalSortie)}</font> • " +
@@ -99,17 +99,14 @@ class PatronActivity : AppCompatActivity() {
                         android.text.Html.FROM_HTML_MODE_COMPACT
                     )
                     textSize = 13f
-                    setPadding(20, 14, 12, 14)
+                    setPadding(20, 8, 12, 8)
                     setBackgroundColor(0xFFF9FAFB.toInt())
-                    isClickable = true
-                    isFocusable = true
-                    setOnClickListener { showFolderDetails(f) }
                 }
                 val lp = LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.MATCH_PARENT,
                     LinearLayout.LayoutParams.WRAP_CONTENT
                 )
-                lp.setMargins(0, 0, 0, 8)
+                lp.setMargins(0, 0, 0, 6)
                 container.addView(row, lp)
             }
         }
@@ -190,40 +187,4 @@ class PatronActivity : AppCompatActivity() {
 
         override fun getItemCount() = items.size
     }
-    private fun showFolderDetails(folder: RailwayClient.RemoteFolder) {
-        val dfDate = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.FRENCH)
-        val sb = StringBuilder()
-        sb.append("🏪 <b>${folder.deviceLabel}</b>  ")
-        sb.append("<font color='#1565C0'>(${folder.deviceCode})</font><br/>")
-        sb.append("Créé le ${dfDate.format(Date(folder.createdAt))}<br/><br/>")
-        sb.append("<b>Totaux :</b><br/>")
-        sb.append("• <font color='#059669'>Entrée ${nf.format(folder.totalEntree)}</font><br/>")
-        sb.append("• <font color='#DC2626'>Sortie ${nf.format(folder.totalSortie)}</font><br/>")
-        val solde = folder.totalEntree - folder.totalSortie
-        val sc = if (solde >= 0) "#059669" else "#DC2626"
-        sb.append("• <b><font color='$sc'>Solde ${nf.format(solde)}</font></b><br/><br/>")
-        sb.append("<b>${folder.entries.size} saisies :</b><br/>")
-        if (folder.entries.isEmpty()) {
-            sb.append("<i>Aucune saisie pour l\'instant.</i>")
-        } else {
-            // Trier par date desc
-            val sorted = folder.entries.sortedByDescending { it.ts }
-            for (e in sorted.take(50)) {
-                val lbl = if (e.type == "RECU") "Entrée" else "Sortie"
-                val color = if (e.type == "RECU") "#059669" else "#DC2626"
-                sb.append("<br/>• ${dfDate.format(Date(e.ts))} — ")
-                sb.append("<font color='$color'><b>$lbl ${nf.format(e.amount)}</b></font>")
-                if (e.note.isNotBlank()) sb.append("  <small>${e.note}</small>")
-            }
-            if (folder.entries.size > 50) {
-                sb.append("<br/><br/><i>... et ${folder.entries.size - 50} autres saisies (voir sur le site web)</i>")
-            }
-        }
-        AlertDialog.Builder(this)
-            .setTitle("📓 ${folder.name}")
-            .setMessage(android.text.Html.fromHtml(sb.toString(), android.text.Html.FROM_HTML_MODE_COMPACT))
-            .setPositiveButton("Fermer", null)
-            .show()
-    }
-
 }

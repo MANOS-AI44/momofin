@@ -14,9 +14,6 @@
     <!-- Service en arrière-plan -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
 
-    <!-- Demande d'exemption d'optimisation batterie (Etape 2 du wizard) -->
-    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
-
     <!-- Réseau pour synchro Railway -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
