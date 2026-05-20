@@ -234,10 +234,25 @@ class PermissionWizardActivity : AppCompatActivity() {
     }
 
     private fun requestIgnoreBatteryOpt() {
-        val i = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS)
-            .setData(Uri.parse("package:$packageName"))
-            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        try { startActivity(i) } catch (_: Exception) { openAppInfo() }
+        // 1. Popup systeme direct (necessite la permission au manifest)
+        try {
+            startActivity(Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS)
+                .setData(Uri.parse("package:$packageName"))
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+            return
+        } catch (_: Exception) {}
+        // 2. Liste des apps avec optimisation batterie
+        try {
+            startActivity(Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+            AlertDialog.Builder(this)
+                .setTitle("Trouver MoMo Fin")
+                .setMessage("Dans la liste : choisissez 'Toutes les applications', trouvez 'MoMo Fin', puis 'Ne pas optimiser'.")
+                .setPositiveButton("Compris", null).show()
+            return
+        } catch (_: Exception) {}
+        // 3. Fallback Infos appli
+        openAppInfo()
     }
 
     private fun requestSmsPermission() {
@@ -252,12 +267,26 @@ class PermissionWizardActivity : AppCompatActivity() {
     }
 
     private fun openNotifListenerSettings() {
-        val i = Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)
-            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        try { startActivity(i) } catch (_: Exception) { openAppInfo() }
+        var opened = false
+        // 1. Intent standard
+        try {
+            startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+            opened = true
+        } catch (_: Exception) {}
+        // 2. Intent prive (Honor/Huawei)
+        if (!opened) try {
+            startActivity(Intent().apply {
+                setClassName("com.android.settings", "com.android.settings.Settings\$NotificationAccessSettingsActivity")
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            })
+            opened = true
+        } catch (_: Exception) {}
+        // 3. Fallback Infos appli
+        if (!opened) openAppInfo()
         AlertDialog.Builder(this)
-            .setTitle("📋 Activer MoMo Fin")
-            .setMessage("Dans la liste qui s'ouvre, faites défiler jusqu'à 'MoMo Fin' et activez le toggle.\n\nSi vous voyez 'Contrôlé par un paramètre restreint' (grisé), retournez à l'étape 1 d'abord.")
+            .setTitle("Activer MoMo Fin")
+            .setMessage("Dans la liste 'Acces aux notifications' : trouvez 'MoMo Fin' et activez le toggle.\n\nSI LE TOGGLE EST GRIS : retournez a l'Etape 1 et touchez 'Annuler l'interdiction'.")
             .setPositiveButton("Compris", null)
             .show()
     }
