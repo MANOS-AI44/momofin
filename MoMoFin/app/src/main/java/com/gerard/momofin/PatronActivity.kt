@@ -91,7 +91,7 @@ class PatronActivity : AppCompatActivity() {
                     val solde = f.totalEntree - f.totalSortie
                     val soldeColor = if (solde >= 0) "#059669" else "#DC2626"
                     text = android.text.Html.fromHtml(
-                        "<b>${f.name}</b><br/>" +
+                        "<b>${f.name}</b>  <small><font color='#6B7280'>(touchez pour voir le detail)</font></small><br/>" +
                         "<small>${f.nbEntries} saisies • " +
                         "<font color='#059669'>Entrée ${nf.format(f.totalEntree)}</font> • " +
                         "<font color='#DC2626'>Sortie ${nf.format(f.totalSortie)}</font> • " +
@@ -99,8 +99,10 @@ class PatronActivity : AppCompatActivity() {
                         android.text.Html.FROM_HTML_MODE_COMPACT
                     )
                     textSize = 13f
-                    setPadding(20, 8, 12, 8)
+                    setPadding(20, 14, 12, 14)
                     setBackgroundColor(0xFFF9FAFB.toInt())
+                    isClickable = true
+                    setOnClickListener { showFolderDetails(f) }
                 }
                 val lp = LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.MATCH_PARENT,
@@ -187,4 +189,35 @@ class PatronActivity : AppCompatActivity() {
 
         override fun getItemCount() = items.size
     }
+    private fun showFolderDetails(folder: RailwayClient.RemoteFolder) {
+        val dfDate = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.FRENCH)
+        val sb = StringBuilder()
+        sb.append("\uD83C\uDFEA <b>${folder.deviceLabel}</b> ")
+        sb.append("<font color='#1565C0'>(${folder.deviceCode})</font><br/>")
+        sb.append("Cree le ${dfDate.format(Date(folder.createdAt))}<br/><br/>")
+        sb.append("<b>Totaux :</b><br/>")
+        sb.append("<font color='#059669'>Entree ${nf.format(folder.totalEntree)}</font> &nbsp; ")
+        sb.append("<font color='#DC2626'>Sortie ${nf.format(folder.totalSortie)}</font><br/>")
+        val solde = folder.totalEntree - folder.totalSortie
+        val sc = if (solde >= 0) "#059669" else "#DC2626"
+        sb.append("<b><font color='$sc'>Solde ${nf.format(solde)}</font></b><br/><br/>")
+        sb.append("<b>${folder.entries.size} saisies :</b>")
+        if (folder.entries.isEmpty()) {
+            sb.append("<br/><i>Aucune saisie.</i>")
+        } else {
+            for (e in folder.entries.sortedByDescending { it.ts }.take(50)) {
+                val lbl = if (e.type == "RECU") "Entree" else "Sortie"
+                val col = if (e.type == "RECU") "#059669" else "#DC2626"
+                sb.append("<br/>\u2022 ${dfDate.format(Date(e.ts))} \u2014 ")
+                sb.append("<font color='$col'><b>$lbl ${nf.format(e.amount)}</b></font>")
+                if (e.note.isNotBlank()) sb.append(" <small>${e.note}</small>")
+            }
+        }
+        AlertDialog.Builder(this)
+            .setTitle(folder.name)
+            .setMessage(android.text.Html.fromHtml(sb.toString(), android.text.Html.FROM_HTML_MODE_COMPACT))
+            .setPositiveButton("Fermer", null)
+            .show()
+    }
+
 }
