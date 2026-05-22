@@ -262,8 +262,9 @@ object RailwayClient {
     }
 
     data class RemoteReceipt(val clientId: String, val partnerName: String, val clientName: String,
-                            val objet: String, val amount: Double, val currency: String, val ts: Long)
-    data class ReceiptConfig(val rules: String, val company: String, val cachetUrl: String?, val userId: Long)
+                            val objet: String, val conditions: String, val amount: Double, val currency: String, val ts: Long)
+    data class ReceiptObject(val label: String, val conditions: String)
+    data class ReceiptConfig(val rules: String, val company: String, val cachetUrl: String?, val userId: Long, val objects: List<ReceiptObject>)
 
     /** Pousse tous les recus locaux vers le serveur (REPLACE) */
     fun syncReceipts(baseUrl: String, token: String, store: ReceiptStore): Result {
@@ -275,6 +276,7 @@ object RailwayClient {
                     .put("partner_name", r.partnerName)
                     .put("client_name", r.clientName)
                     .put("objet", r.objet)
+                    .put("conditions", r.conditions)
                     .put("amount", r.amount)
                     .put("currency", r.currency)
                     .put("ts", ISO.format(Date(r.timestamp))))
@@ -301,6 +303,7 @@ object RailwayClient {
                     partnerName = o.optString("partner_name", ""),
                     clientName = o.optString("client_name", ""),
                     objet = o.optString("objet", ""),
+                    conditions = o.optString("conditions", ""),
                     amount = o.optDouble("amount", 0.0),
                     currency = o.optString("currency", "FCFA"),
                     ts = ts
@@ -314,11 +317,17 @@ object RailwayClient {
     fun pullReceiptConfig(baseUrl: String, token: String): ReceiptConfig {
         return try {
             val (code, resp) = httpGet("$baseUrl/api/receipt-config", token)
-            if (code !in 200..299) return ReceiptConfig("", "", null, 0)
+            if (code !in 200..299) return ReceiptConfig("", "", null, 0, emptyList())
             val o = JSONObject(resp)
             val cachet = if (o.optBoolean("cachet", false)) baseUrl + o.optString("cachet_url", "") else null
-            ReceiptConfig(o.optString("rules", ""), o.optString("company", ""), cachet, o.optLong("user_id", 0))
-        } catch (e: Exception) { ReceiptConfig("", "", null, 0) }
+            val objsArr = o.optJSONArray("objects") ?: JSONArray()
+            val objs = mutableListOf<ReceiptObject>()
+            for (i in 0 until objsArr.length()) {
+                val oo = objsArr.getJSONObject(i)
+                objs.add(ReceiptObject(oo.optString("label", ""), oo.optString("conditions", "")))
+            }
+            ReceiptConfig(o.optString("rules", ""), o.optString("company", ""), cachet, o.optLong("user_id", 0), objs)
+        } catch (e: Exception) { ReceiptConfig("", "", null, 0, emptyList()) }
     }
 
     private fun httpPost(url: String, token: String, body: String): Pair<Int, String> {

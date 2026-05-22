@@ -17,6 +17,7 @@ class ReceiptStore(context: Context) : SQLiteOpenHelper(context, "receipts.db", 
                 partner_name TEXT,
                 client_name TEXT,
                 objet TEXT,
+                conditions TEXT,
                 amount REAL NOT NULL DEFAULT 0,
                 currency TEXT,
                 ts INTEGER NOT NULL
@@ -29,12 +30,13 @@ class ReceiptStore(context: Context) : SQLiteOpenHelper(context, "receipts.db", 
         onCreate(db)
     }
 
-    fun create(partnerName: String, clientName: String, objet: String, amount: Double, currency: String): Long {
+    fun create(partnerName: String, clientName: String, objet: String, conditions: String, amount: Double, currency: String): Long {
         val cv = ContentValues().apply {
             put("client_id", System.currentTimeMillis().toString() + "-" + (0..9999).random())
             put("partner_name", partnerName)
             put("client_name", clientName)
             put("objet", objet)
+            put("conditions", conditions)
             put("amount", amount)
             put("currency", currency)
             put("ts", System.currentTimeMillis())
@@ -52,6 +54,7 @@ class ReceiptStore(context: Context) : SQLiteOpenHelper(context, "receipts.db", 
                     partnerName = c.getString(c.getColumnIndexOrThrow("partner_name")) ?: "",
                     clientName = c.getString(c.getColumnIndexOrThrow("client_name")) ?: "",
                     objet = c.getString(c.getColumnIndexOrThrow("objet")) ?: "",
+                    conditions = c.getString(c.getColumnIndexOrThrow("conditions")) ?: "",
                     amount = c.getDouble(c.getColumnIndexOrThrow("amount")),
                     currency = c.getString(c.getColumnIndexOrThrow("currency")) ?: "FCFA",
                     timestamp = c.getLong(c.getColumnIndexOrThrow("ts"))
@@ -77,6 +80,7 @@ class ReceiptStore(context: Context) : SQLiteOpenHelper(context, "receipts.db", 
                     put("partner_name", r.partnerName)
                     put("client_name", r.clientName)
                     put("objet", r.objet)
+                    put("conditions", r.conditions)
                     put("amount", r.amount)
                     put("currency", r.currency)
                     put("ts", if (r.ts > 0) r.ts else System.currentTimeMillis())

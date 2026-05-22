@@ -29,6 +29,8 @@ class ReceiptActivity : AppCompatActivity() {
     private val df = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.FRENCH)
     private val objetsPresets = arrayOf("Achat de cryptos", "Achat en Chine", "Achat de vêtements",
         "Achat de téléphone", "Transfert d'argent", "Autre")
+    private var serverObjects: List<RailwayClient.ReceiptObject> = emptyList()
+    private var receiptRulesDefault: String = ""
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -40,10 +42,23 @@ class ReceiptActivity : AppCompatActivity() {
         binding.btnRestoreReceipts.setOnClickListener { restoreFromServer(true) }
 
         if (store.all().isEmpty() && Settings.isConfigured(this)) restoreFromServer(false)
+        loadConfig()
         render()
     }
 
     override fun onResume() { super.onResume(); render() }
+
+    private fun loadConfig() {
+        if (!Settings.isConfigured(this)) return
+        val url = Settings.getUrl(this); val token = Settings.getToken(this)
+        CoroutineScope(Dispatchers.IO).launch {
+            val cfg = RailwayClient.pullReceiptConfig(url, token)
+            withContext(Dispatchers.Main) {
+                serverObjects = cfg.objects
+                receiptRulesDefault = cfg.rules
+            }
+        }
+    }
 
     private fun render() {
         val container = binding.listReceipts
@@ -87,9 +102,11 @@ class ReceiptActivity : AppCompatActivity() {
 
         val edtPartner = EditText(this).apply { hint = "Entreprise partenaire (optionnel)"; setSingleLine() }
         val edtClient = EditText(this).apply { hint = "Nom et prénom du client"; setSingleLine() }
+        // Liste d'objets : ceux configures sur le serveur, sinon les presets
+        val objetLabels = if (serverObjects.isNotEmpty()) serverObjects.map { it.label }.toTypedArray() else objetsPresets
         val acObjet = AutoCompleteTextView(this).apply {
             hint = "Objet (cryptos, Chine, vêtements...)"
-            setAdapter(ArrayAdapter(this@ReceiptActivity, android.R.layout.simple_dropdown_item_1line, objetsPresets))
+            setAdapter(ArrayAdapter(this@ReceiptActivity, android.R.layout.simple_dropdown_item_1line, objetLabels))
             setSingleLine()
         }
         val edtAmount = EditText(this).apply { hint = "Montant (FCFA)"; inputType = InputType.TYPE_CLASS_NUMBER }
@@ -107,7 +124,9 @@ class ReceiptActivity : AppCompatActivity() {
                     Toast.makeText(this, "Renseignez au moins le client et l'objet", Toast.LENGTH_SHORT).show()
                     return@setPositiveButton
                 }
-                store.create(edtPartner.text.toString().trim(), client, objet, amount, "FCFA")
+                val cond = serverObjects.firstOrNull { it.label.equals(objet, ignoreCase = true) }?.conditions
+                    ?.ifBlank { receiptRulesDefault } ?: receiptRulesDefault
+                store.create(edtPartner.text.toString().trim(), client, objet, cond, amount, "FCFA")
                 render()
                 autoBackup()
                 Toast.makeText(this, "✅ Reçu créé", Toast.LENGTH_SHORT).show()
