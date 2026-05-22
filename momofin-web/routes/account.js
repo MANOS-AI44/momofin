@@ -120,11 +120,46 @@ router.get('/recus-config', adminOnly, async (req, res) => {
         'SELECT receipt_rules, (cachet_data IS NOT NULL) AS has_cachet FROM users WHERE id = $1',
         [req.user.id]
     );
+    const { rows: objects } = await pool.query(
+        'SELECT id, label, conditions FROM receipt_objects WHERE user_id = $1 ORDER BY label',
+        [req.user.id]
+    );
     res.render('recus-config', {
         user: req.user,
         rules: rows[0]?.receipt_rules || '',
-        hasCachet: !!rows[0]?.has_cachet
+        hasCachet: !!rows[0]?.has_cachet,
+        objects
     });
+});
+
+// Ajouter un objet + sa condition
+router.post('/recus-config/objet', adminOnly, async (req, res) => {
+    const label = (req.body.label || '').trim().substring(0, 200);
+    const conditions = (req.body.conditions || '').substring(0, 2000);
+    if (label) {
+        await pool.query(
+            'INSERT INTO receipt_objects (user_id, label, conditions) VALUES ($1,$2,$3)',
+            [req.user.id, label, conditions]
+        );
+    }
+    res.redirect('/recus-config?obj_ok=1');
+});
+
+// Modifier un objet existant
+router.post('/recus-config/objet/:id', adminOnly, async (req, res) => {
+    const label = (req.body.label || '').trim().substring(0, 200);
+    const conditions = (req.body.conditions || '').substring(0, 2000);
+    await pool.query(
+        'UPDATE receipt_objects SET label=$1, conditions=$2 WHERE id=$3 AND user_id=$4',
+        [label, conditions, req.params.id, req.user.id]
+    );
+    res.redirect('/recus-config?obj_ok=1');
+});
+
+// Supprimer un objet
+router.post('/recus-config/objet/:id/supprimer', adminOnly, async (req, res) => {
+    await pool.query('DELETE FROM receipt_objects WHERE id=$1 AND user_id=$2', [req.params.id, req.user.id]);
+    res.redirect('/recus-config');
 });
 
 router.post('/recus-config/regles', adminOnly, async (req, res) => {

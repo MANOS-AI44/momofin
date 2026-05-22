@@ -1,21 +1,61 @@
 <%- include('_layout_head', { pageTitle: 'Config des reçus — MoMo Fin', activeNav: 'recus-config', user: user }) %>
 
 <h1>🧾 Configuration des reçus</h1>
-<p class="subtitle">Définissez les règles affichées en bas de chaque reçu et téléversez votre cachet.</p>
+<p class="subtitle">Gérez les objets d'achat, chacun avec sa propre condition, et votre cachet.</p>
 
 <% if (typeof user !== 'undefined' && user) { %>
+
+<!-- ===== OBJETS + CONDITIONS ===== -->
 <section class="panel">
-    <h2>📜 Règles / conditions</h2>
-    <p class="subtitle">Ce texte apparaîtra en bas de chaque reçu généré par vos boutiques.</p>
+    <h2>📦 Objets d'achat &amp; conditions</h2>
+    <p class="subtitle">Pour chaque objet (ex. « Achat en Chine »), définissez la condition qui apparaîtra sur le reçu correspondant.</p>
+
+    <% if (objects && objects.length > 0) { %>
+        <% objects.forEach(function(o) { %>
+            <div style="border:1px solid #E5E7EB; border-radius:10px; padding:14px; margin-bottom:12px; background:#F9FAFB;">
+                <form method="POST" action="/recus-config/objet/<%= o.id %>">
+                    <label style="font-size:12px; color:#6B7280; text-transform:uppercase;">Objet</label>
+                    <input type="text" name="label" value="<%= o.label %>" style="width:100%; padding:8px; border:1px solid #D1D5DB; border-radius:6px; margin:4px 0 10px; font-weight:600;">
+                    <label style="font-size:12px; color:#6B7280; text-transform:uppercase;">Condition pour cet objet</label>
+                    <textarea name="conditions" rows="3" style="width:100%; padding:8px; border:1px solid #D1D5DB; border-radius:6px; margin:4px 0; font-family:inherit;"><%= o.conditions || '' %></textarea>
+                    <div style="margin-top:8px;">
+                        <button type="submit" class="btn primary" style="padding:6px 14px; font-size:13px;">💾 Enregistrer</button>
+                    </div>
+                </form>
+                <form method="POST" action="/recus-config/objet/<%= o.id %>/supprimer" style="margin-top:6px;" onsubmit="return confirm('Supprimer cet objet ?')">
+                    <button type="submit" class="btn-link">🗑️ Supprimer cet objet</button>
+                </form>
+            </div>
+        <% }); %>
+    <% } else { %>
+        <p class="empty">Aucun objet pour l'instant. Ajoutez-en un ci-dessous.</p>
+    <% } %>
+
+    <div style="border:2px dashed #BFDBFE; border-radius:10px; padding:14px; margin-top:8px;">
+        <h3>➕ Ajouter un objet</h3>
+        <form method="POST" action="/recus-config/objet">
+            <label style="font-size:12px; color:#6B7280; text-transform:uppercase;">Objet</label>
+            <input type="text" name="label" placeholder="Ex. Achat en Chine, Achat de cryptos, Vêtements..." required style="width:100%; padding:8px; border:1px solid #D1D5DB; border-radius:6px; margin:4px 0 10px;">
+            <label style="font-size:12px; color:#6B7280; text-transform:uppercase;">Condition pour cet objet</label>
+            <textarea name="conditions" rows="3" placeholder="Ex. Délai de livraison 30 à 45 jours. Aucune réclamation après réception. Risques de douane à la charge du client..." style="width:100%; padding:8px; border:1px solid #D1D5DB; border-radius:6px; margin:4px 0;"></textarea>
+            <button type="submit" class="btn success" style="margin-top:8px;">➕ Ajouter cet objet</button>
+        </form>
+    </div>
+</section>
+
+<!-- ===== CONDITION GENERALE (fallback) ===== -->
+<section class="panel">
+    <h2>📜 Condition générale (par défaut)</h2>
+    <p class="subtitle">Utilisée si un objet n'a pas de condition propre.</p>
     <form method="POST" action="/recus-config/regles">
-        <textarea name="rules" rows="6" style="width:100%; padding:12px; border:1px solid #D1D5DB; border-radius:8px; font-family:inherit; font-size:14px;" placeholder="Exemple : Aucune réclamation acceptée après 48h. Tout achat effectué est sous votre entière responsabilité. La maison décline toute responsabilité..."><%= rules %></textarea>
-        <button type="submit" class="btn primary" style="margin-top:12px;">💾 Enregistrer les règles</button>
+        <textarea name="rules" rows="4" style="width:100%; padding:12px; border:1px solid #D1D5DB; border-radius:8px; font-family:inherit;" placeholder="Ex. Aucune réclamation acceptée après 48h. Tout achat est sous votre responsabilité..."><%= rules %></textarea>
+        <button type="submit" class="btn primary" style="margin-top:12px;">💾 Enregistrer</button>
     </form>
 </section>
 
+<!-- ===== CACHET ===== -->
 <section class="panel">
     <h2>🖋️ Cachet</h2>
-    <p class="subtitle">Prenez votre cachet en photo et téléversez-le. Il apparaîtra sur chaque reçu.</p>
     <% if (hasCachet) { %>
         <div style="margin:12px 0;">
             <img src="/cachet/<%= user.id %>?v=<%= Date.now() %>" alt="Cachet" style="max-width:180px; max-height:180px; border:1px solid #E5E7EB; border-radius:8px; padding:8px; background:white;">
@@ -24,16 +64,14 @@
             <button type="submit" class="btn-link" onclick="return confirm('Supprimer le cachet ?')">Supprimer le cachet</button>
         </form>
     <% } else { %>
-        <p class="empty">Aucun cachet téléversé pour l'instant.</p>
+        <p class="empty">Aucun cachet téléversé.</p>
     <% } %>
     <form method="POST" action="/recus-config/cachet" enctype="multipart/form-data" style="margin-top:12px;">
         <input type="file" name="cachet" accept="image/*" required>
         <button type="submit" class="btn success" style="margin-top:8px;">⬆️ Téléverser le cachet</button>
     </form>
-    <p style="font-size:12px; color:#6B7280; margin-top:8px;">Conseil : photographiez le cachet sur fond blanc, image nette. PNG avec fond transparent idéal.</p>
 </section>
 
-<% if (typeof query !== 'undefined') { %><% } %>
 <% } else { %>
 <p class="empty">Connectez-vous en tant qu'administrateur.</p>
 <% } %>

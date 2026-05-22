@@ -125,6 +125,17 @@ async function init() {
             );
         `);
         await client.query(`CREATE INDEX IF NOT EXISTS idx_receipts_device ON receipts(device_id);`);
+        await client.query(`ALTER TABLE receipts ADD COLUMN IF NOT EXISTS conditions TEXT;`);
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS receipt_objects (
+                id BIGSERIAL PRIMARY KEY,
+                user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                label TEXT NOT NULL,
+                conditions TEXT,
+                created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+            );
+        `);
+        await client.query(`CREATE INDEX IF NOT EXISTS idx_receipt_objects_user ON receipt_objects(user_id);`);
         // Config recus par admin (regles + cachet) stockee dans users
         await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS receipt_rules TEXT;`);
         await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS cachet_data BYTEA;`);

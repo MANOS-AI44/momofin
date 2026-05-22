@@ -368,12 +368,13 @@ router.post('/receipts/sync', authDevice, async (req, res) => {
             const cid = String(r.client_id || '');
             if (!cid) continue;
             await conn.query(
-                `INSERT INTO receipts (device_id, client_id, partner_name, client_name, objet, amount, currency, ts)
-                 VALUES ($1,$2,$3,$4,$5,$6,$7, COALESCE($8::timestamptz, NOW()))`,
+                `INSERT INTO receipts (device_id, client_id, partner_name, client_name, objet, conditions, amount, currency, ts)
+                 VALUES ($1,$2,$3,$4,$5,$6,$7,$8, COALESCE($9::timestamptz, NOW()))`,
                 [req.deviceToken, cid,
                  String(r.partner_name || '').substring(0, 200),
                  String(r.client_name || '').substring(0, 200),
                  String(r.objet || '').substring(0, 300),
+                 String(r.conditions || '').substring(0, 2000),
                  Number(r.amount) || 0,
                  String(r.currency || 'FCFA'),
                  r.ts ? new Date(r.ts).toISOString() : null]
@@ -395,7 +396,7 @@ router.post('/receipts/sync', authDevice, async (req, res) => {
 router.get('/receipts', authDevice, async (req, res) => {
     const { pool } = require('../lib/db');
     const { rows } = await pool.query(
-        `SELECT client_id, partner_name, client_name, objet, amount, currency, ts
+        `SELECT client_id, partner_name, client_name, objet, conditions, amount, currency, ts
          FROM receipts WHERE device_id = $1 ORDER BY ts DESC`,
         [req.deviceToken]
     );
@@ -412,12 +413,16 @@ router.get('/receipt-config', authDevice, async (req, res) => {
         'SELECT name, email, receipt_rules, (cachet_data IS NOT NULL) AS has_cachet FROM users WHERE id = $1', [uid]
     );
     const u = rows[0] || {};
+    const { rows: objs } = await pool.query(
+        'SELECT label, conditions FROM receipt_objects WHERE user_id = $1 ORDER BY label', [uid]
+    );
     res.json({
         rules: u.receipt_rules || '',
         company: u.name || (u.email ? u.email.split('@')[0] : ''),
         cachet: !!u.has_cachet,
         cachet_url: u.has_cachet ? `/cachet/${uid}` : null,
-        user_id: uid
+        user_id: uid,
+        objects: objs.map(o => ({ label: o.label, conditions: o.conditions || '' }))
     });
 });
 
