@@ -11,6 +11,14 @@ const apiRoutes = require('./routes/api');
 const webRoutes = require('./routes/web');
 const accountRoutes = require('./routes/account');
 
+// Filet de securite : une erreur isolee dans une route ne doit JAMAIS tuer tout le serveur
+process.on('unhandledRejection', (reason) => {
+    console.error('UNHANDLED REJECTION (le serveur continue) :', reason && reason.stack ? reason.stack : reason);
+});
+process.on('uncaughtException', (err) => {
+    console.error('UNCAUGHT EXCEPTION (le serveur continue) :', err && err.stack ? err.stack : err);
+});
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 

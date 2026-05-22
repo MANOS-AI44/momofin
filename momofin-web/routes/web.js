@@ -418,10 +418,10 @@ router.get('/devices/:token/transactions', adminOnly, async (req, res) => {
     for (const raw of rows) {
         const r = reparseRow(raw);
         // Filet de securite : si filtre subtype, ecarter les lignes qui ne correspondent pas apres re-parse
-        if (subtypeFilter === 'CAISSE' && r.subtype && !['DEPOT','RETRAIT'].includes(r.subtype)) continue;
-        else if (subtypeFilter === 'TRANSFERTS' && r.subtype && !['TRANSFERT_ENVOYE','TRANSFERT_RECU'].includes(r.subtype)) continue;
-        else if (['DEPOT','RETRAIT','TRANSFERT_ENVOYE','TRANSFERT_RECU'].includes(subtypeFilter)
-                 && r.subtype && r.subtype !== subtypeFilter) continue;
+        if (typeFilter === 'CAISSE' && r.subtype && !['DEPOT','RETRAIT'].includes(r.subtype)) continue;
+        else if (typeFilter === 'TRANSFERTS' && r.subtype && !['TRANSFERT_ENVOYE','TRANSFERT_RECU'].includes(r.subtype)) continue;
+        else if (['DEPOT','RETRAIT','TRANSFERT_ENVOYE','TRANSFERT_RECU'].includes(typeFilter)
+                 && r.subtype && r.subtype !== typeFilter) continue;
         const d = new Date(r.ts);
         const k = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate())).toISOString();
         if (!grouped.has(k)) grouped.set(k, []);
