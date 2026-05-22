@@ -127,6 +127,18 @@ router.get('/logo/:userId', async (req, res) => {
     res.send(rows[0].logo_data);
 });
 
+router.get('/cachet/:userId', async (req, res) => {
+    const { rows } = await pool.query(
+        'SELECT cachet_data, cachet_mime FROM users WHERE id = $1', [req.params.userId]
+    );
+    if (rows.length === 0 || !rows[0].cachet_data) {
+        return res.status(404).send('Pas de cachet');
+    }
+    res.setHeader('Content-Type', rows[0].cachet_mime || 'image/png');
+    res.setHeader('Cache-Control', 'public, max-age=300');
+    res.send(rows[0].cachet_data);
+});
+
 router.get('/deconnexion', async (req, res) => {
     await users.endSession(req.cookies?.session);
     res.clearCookie('session');

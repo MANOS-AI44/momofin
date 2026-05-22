@@ -109,6 +109,26 @@ async function init() {
                 created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
             );
         `);
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS receipts (
+                id BIGSERIAL PRIMARY KEY,
+                device_id TEXT NOT NULL,
+                client_id TEXT,
+                partner_name TEXT,
+                client_name TEXT,
+                objet TEXT,
+                amount NUMERIC(18,2) DEFAULT 0,
+                currency TEXT DEFAULT 'FCFA',
+                ts TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                UNIQUE(device_id, client_id)
+            );
+        `);
+        await client.query(`CREATE INDEX IF NOT EXISTS idx_receipts_device ON receipts(device_id);`);
+        // Config recus par admin (regles + cachet) stockee dans users
+        await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS receipt_rules TEXT;`);
+        await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS cachet_data BYTEA;`);
+        await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS cachet_mime TEXT;`);
 
         // === 2) Migrations de schema (idempotentes : ADD COLUMN IF NOT EXISTS) ===
         // Sur tables qui existent forcement apres les CREATE TABLE ci-dessus.

@@ -352,4 +352,74 @@ router.get('/folders/all', authDevice, async (req, res) => {
     })));
 });
 
+
+// === RECUS ===
+// POST /api/receipts/sync : REPLACE complet des recus du device
+router.post('/receipts/sync', authDevice, async (req, res) => {
+    const { receipts } = req.body || {};
+    if (!Array.isArray(receipts)) return res.status(400).json({ error: 'receipts array attendu' });
+    const { pool } = require('../lib/db');
+    const conn = await pool.connect();
+    try {
+        await conn.query('BEGIN');
+        await conn.query('DELETE FROM receipts WHERE device_id = $1', [req.deviceToken]);
+        let n = 0;
+        for (const r of receipts) {
+            const cid = String(r.client_id || '');
+            if (!cid) continue;
+            await conn.query(
+                `INSERT INTO receipts (device_id, client_id, partner_name, client_name, objet, amount, currency, ts)
+                 VALUES ($1,$2,$3,$4,$5,$6,$7, COALESCE($8::timestamptz, NOW()))`,
+                [req.deviceToken, cid,
+                 String(r.partner_name || '').substring(0, 200),
+                 String(r.client_name || '').substring(0, 200),
+                 String(r.objet || '').substring(0, 300),
+                 Number(r.amount) || 0,
+                 String(r.currency || 'FCFA'),
+                 r.ts ? new Date(r.ts).toISOString() : null]
+            );
+            n++;
+        }
+        await conn.query('COMMIT');
+        res.json({ ok: true, receipts: n });
+    } catch (e) {
+        await conn.query('ROLLBACK');
+        console.error('receipts sync error:', e);
+        res.status(500).json({ error: e.message });
+    } finally {
+        conn.release();
+    }
+});
+
+// GET /api/receipts : recus du device authentifie (pour restore)
+router.get('/receipts', authDevice, async (req, res) => {
+    const { pool } = require('../lib/db');
+    const { rows } = await pool.query(
+        `SELECT client_id, partner_name, client_name, objet, amount, currency, ts
+         FROM receipts WHERE device_id = $1 ORDER BY ts DESC`,
+        [req.deviceToken]
+    );
+    res.json(rows);
+});
+
+// GET /api/receipt-config : regles + cachet (URL) du proprietaire du device
+router.get('/receipt-config', authDevice, async (req, res) => {
+    const { pool } = require('../lib/db');
+    const { rows: drows } = await pool.query('SELECT user_id FROM devices WHERE token = $1', [req.deviceToken]);
+    if (!drows[0]?.user_id) return res.json({ rules: '', company: '', cachet: false });
+    const uid = drows[0].user_id;
+    const { rows } = await pool.query(
+        'SELECT name, email, receipt_rules, (cachet_data IS NOT NULL) AS has_cachet FROM users WHERE id = $1', [uid]
+    );
+    const u = rows[0] || {};
+    res.json({
+        rules: u.receipt_rules || '',
+        company: u.name || (u.email ? u.email.split('@')[0] : ''),
+        cachet: !!u.has_cachet,
+        cachet_url: u.has_cachet ? `/cachet/${uid}` : null,
+        user_id: uid
+    });
+});
+
+
 module.exports = router;
