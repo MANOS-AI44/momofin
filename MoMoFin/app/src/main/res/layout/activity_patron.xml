@@ -29,6 +29,15 @@
         android:text="@string/btn_new_folder"
         style="@style/Btn.Primary"/>
 
+    <Button
+        android:id="@+id/btnRestoreFolders"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:text="📥 Restaurer mes comptes (serveur)"
+        android:textSize="13sp"
+        style="@style/Btn.Outline"/>
+
     <TextView
         android:id="@+id/txtEmpty"
         android:layout_width="match_parent"

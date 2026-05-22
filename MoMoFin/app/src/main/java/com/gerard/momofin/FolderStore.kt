@@ -82,6 +82,37 @@ class FolderStore(context: Context) : SQLiteOpenHelper(context, "patron_folders.
         }
     }
 
+    /** Restaure les comptes depuis le serveur : efface le local et recree
+     *  folders + entries avec leurs timestamps d'origine. */
+    fun replaceAllFromRemote(folders: List<RailwayClient.RemoteFolder>) {
+        val db = writableDatabase
+        db.beginTransaction()
+        try {
+            db.delete(T_ENTRY, null, null)
+            db.delete(T_FOLDER, null, null)
+            for (f in folders) {
+                val fcv = ContentValues().apply {
+                    put("name", f.name)
+                    put("created_at", if (f.createdAt > 0) f.createdAt else System.currentTimeMillis())
+                }
+                val fid = db.insert(T_FOLDER, null, fcv)
+                for (e in f.entries) {
+                    val ecv = ContentValues().apply {
+                        put("folder_id", fid)
+                        put("type", if (e.type == "RECU") "RECU" else "SORTIE")
+                        put("amount", e.amount)
+                        put("note", e.note)
+                        put("ts", if (e.ts > 0) e.ts else System.currentTimeMillis())
+                    }
+                    db.insert(T_ENTRY, null, ecv)
+                }
+            }
+            db.setTransactionSuccessful()
+        } finally {
+            db.endTransaction()
+        }
+    }
+
     // ----- Entries -----
     fun addEntry(folderId: Long, type: TxType, amount: Double, note: String): Long {
         val cv = ContentValues().apply {

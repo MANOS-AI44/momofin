@@ -49,6 +49,12 @@ class PatronActivity : AppCompatActivity() {
         binding.recycler.adapter = adapter
 
         binding.btnNewFolder.setOnClickListener { askNewFolder() }
+        binding.btnRestoreFolders.setOnClickListener { restoreFromServer(manual = true) }
+
+        // Auto-restauration : si aucun compte local mais serveur configure, recuperer depuis le serveur
+        if (store.allFolders().isEmpty() && Settings.isConfigured(this)) {
+            restoreFromServer(manual = false)
+        }
 
         refresh()
     }
@@ -57,6 +63,28 @@ class PatronActivity : AppCompatActivity() {
         super.onResume()
         refresh()
         pullOthers()
+    }
+
+    private fun restoreFromServer(manual: Boolean) {
+        if (!Settings.isConfigured(this)) {
+            if (manual) Toast.makeText(this, "Configurez d'abord le serveur (Parametres)", Toast.LENGTH_LONG).show()
+            return
+        }
+        val url = Settings.getUrl(this); val token = Settings.getToken(this)
+        if (manual) Toast.makeText(this, "Recuperation depuis le serveur...", Toast.LENGTH_SHORT).show()
+        CoroutineScope(Dispatchers.IO).launch {
+            val all = RailwayClient.pullAllFolders(url, token)
+            val own = all.filter { it.isOwn }
+            withContext(Dispatchers.Main) {
+                if (own.isEmpty()) {
+                    if (manual) Toast.makeText(this@PatronActivity, "Aucun compte sauvegarde sur le serveur", Toast.LENGTH_SHORT).show()
+                    return@withContext
+                }
+                store.replaceAllFromRemote(own)
+                refresh()
+                Toast.makeText(this@PatronActivity, "✅ ${own.size} compte(s) restaure(s) depuis le serveur", Toast.LENGTH_LONG).show()
+            }
+        }
     }
 
     private fun pullOthers() {
