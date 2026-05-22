@@ -1,6 +1,10 @@
 package com.gerard.momofin
 
 import android.app.AlertDialog
+import android.content.Intent
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.net.Uri
 import android.os.Bundle
 import android.text.InputType
 import android.view.View
@@ -11,6 +15,7 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.FileProvider
 import com.gerard.momofin.databinding.ActivityReceiptsBinding
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -18,6 +23,8 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.text.NumberFormat
 import java.text.SimpleDateFormat
+import java.net.HttpURLConnection
+import java.net.URL
 import java.util.Date
 import java.util.Locale
 
@@ -31,6 +38,8 @@ class ReceiptActivity : AppCompatActivity() {
         "Achat de téléphone", "Transfert d'argent", "Autre")
     private var serverObjects: List<RailwayClient.ReceiptObject> = emptyList()
     private var receiptRulesDefault: String = ""
+    private var companyName: String = ""
+    private var cachetUrl: String? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -56,6 +65,8 @@ class ReceiptActivity : AppCompatActivity() {
             withContext(Dispatchers.Main) {
                 serverObjects = cfg.objects
                 receiptRulesDefault = cfg.rules
+                companyName = cfg.company
+                cachetUrl = cfg.cachetUrl
             }
         }
     }
@@ -136,8 +147,56 @@ class ReceiptActivity : AppCompatActivity() {
     }
 
     private fun openReceipt(r: Receipt) {
-        // Le PDF/partage sera branché au commit suivant. Pour l'instant, apercu texte.
-        Toast.makeText(this, "Reçu de ${r.clientName} — PDF bientôt disponible", Toast.LENGTH_SHORT).show()
+        Toast.makeText(this, "Génération du reçu…", Toast.LENGTH_SHORT).show()
+        val url = cachetUrl
+        CoroutineScope(Dispatchers.IO).launch {
+            val cachet: Bitmap? = if (!url.isNullOrBlank()) downloadBitmap(url) else null
+            val file = try {
+                PdfGenerator.generateReceipt(this@ReceiptActivity, r, companyName, cachet)
+            } catch (e: Exception) { null }
+            withContext(Dispatchers.Main) {
+                if (file == null) {
+                    Toast.makeText(this@ReceiptActivity, "Erreur lors de la génération du reçu", Toast.LENGTH_LONG).show()
+                    return@withContext
+                }
+                val uri = FileProvider.getUriForFile(
+                    this@ReceiptActivity,
+                    "${'$'}{applicationContext.packageName}.fileprovider",
+                    file
+                )
+                AlertDialog.Builder(this@ReceiptActivity)
+                    .setTitle("Reçu de ${'$'}{r.clientName}")
+                    .setItems(arrayOf("📤 Partager (WhatsApp…)", "👁️ Ouvrir / Imprimer")) { _, which ->
+                        if (which == 0) {
+                            val send = Intent(Intent.ACTION_SEND).apply {
+                                type = "application/pdf"
+                                putExtra(Intent.EXTRA_STREAM, uri)
+                                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                            }
+                            startActivity(Intent.createChooser(send, "Partager le reçu"))
+                        } else {
+                            val view = Intent(Intent.ACTION_VIEW).apply {
+                                setDataAndType(uri, "application/pdf")
+                                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                            }
+                            try { startActivity(view) } catch (e: Exception) {
+                                Toast.makeText(this@ReceiptActivity, "Aucune application PDF installée", Toast.LENGTH_LONG).show()
+                            }
+                        }
+                    }
+                    .setNegativeButton("Fermer", null)
+                    .show()
+            }
+        }
+    }
+
+    private fun downloadBitmap(src: String): Bitmap? {
+        return try {
+            val conn = (URL(src).openConnection() as HttpURLConnection).apply {
+                connectTimeout = 8000; readTimeout = 8000
+            }
+            conn.inputStream.use { BitmapFactory.decodeStream(it) }
+        } catch (e: Exception) { null }
     }
 
     private fun confirmDelete(r: Receipt) {

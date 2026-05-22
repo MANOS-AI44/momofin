@@ -2,7 +2,10 @@ package com.gerard.momofin
 
 import android.content.ContentValues
 import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.Canvas
 import android.graphics.Paint
+import android.graphics.Rect
 import android.graphics.pdf.PdfDocument
 import android.os.Build
 import android.os.Environment
@@ -274,6 +277,108 @@ object PdfGenerator {
         canvas.drawText("TOTAL — Retrait : ${nf.format(totalRecu)} | Dépôt : ${nf.format(totalSortie)} | Solde : ${nf.format(totalRecu - totalSortie)}",
             MARGIN.toFloat(), y, Paint().apply { textSize = 12f; isFakeBoldText = true })
         pdf.finishPage(page)
+    }
+
+    /** Genere le PDF d'un recu (au moins une demi-page). cachet optionnel (bitmap). */
+    fun generateReceipt(context: Context, r: Receipt, company: String, cachet: Bitmap?): File {
+        val pdf = PdfDocument()
+        val info = PdfDocument.PageInfo.Builder(PAGE_W, PAGE_H, 1).create()
+        val page = pdf.startPage(info)
+        val cv = page.canvas
+
+        val df = SimpleDateFormat("dd/MM/yyyy 'a' HH:mm", Locale.FRENCH)
+        val nf = NumberFormat.getNumberInstance(Locale.FRENCH)
+        val left = MARGIN.toFloat()
+        val right = (PAGE_W - MARGIN).toFloat()
+        var y = 60f
+
+        val pTitle = Paint().apply { textSize = 22f; isFakeBoldText = true; color = 0xFF0D47A1.toInt() }
+        val pHeader = Paint().apply { textSize = 16f; isFakeBoldText = true; color = 0xFF1565C0.toInt() }
+        val pLabel = Paint().apply { textSize = 12f; color = 0xFF6B7280.toInt() }
+        val pVal = Paint().apply { textSize = 15f; color = 0xFF111827.toInt() }
+        val pValBold = Paint().apply { textSize = 16f; isFakeBoldText = true; color = 0xFF111827.toInt() }
+        val pBig = Paint().apply { textSize = 26f; isFakeBoldText = true; color = 0xFF059669.toInt() }
+        val pSmall = Paint().apply { textSize = 11f; color = 0xFF555555.toInt() }
+        val rule = Paint().apply { color = 0xFFBBBBBB.toInt(); strokeWidth = 1f }
+        val ruleStrong = Paint().apply { color = 0xFF0D47A1.toInt(); strokeWidth = 2f }
+
+        // En-tete : ENTREPRISE - PARTENAIRE
+        val entete = (if (company.isNotBlank()) company.uppercase() else "MOMO FIN") +
+                     (if (r.partnerName.isNotBlank()) "  -  " + r.partnerName.uppercase() else "")
+        cv.drawText(entete, left, y, pHeader); y += 14f
+        cv.drawLine(left, y, right, y, ruleStrong); y += 36f
+
+        // Titre RECU + reference + date
+        cv.drawText("RECU", left, y, pTitle)
+        cv.drawText("N° ${r.clientId.takeLast(8)}", right - 150, y - 16, pSmall)
+        cv.drawText(df.format(Date(r.timestamp)), right - 150, y, pSmall)
+        y += 30f
+        cv.drawLine(left, y, right, y, rule); y += 36f
+
+        // Client
+        cv.drawText("CLIENT", left, y, pLabel); y += 22f
+        cv.drawText(r.clientName, left, y, pValBold); y += 36f
+
+        // Objet
+        cv.drawText("OBJET", left, y, pLabel); y += 22f
+        cv.drawText(r.objet, left, y, pVal); y += 40f
+
+        // Montant (encadre)
+        cv.drawText("MONTANT", left, y, pLabel); y += 30f
+        cv.drawText("${nf.format(r.amount)} ${r.currency}", left, y, pBig); y += 40f
+
+        cv.drawLine(left, y, right, y, rule); y += 30f
+
+        // Conditions (texte enveloppe)
+        cv.drawText("CONDITIONS", left, y, pLabel); y += 20f
+        val condText = if (r.conditions.isNotBlank()) r.conditions
+                       else "Aucune reclamation ne sera acceptee passe un delai de 48 heures. Tout achat effectue est sous l'entiere responsabilite du client."
+        val pCond = Paint().apply { textSize = 12f; color = 0xFF374151.toInt() }
+        y = drawWrapped(cv, condText, left, y, (right - left), 18f, pCond)
+        y += 30f
+
+        // S'assurer qu'on occupe au moins la moitie de la page
+        if (y < PAGE_H / 2f) y = PAGE_H / 2f + 20f
+
+        // Cachet + signature en bas
+        cv.drawLine(left, y, right, y, rule); y += 24f
+        if (cachet != null) {
+            val maxW = 150; val maxH = 100
+            val ratio = minOf(maxW.toFloat() / cachet.width, maxH.toFloat() / cachet.height)
+            val w = (cachet.width * ratio).toInt(); val h = (cachet.height * ratio).toInt()
+            val dst = Rect(right.toInt() - w, y.toInt(), right.toInt(), y.toInt() + h)
+            cv.drawBitmap(cachet, null, dst, null)
+        }
+        cv.drawText("Cachet & signature", right - 150, y + 118, pSmall)
+        cv.drawText("Le client (lu et approuve)", left, y + 118, pSmall)
+
+        // Footer
+        cv.drawText("Genere par MoMo Fin - " + SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.FRENCH).format(Date()),
+            left, (PAGE_H - 24).toFloat(), pSmall)
+
+        pdf.finishPage(page)
+        val fileName = "Recu_${r.clientName.replace(Regex("[^A-Za-z0-9]"), "_")}_${SimpleDateFormat("yyyyMMdd_HHmm", Locale.US).format(Date(r.timestamp))}.pdf"
+        val out = writePdf(context, pdf, fileName)
+        pdf.close()
+        return out
+    }
+
+    /** Dessine un texte en l'enveloppant sur plusieurs lignes. Retourne le nouveau y. */
+    private fun drawWrapped(cv: Canvas, text: String, x: Float, startY: Float, maxWidth: Float, lineH: Float, paint: Paint): Float {
+        var y = startY
+        val words = text.split(Regex("\\s+"))
+        var line = StringBuilder()
+        for (w in words) {
+            val test = if (line.isEmpty()) w else "$line $w"
+            if (paint.measureText(test) > maxWidth && line.isNotEmpty()) {
+                cv.drawText(line.toString(), x, y, paint); y += lineH
+                line = StringBuilder(w)
+            } else {
+                line = StringBuilder(test)
+            }
+        }
+        if (line.isNotEmpty()) { cv.drawText(line.toString(), x, y, paint); y += lineH }
+        return y
     }
 
     private fun writePdf(context: Context, pdf: PdfDocument, fileName: String): File {
