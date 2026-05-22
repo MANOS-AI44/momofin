@@ -34,7 +34,7 @@
                     <td style="text-align:right; color:#059669;"><strong><%= Number(r.amount || 0).toLocaleString('fr-FR') %> <%= r.currency || 'FCFA' %></strong></td>
                     <td style="color:#6B7280; font-size:12px;"><%= new Date(r.ts).toLocaleString('fr-FR') %></td>
                 </tr>
-                <% if (r.conditions) { %>
+                <% if (r.conditions && r.conditions !== 'null') { %>
                 <tr>
                     <td colspan="5" style="color:#6B7280; font-size:12px; padding-top:0; padding-bottom:10px;">📝 <%= r.conditions %></td>
                 </tr>
