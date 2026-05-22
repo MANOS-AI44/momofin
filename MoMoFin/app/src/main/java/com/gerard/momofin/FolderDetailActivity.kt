@@ -12,6 +12,9 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.gerard.momofin.databinding.ActivityFolderDetailBinding
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import java.text.NumberFormat
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -41,7 +44,7 @@ class FolderDetailActivity : AppCompatActivity() {
             AlertDialog.Builder(this)
                 .setTitle(R.string.delete_entry)
                 .setMessage(getString(R.string.delete_entry_msg, nf.format(e.amount)))
-                .setPositiveButton(R.string.delete) { _, _ -> store.deleteEntry(e.id); refresh() }
+                .setPositiveButton(R.string.delete) { _, _ -> store.deleteEntry(e.id); refresh(); autoBackup() }
                 .setNegativeButton(R.string.cancel, null)
                 .show()
         }
@@ -71,6 +74,7 @@ class FolderDetailActivity : AppCompatActivity() {
                     return@setPositiveButton
                 }
                 store.addEntry(folder.id, type, a, edtNote.text.toString().trim())
+                autoBackup()
                 refresh()
             }
             .setNegativeButton(R.string.cancel, null)
@@ -126,4 +130,10 @@ class FolderDetailActivity : AppCompatActivity() {
 
         override fun getItemCount() = items.size
     }
+    private fun autoBackup() {
+        if (!Settings.isConfigured(this)) return
+        val url = Settings.getUrl(this); val token = Settings.getToken(this)
+        CoroutineScope(Dispatchers.IO).launch { RailwayClient.syncFolders(url, token, store) }
+    }
+
 }

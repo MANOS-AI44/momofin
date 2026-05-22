@@ -65,6 +65,13 @@ class PatronActivity : AppCompatActivity() {
         pullOthers()
     }
 
+    /** Pousse automatiquement les comptes vers le serveur (sauvegarde auto) */
+    private fun autoBackup() {
+        if (!Settings.isConfigured(this)) return
+        val url = Settings.getUrl(this); val token = Settings.getToken(this)
+        CoroutineScope(Dispatchers.IO).launch { RailwayClient.syncFolders(url, token, store) }
+    }
+
     private fun restoreFromServer(manual: Boolean) {
         if (!Settings.isConfigured(this)) {
             if (manual) Toast.makeText(this, "Configurez d'abord le serveur (Parametres)", Toast.LENGTH_LONG).show()
@@ -157,6 +164,7 @@ class PatronActivity : AppCompatActivity() {
                 } else {
                     store.createFolder(name)
                     refresh()
+                    autoBackup()
                 }
             }
             .setNegativeButton(R.string.cancel, null)
@@ -170,6 +178,7 @@ class PatronActivity : AppCompatActivity() {
             .setPositiveButton(R.string.delete) { _, _ ->
                 store.deleteFolder(f.id)
                 refresh()
+                autoBackup()
             }
             .setNegativeButton(R.string.cancel, null)
             .show()
