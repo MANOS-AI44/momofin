@@ -45,6 +45,11 @@
                 </a>
             <% } %>
             <% if (typeof user === 'undefined' || !user || !user.isSubAccount) { %>
+            <a href="/recus-config" class="<%= (typeof activeNav !== 'undefined' && activeNav === 'recus-config') ? 'active' : '' %>">
+                <span class="nav-icon">🧾</span> Reçus (config)
+            </a>
+            <% } %>
+            <% if (typeof user === 'undefined' || !user || !user.isSubAccount) { %>
             <a href="/devices" class="<%= (typeof activeNav !== 'undefined' && activeNav === 'devices') ? 'active' : '' %>">
                 <span class="nav-icon">📱</span> Mes Appareils
             </a>

@@ -114,6 +114,43 @@ router.post('/mon-compte/logo/supprimer', adminOnly, async (req, res) => {
     res.redirect('/mon-compte');
 });
 
+// === Config des recus (regles + cachet) ===
+router.get('/recus-config', adminOnly, async (req, res) => {
+    const { rows } = await pool.query(
+        'SELECT receipt_rules, (cachet_data IS NOT NULL) AS has_cachet FROM users WHERE id = $1',
+        [req.user.id]
+    );
+    res.render('recus-config', {
+        user: req.user,
+        rules: rows[0]?.receipt_rules || '',
+        hasCachet: !!rows[0]?.has_cachet
+    });
+});
+
+router.post('/recus-config/regles', adminOnly, async (req, res) => {
+    const rules = (req.body.rules || '').substring(0, 2000);
+    await pool.query('UPDATE users SET receipt_rules = $1 WHERE id = $2', [rules, req.user.id]);
+    res.redirect('/recus-config?ok=1');
+});
+
+router.post('/recus-config/cachet', adminOnly, upload.single('cachet'), async (req, res) => {
+    if (!req.file) return res.redirect('/recus-config?cachet_error=1');
+    try {
+        await pool.query(
+            'UPDATE users SET cachet_data = $1, cachet_mime = $2 WHERE id = $3',
+            [req.file.buffer, req.file.mimetype, req.user.id]
+        );
+        res.redirect('/recus-config?cachet_ok=1');
+    } catch (e) {
+        res.redirect('/recus-config?cachet_error=2');
+    }
+});
+
+router.post('/recus-config/cachet/supprimer', adminOnly, async (req, res) => {
+    await pool.query('UPDATE users SET cachet_data = NULL, cachet_mime = NULL WHERE id = $1', [req.user.id]);
+    res.redirect('/recus-config');
+});
+
 // Servir le logo (public — pour intégrer dans PDFs, mails, partage)
 router.get('/logo/:userId', async (req, res) => {
     const { rows } = await pool.query(
