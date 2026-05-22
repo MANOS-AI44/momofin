@@ -49,7 +49,7 @@ class PatronActivity : AppCompatActivity() {
         binding.recycler.adapter = adapter
 
         binding.btnNewFolder.setOnClickListener { askNewFolder() }
-        binding.btnRestoreFolders.setOnClickListener { restoreFromServer(manual = true) }
+        binding.btnRestoreFolders.setOnClickListener { syncNow(manual = true) }
 
         // Auto-restauration : si aucun compte local mais serveur configure, recuperer depuis le serveur
         if (store.allFolders().isEmpty() && Settings.isConfigured(this)) {
@@ -62,7 +62,36 @@ class PatronActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         refresh()
-        pullOthers()
+        syncNow(manual = false)
+    }
+
+    /**
+     * Synchronisation bidirectionnelle :
+     *  1) pousse (sauvegarde) les comptes locaux vers le serveur ;
+     *  2) recupere le mien (si rien en local = recuperation) + les comptes des autres boutiques.
+     * En mode manuel, affiche le resultat exact (succes / code HTTP) pour diagnostic.
+     */
+    private fun syncNow(manual: Boolean) {
+        if (!Settings.isConfigured(this)) {
+            if (manual) Toast.makeText(this, "Configurez d'abord le serveur (Parametres)", Toast.LENGTH_LONG).show()
+            return
+        }
+        val url = Settings.getUrl(this); val token = Settings.getToken(this)
+        val hadLocal = store.allFolders().isNotEmpty()
+        if (manual) Toast.makeText(this, "Synchronisation...", Toast.LENGTH_SHORT).show()
+        CoroutineScope(Dispatchers.IO).launch {
+            val push = RailwayClient.syncFolders(url, token, store)
+            val all = RailwayClient.pullAllFolders(url, token)
+            val own = all.filter { it.isOwn }
+            val others = all.filter { !it.isOwn }
+            withContext(Dispatchers.Main) {
+                if (manual) Toast.makeText(this@PatronActivity, push.message, Toast.LENGTH_LONG).show()
+                // Restaurer le mien uniquement si rien en local (recuperation apres reinstallation)
+                if (!hadLocal && own.isNotEmpty()) store.replaceAllFromRemote(own)
+                renderOthers(others)
+                refresh()
+            }
+        }
     }
 
     /** Pousse automatiquement les comptes vers le serveur (sauvegarde auto) */

@@ -34,7 +34,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="6dp"
-        android:text="📥 Restaurer mes comptes (serveur)"
+        android:text="🔄 Synchroniser (sauvegarder + restaurer)"
         android:textSize="13sp"
         style="@style/Btn.Outline"/>
 
