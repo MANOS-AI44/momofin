@@ -295,54 +295,78 @@
         </LinearLayout>
     </ScrollView>
 
-    <!-- Boutons sticky en bas -->
+    <!-- Boutons sticky en bas (2 rangees) -->
     <LinearLayout
-        android:orientation="horizontal"
+        android:orientation="vertical"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:background="@color/white"
-        android:padding="10dp"
+        android:padding="8dp"
         android:elevation="12dp">
-        <Button
-            android:id="@+id/btnPatron"
-            style="@style/Btn.Warning"
-            android:layout_width="0dp"
-            android:layout_weight="1"
-            android:layout_height="52dp"
-            android:text="📓 Mes Comptes"
-            android:textSize="13sp"
-            android:textColor="@color/white"
-            android:textStyle="bold"
-            android:paddingHorizontal="4dp"
-            android:singleLine="true"
-            android:ellipsize="end"/>
-        <Button
-            android:id="@+id/btnPoints"
-            style="@style/Btn.Purple"
-            android:layout_width="0dp"
-            android:layout_weight="1"
-            android:layout_height="52dp"
-            android:layout_marginStart="8dp"
-            android:text="📊 Mes Points"
-            android:textSize="13sp"
-            android:textColor="@color/white"
-            android:textStyle="bold"
-            android:paddingHorizontal="4dp"
-            android:singleLine="true"
-            android:ellipsize="end"/>
-        <Button
-            android:id="@+id/btnOpenWeb"
-            style="@style/Btn.Primary"
-            android:layout_width="0dp"
-            android:layout_weight="1"
-            android:layout_height="52dp"
-            android:layout_marginStart="8dp"
-            android:text="🌐 Site web"
-            android:textSize="13sp"
-            android:textColor="@color/white"
-            android:textStyle="bold"
-            android:paddingHorizontal="4dp"
-            android:singleLine="true"
-            android:ellipsize="end"/>
+        <LinearLayout
+            android:orientation="horizontal"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+            <Button
+                android:id="@+id/btnPatron"
+                style="@style/Btn.Warning"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="48dp"
+                android:text="📓 Mes Comptes"
+                android:textSize="12sp"
+                android:textColor="@color/white"
+                android:textStyle="bold"
+                android:paddingHorizontal="4dp"
+                android:singleLine="true"
+                android:ellipsize="end"/>
+            <Button
+                android:id="@+id/btnPoints"
+                style="@style/Btn.Purple"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="48dp"
+                android:layout_marginStart="6dp"
+                android:text="📊 Mes Points"
+                android:textSize="12sp"
+                android:textColor="@color/white"
+                android:textStyle="bold"
+                android:paddingHorizontal="4dp"
+                android:singleLine="true"
+                android:ellipsize="end"/>
+        </LinearLayout>
+        <LinearLayout
+            android:orientation="horizontal"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp">
+            <Button
+                android:id="@+id/btnReceipts"
+                style="@style/Btn.Success"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="48dp"
+                android:text="🧾 Mes Reçus"
+                android:textSize="12sp"
+                android:textColor="@color/white"
+                android:textStyle="bold"
+                android:paddingHorizontal="4dp"
+                android:singleLine="true"
+                android:ellipsize="end"/>
+            <Button
+                android:id="@+id/btnOpenWeb"
+                style="@style/Btn.Primary"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="48dp"
+                android:layout_marginStart="6dp"
+                android:text="🌐 Site web"
+                android:textSize="12sp"
+                android:textColor="@color/white"
+                android:textStyle="bold"
+                android:paddingHorizontal="4dp"
+                android:singleLine="true"
+                android:ellipsize="end"/>
+        </LinearLayout>
     </LinearLayout>
 </LinearLayout>

@@ -261,6 +261,66 @@ object RailwayClient {
         }
     }
 
+    data class RemoteReceipt(val clientId: String, val partnerName: String, val clientName: String,
+                            val objet: String, val amount: Double, val currency: String, val ts: Long)
+    data class ReceiptConfig(val rules: String, val company: String, val cachetUrl: String?, val userId: Long)
+
+    /** Pousse tous les recus locaux vers le serveur (REPLACE) */
+    fun syncReceipts(baseUrl: String, token: String, store: ReceiptStore): Result {
+        return try {
+            val arr = JSONArray()
+            for (r in store.all()) {
+                arr.put(JSONObject()
+                    .put("client_id", r.clientId)
+                    .put("partner_name", r.partnerName)
+                    .put("client_name", r.clientName)
+                    .put("objet", r.objet)
+                    .put("amount", r.amount)
+                    .put("currency", r.currency)
+                    .put("ts", ISO.format(Date(r.timestamp))))
+            }
+            val body = JSONObject().put("receipts", arr).toString()
+            val (code, resp) = httpPost("$baseUrl/api/receipts/sync", token, body)
+            if (code in 200..299) Result(true, "Recus synchronises")
+            else Result(false, "HTTP $code")
+        } catch (e: Exception) { Result(false, "Erreur : ${e.message}") }
+    }
+
+    /** Recupere les recus du device depuis le serveur (restore) */
+    fun pullReceipts(baseUrl: String, token: String): List<RemoteReceipt> {
+        return try {
+            val (code, resp) = httpGet("$baseUrl/api/receipts", token)
+            if (code !in 200..299) return emptyList()
+            val arr = JSONArray(resp)
+            val out = mutableListOf<RemoteReceipt>()
+            for (i in 0 until arr.length()) {
+                val o = arr.getJSONObject(i)
+                val ts = try { ISO.parse(o.optString("ts"))?.time ?: 0L } catch (_: Exception) { 0L }
+                out.add(RemoteReceipt(
+                    clientId = o.optString("client_id", ""),
+                    partnerName = o.optString("partner_name", ""),
+                    clientName = o.optString("client_name", ""),
+                    objet = o.optString("objet", ""),
+                    amount = o.optDouble("amount", 0.0),
+                    currency = o.optString("currency", "FCFA"),
+                    ts = ts
+                ))
+            }
+            out
+        } catch (e: Exception) { emptyList() }
+    }
+
+    /** Recupere la config des recus (regles + nom entreprise + cachet) */
+    fun pullReceiptConfig(baseUrl: String, token: String): ReceiptConfig {
+        return try {
+            val (code, resp) = httpGet("$baseUrl/api/receipt-config", token)
+            if (code !in 200..299) return ReceiptConfig("", "", null, 0)
+            val o = JSONObject(resp)
+            val cachet = if (o.optBoolean("cachet", false)) baseUrl + o.optString("cachet_url", "") else null
+            ReceiptConfig(o.optString("rules", ""), o.optString("company", ""), cachet, o.optLong("user_id", 0))
+        } catch (e: Exception) { ReceiptConfig("", "", null, 0) }
+    }
+
     private fun httpPost(url: String, token: String, body: String): Pair<Int, String> {
         val conn = (URL(url).openConnection() as HttpURLConnection).apply {
             requestMethod = "POST"

@@ -80,6 +80,9 @@ class MainActivity : AppCompatActivity() {
         binding.btnPoints.setOnClickListener {
             startActivity(Intent(this, PointsActivity::class.java))
         }
+        binding.btnReceipts.setOnClickListener {
+            startActivity(Intent(this, ReceiptActivity::class.java))
+        }
         binding.btnOpenWeb.setOnClickListener {
             val url = Settings.getUrl(this).ifBlank {
                 Toast.makeText(this, "⚠️ Configurez d'abord l'URL dans Parametres", Toast.LENGTH_LONG).show()
