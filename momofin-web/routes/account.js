@@ -132,6 +132,36 @@ router.get('/recus-config', adminOnly, async (req, res) => {
     });
 });
 
+// Liste des recus de toutes les boutiques de l'admin
+router.get('/recus', adminOnly, async (req, res) => {
+    const { rows } = await pool.query(
+        `SELECT r.id, r.partner_name, r.client_name, r.objet, r.conditions,
+                r.amount, r.currency, r.ts,
+                d.label AS device_label, d.code AS device_code, r.device_id
+         FROM receipts r
+         JOIN devices d ON d.token = r.device_id AND d.user_id = $1
+         ORDER BY r.ts DESC`,
+        [req.user.id]
+    );
+    // Regrouper par boutique
+    const byDevice = new Map();
+    let total = 0;
+    for (const r of rows) {
+        if (!byDevice.has(r.device_id)) {
+            byDevice.set(r.device_id, { label: r.device_label, code: r.device_code, receipts: [] });
+        }
+        byDevice.get(r.device_id).receipts.push(r);
+        total += Number(r.amount || 0);
+    }
+    res.render('recus', {
+        user: req.user,
+        groups: [...byDevice.values()],
+        nbTotal: rows.length,
+        montantTotal: total,
+        company: req.user.name || (req.user.email ? req.user.email.split('@')[0] : 'Entreprise')
+    });
+});
+
 // Ajouter un objet + sa condition
 router.post('/recus-config/objet', adminOnly, async (req, res) => {
     const label = (req.body.label || '').trim().substring(0, 200);

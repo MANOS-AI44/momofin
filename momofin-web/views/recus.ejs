@@ -1,0 +1,48 @@
+<%- include('_layout_head', { pageTitle: 'Reçus — MoMo Fin', activeNav: 'recus', user: user }) %>
+
+<h1>🧾 Reçus émis par mes boutiques</h1>
+<p class="subtitle">Tous les reçus créés dans l'app par vos boutiques apparaissent ici, regroupés par boutique.</p>
+
+<section class="panel" style="display:flex; gap:32px; flex-wrap:wrap;">
+    <div><div style="color:#6B7280; font-size:12px;">TOTAL REÇUS</div><div style="font-size:22px; font-weight:700;"><%= nbTotal %></div></div>
+    <div><div style="color:#6B7280; font-size:12px;">MONTANT CUMULÉ</div><div style="font-size:22px; font-weight:700; color:#059669;"><%= Number(montantTotal).toLocaleString('fr-FR') %> FCFA</div></div>
+</section>
+
+<% if (groups.length === 0) { %>
+    <p class="empty">Aucun reçu n'a encore été créé. Demandez à vos boutiques de créer des reçus dans l'app (bouton 🧾 Mes Reçus) et de synchroniser.</p>
+<% } %>
+
+<% groups.forEach(function(g) { %>
+    <section class="panel">
+        <h2>🏪 <%= g.label %> <span style="color:#1565C0; letter-spacing:2px; font-size:14px;">(<%= g.code %>)</span></h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Client</th>
+                    <th>Partenaire</th>
+                    <th>Objet</th>
+                    <th style="text-align:right;">Montant</th>
+                    <th>Date / Heure</th>
+                </tr>
+            </thead>
+            <tbody>
+            <% g.receipts.forEach(function(r) { %>
+                <tr>
+                    <td><strong><%= r.client_name || '—' %></strong></td>
+                    <td style="color:#6B7280;"><%= r.partner_name || '—' %></td>
+                    <td><%= r.objet || '—' %></td>
+                    <td style="text-align:right; color:#059669;"><strong><%= Number(r.amount || 0).toLocaleString('fr-FR') %> <%= r.currency || 'FCFA' %></strong></td>
+                    <td style="color:#6B7280; font-size:12px;"><%= new Date(r.ts).toLocaleString('fr-FR') %></td>
+                </tr>
+                <% if (r.conditions) { %>
+                <tr>
+                    <td colspan="5" style="color:#6B7280; font-size:12px; padding-top:0; padding-bottom:10px;">📝 <%= r.conditions %></td>
+                </tr>
+                <% } %>
+            <% }); %>
+            </tbody>
+        </table>
+    </section>
+<% }); %>
+
+<%- include('_layout_foot') %>
