@@ -125,6 +125,15 @@ class FolderStore(context: Context) : SQLiteOpenHelper(context, "patron_folders.
         return writableDatabase.insert(T_ENTRY, null, cv)
     }
 
+    fun updateEntry(id: Long, type: TxType, amount: Double, note: String) {
+        val cv = ContentValues().apply {
+            put("type", type.name)
+            put("amount", amount)
+            put("note", note)
+        }
+        writableDatabase.update(T_ENTRY, cv, "_id=?", arrayOf(id.toString()))
+    }
+
     fun deleteEntry(id: Long) {
         writableDatabase.delete(T_ENTRY, "_id=?", arrayOf(id.toString()))
     }

@@ -40,14 +40,7 @@ class FolderDetailActivity : AppCompatActivity() {
         binding.txtTitle.text = folder.name
         supportActionBar?.title = folder.name
 
-        adapter = EntryAdapter { e ->
-            AlertDialog.Builder(this)
-                .setTitle(R.string.delete_entry)
-                .setMessage(getString(R.string.delete_entry_msg, nf.format(e.amount)))
-                .setPositiveButton(R.string.delete) { _, _ -> store.deleteEntry(e.id); refresh(); autoBackup() }
-                .setNegativeButton(R.string.cancel, null)
-                .show()
-        }
+        adapter = EntryAdapter { e -> showEntryOptions(e) }
         binding.recycler.layoutManager = LinearLayoutManager(this)
         binding.recycler.adapter = adapter
 
@@ -76,6 +69,61 @@ class FolderDetailActivity : AppCompatActivity() {
                 store.addEntry(folder.id, type, a, edtNote.text.toString().trim())
                 autoBackup()
                 refresh()
+            }
+            .setNegativeButton(R.string.cancel, null)
+            .show()
+    }
+
+    private fun showEntryOptions(e: FolderEntry) {
+        val isEntree = e.type == TxType.RECU
+        val label = (if (isEntree) "Entrée" else "Sortie") + " : " + nf.format(e.amount) +
+                    (if (e.note.isNotBlank()) "\n" + e.note else "")
+        AlertDialog.Builder(this)
+            .setTitle("Que voulez-vous faire ?")
+            .setMessage(label)
+            .setPositiveButton("✏️ Modifier") { _, _ -> editEntry(e) }
+            .setNegativeButton("🗑️ Supprimer") { _, _ ->
+                AlertDialog.Builder(this)
+                    .setTitle(R.string.delete_entry)
+                    .setMessage(getString(R.string.delete_entry_msg, nf.format(e.amount)))
+                    .setPositiveButton(R.string.delete) { _, _ -> store.deleteEntry(e.id); refresh(); autoBackup() }
+                    .setNegativeButton(R.string.cancel, null)
+                    .show()
+            }
+            .setNeutralButton(R.string.cancel, null)
+            .show()
+    }
+
+    private fun editEntry(e: FolderEntry) {
+        val v = LayoutInflater.from(this).inflate(R.layout.dialog_patron_entry, null)
+        val edtAmount = v.findViewById<EditText>(R.id.edtAmount)
+        val edtNote = v.findViewById<EditText>(R.id.edtNote)
+        edtAmount.setText(nf.format(e.amount).replace(" ", ""))
+        edtNote.setText(e.note)
+        AmountWatcher.attach(edtAmount)
+        // Choix du type : Entrée ou Sortie
+        var newType = e.type
+        AlertDialog.Builder(this)
+            .setTitle(if (e.type == TxType.RECU) "Modifier (Entrée)" else "Modifier (Sortie)")
+            .setView(v)
+            .setPositiveButton(R.string.save) { _, _ ->
+                val a = AmountWatcher.getAmount(edtAmount.text.toString())
+                if (a <= 0) {
+                    Toast.makeText(this, R.string.invalid_amount, Toast.LENGTH_SHORT).show()
+                    return@setPositiveButton
+                }
+                store.updateEntry(e.id, newType, a, edtNote.text.toString().trim())
+                refresh()
+                autoBackup()
+                Toast.makeText(this, "Saisie modifiée", Toast.LENGTH_SHORT).show()
+            }
+            .setNeutralButton(if (e.type == TxType.RECU) "→ Passer en Sortie" else "→ Passer en Entrée") { _, _ ->
+                newType = if (e.type == TxType.RECU) TxType.SORTIE else TxType.RECU
+                val a = AmountWatcher.getAmount(edtAmount.text.toString())
+                store.updateEntry(e.id, newType, if (a > 0) a else e.amount, edtNote.text.toString().trim())
+                refresh()
+                autoBackup()
+                Toast.makeText(this, "Type modifié", Toast.LENGTH_SHORT).show()
             }
             .setNegativeButton(R.string.cancel, null)
             .show()
@@ -125,6 +173,7 @@ class FolderDetailActivity : AppCompatActivity() {
             h.amount.setTextColor(if (isEntree) 0xFF2E7D32.toInt() else 0xFFC62828.toInt())
             h.note.text = e.note.ifBlank { "—" }
             h.date.text = df.format(Date(e.timestamp))
+            h.itemView.setOnClickListener { onLong(e) }
             h.itemView.setOnLongClickListener { onLong(e); true }
         }
 
