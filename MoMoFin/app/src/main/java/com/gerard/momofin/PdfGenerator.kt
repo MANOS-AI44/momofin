@@ -287,9 +287,9 @@ object PdfGenerator {
         val cv = page.canvas
 
         // Deux exemplaires identiques sur la meme page (un pour le client, un a garder)
-        drawReceiptCopy(cv, r, company, cachet, 36f, "EXEMPLAIRE CLIENT")
+        val bottom1 = drawReceiptCopy(cv, r, company, cachet, 36f, "EXEMPLAIRE CLIENT")
 
-        val mid = 408f
+        val mid = maxOf(bottom1 + 14f, 418f)
         val cut = Paint().apply {
             color = 0xFF999999.toInt(); strokeWidth = 1f
             pathEffect = android.graphics.DashPathEffect(floatArrayOf(6f, 4f), 0f)
@@ -298,7 +298,7 @@ object PdfGenerator {
         cv.drawText("DECOUPER ICI - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -",
             MARGIN.toFloat(), mid - 4f, Paint().apply { textSize = 8f; color = 0xFF999999.toInt() })
 
-        drawReceiptCopy(cv, r, company, cachet, 420f, "SOUCHE (a garder)")
+        drawReceiptCopy(cv, r, company, cachet, mid + 14f, "SOUCHE (a garder)")
 
         pdf.finishPage(page)
         val fileName = "Recu_${r.clientName.replace(Regex("[^A-Za-z0-9]"), "_")}_${SimpleDateFormat("yyyyMMdd_HHmm", Locale.US).format(Date(r.timestamp))}.pdf"
@@ -308,7 +308,7 @@ object PdfGenerator {
     }
 
     /** Dessine UNE copie compacte du recu dans une zone commencant a `top` (hauteur ~350). */
-    private fun drawReceiptCopy(cv: Canvas, r: Receipt, company: String, cachet: Bitmap?, top: Float, tag: String) {
+    private fun drawReceiptCopy(cv: Canvas, r: Receipt, company: String, cachet: Bitmap?, top: Float, tag: String): Float {
         val df = SimpleDateFormat("dd/MM/yyyy 'a' HH:mm", Locale.FRENCH)
         val nf = NumberFormat.getNumberInstance(Locale.FRENCH)
         val left = MARGIN.toFloat()
@@ -347,18 +347,20 @@ object PdfGenerator {
         var cond = if (r.conditions.isNotBlank()) r.conditions
                    else "Aucune reclamation ne sera acceptee passe un delai de 48 heures. Tout achat effectue est sous l'entiere responsabilite du client."
         cond = cond.replace(Regex("\\s+"), " ").trim()
-        if (cond.length > 300) cond = cond.substring(0, 297) + "..."
-        drawWrapped(cv, cond, left, y, right - left, 12f, pCond)
-        val sigY = top + 330f
+        if (cond.length > 700) cond = cond.substring(0, 697) + "..."
+        val condEnd = drawWrapped(cv, cond, left, y, right - left, 12f, pCond)
+        // Signature/cachet juste apres les conditions, avec ~70pt d'espace pour le cachet
+        val sigTop = condEnd + 18f
         if (cachet != null) {
             val maxW = 110; val maxH = 60
             val ratio = minOf(maxW.toFloat() / cachet.width, maxH.toFloat() / cachet.height)
             val w = (cachet.width * ratio).toInt(); val h = (cachet.height * ratio).toInt()
-            val dst = Rect(right.toInt() - w, sigY.toInt() - h, right.toInt(), sigY.toInt())
+            val dst = Rect(right.toInt() - w, sigTop.toInt(), right.toInt(), sigTop.toInt() + h)
             cv.drawBitmap(cachet, null, dst, null)
         }
-        cv.drawText("Le client (lu et approuve)", left, sigY + 16f, pSmall)
-        cv.drawText("Cachet & signature", right - 130f, sigY + 16f, pSmall)
+        cv.drawText("Le client (lu et approuve)", left, sigTop + 70f, pSmall)
+        cv.drawText("Cachet & signature", right - 130f, sigTop + 70f, pSmall)
+        return sigTop + 80f
     }
 
     /** Dessine un texte en l'enveloppant sur plusieurs lignes. Retourne le nouveau y. */
