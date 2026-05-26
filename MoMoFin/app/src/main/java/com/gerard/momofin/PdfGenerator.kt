@@ -286,81 +286,79 @@ object PdfGenerator {
         val page = pdf.startPage(info)
         val cv = page.canvas
 
-        val df = SimpleDateFormat("dd/MM/yyyy 'a' HH:mm", Locale.FRENCH)
-        val nf = NumberFormat.getNumberInstance(Locale.FRENCH)
-        val left = MARGIN.toFloat()
-        val right = (PAGE_W - MARGIN).toFloat()
-        var y = 60f
+        // Deux exemplaires identiques sur la meme page (un pour le client, un a garder)
+        drawReceiptCopy(cv, r, company, cachet, 36f, "EXEMPLAIRE CLIENT")
 
-        val pTitle = Paint().apply { textSize = 22f; isFakeBoldText = true; color = 0xFF0D47A1.toInt() }
-        val pHeader = Paint().apply { textSize = 16f; isFakeBoldText = true; color = 0xFF1565C0.toInt() }
-        val pLabel = Paint().apply { textSize = 12f; color = 0xFF6B7280.toInt() }
-        val pVal = Paint().apply { textSize = 15f; color = 0xFF111827.toInt() }
-        val pValBold = Paint().apply { textSize = 16f; isFakeBoldText = true; color = 0xFF111827.toInt() }
-        val pBig = Paint().apply { textSize = 26f; isFakeBoldText = true; color = 0xFF059669.toInt() }
-        val pSmall = Paint().apply { textSize = 11f; color = 0xFF555555.toInt() }
-        val rule = Paint().apply { color = 0xFFBBBBBB.toInt(); strokeWidth = 1f }
-        val ruleStrong = Paint().apply { color = 0xFF0D47A1.toInt(); strokeWidth = 2f }
-
-        // En-tete : ENTREPRISE - PARTENAIRE
-        val entete = (if (company.isNotBlank()) company.uppercase() else "MOMO FIN") +
-                     (if (r.partnerName.isNotBlank()) "  -  " + r.partnerName.uppercase() else "")
-        cv.drawText(entete, left, y, pHeader); y += 14f
-        cv.drawLine(left, y, right, y, ruleStrong); y += 36f
-
-        // Titre RECU + reference + date
-        cv.drawText("RECU", left, y, pTitle)
-        cv.drawText("N° ${r.clientId.takeLast(8)}", right - 150, y - 16, pSmall)
-        cv.drawText(df.format(Date(r.timestamp)), right - 150, y, pSmall)
-        y += 30f
-        cv.drawLine(left, y, right, y, rule); y += 36f
-
-        // Client
-        cv.drawText("CLIENT", left, y, pLabel); y += 22f
-        cv.drawText(r.clientName, left, y, pValBold); y += 36f
-
-        // Objet
-        cv.drawText("OBJET", left, y, pLabel); y += 22f
-        cv.drawText(r.objet, left, y, pVal); y += 40f
-
-        // Montant (encadre)
-        cv.drawText("MONTANT", left, y, pLabel); y += 30f
-        cv.drawText("${nf.format(r.amount)} ${r.currency}", left, y, pBig); y += 40f
-
-        cv.drawLine(left, y, right, y, rule); y += 30f
-
-        // Conditions (texte enveloppe)
-        cv.drawText("CONDITIONS", left, y, pLabel); y += 20f
-        val condText = if (r.conditions.isNotBlank()) r.conditions
-                       else "Aucune reclamation ne sera acceptee passe un delai de 48 heures. Tout achat effectue est sous l'entiere responsabilite du client."
-        val pCond = Paint().apply { textSize = 12f; color = 0xFF374151.toInt() }
-        y = drawWrapped(cv, condText, left, y, (right - left), 18f, pCond)
-        y += 30f
-
-        // S'assurer qu'on occupe au moins la moitie de la page
-        if (y < PAGE_H / 2f) y = PAGE_H / 2f + 20f
-
-        // Cachet + signature en bas
-        cv.drawLine(left, y, right, y, rule); y += 24f
-        if (cachet != null) {
-            val maxW = 150; val maxH = 100
-            val ratio = minOf(maxW.toFloat() / cachet.width, maxH.toFloat() / cachet.height)
-            val w = (cachet.width * ratio).toInt(); val h = (cachet.height * ratio).toInt()
-            val dst = Rect(right.toInt() - w, y.toInt(), right.toInt(), y.toInt() + h)
-            cv.drawBitmap(cachet, null, dst, null)
+        val mid = 408f
+        val cut = Paint().apply {
+            color = 0xFF999999.toInt(); strokeWidth = 1f
+            pathEffect = android.graphics.DashPathEffect(floatArrayOf(6f, 4f), 0f)
         }
-        cv.drawText("Cachet & signature", right - 150, y + 118, pSmall)
-        cv.drawText("Le client (lu et approuve)", left, y + 118, pSmall)
+        cv.drawLine(MARGIN.toFloat(), mid, (PAGE_W - MARGIN).toFloat(), mid, cut)
+        cv.drawText("DECOUPER ICI - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -",
+            MARGIN.toFloat(), mid - 4f, Paint().apply { textSize = 8f; color = 0xFF999999.toInt() })
 
-        // Footer
-        cv.drawText("Genere par MoMo Fin - " + SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.FRENCH).format(Date()),
-            left, (PAGE_H - 24).toFloat(), pSmall)
+        drawReceiptCopy(cv, r, company, cachet, 420f, "SOUCHE (a garder)")
 
         pdf.finishPage(page)
         val fileName = "Recu_${r.clientName.replace(Regex("[^A-Za-z0-9]"), "_")}_${SimpleDateFormat("yyyyMMdd_HHmm", Locale.US).format(Date(r.timestamp))}.pdf"
         val out = writePdf(context, pdf, fileName)
         pdf.close()
         return out
+    }
+
+    /** Dessine UNE copie compacte du recu dans une zone commencant a `top` (hauteur ~350). */
+    private fun drawReceiptCopy(cv: Canvas, r: Receipt, company: String, cachet: Bitmap?, top: Float, tag: String) {
+        val df = SimpleDateFormat("dd/MM/yyyy 'a' HH:mm", Locale.FRENCH)
+        val nf = NumberFormat.getNumberInstance(Locale.FRENCH)
+        val left = MARGIN.toFloat()
+        val right = (PAGE_W - MARGIN).toFloat()
+
+        val pHeader = Paint().apply { textSize = 13f; isFakeBoldText = true; color = 0xFF1565C0.toInt() }
+        val pTitle = Paint().apply { textSize = 15f; isFakeBoldText = true; color = 0xFF0D47A1.toInt() }
+        val pLabel = Paint().apply { textSize = 8f; color = 0xFF6B7280.toInt() }
+        val pVal = Paint().apply { textSize = 11f; color = 0xFF111827.toInt() }
+        val pValBold = Paint().apply { textSize = 12f; isFakeBoldText = true; color = 0xFF111827.toInt() }
+        val pBig = Paint().apply { textSize = 16f; isFakeBoldText = true; color = 0xFF059669.toInt() }
+        val pSmall = Paint().apply { textSize = 8f; color = 0xFF555555.toInt() }
+        val pTag = Paint().apply { textSize = 8f; color = 0xFF9CA3AF.toInt(); textAlign = Paint.Align.RIGHT }
+        val pCond = Paint().apply { textSize = 9f; color = 0xFF374151.toInt() }
+        val rule = Paint().apply { color = 0xFFBBBBBB.toInt(); strokeWidth = 1f }
+        val ruleStrong = Paint().apply { color = 0xFF0D47A1.toInt(); strokeWidth = 1.5f }
+
+        var y = top + 12f
+        cv.drawText(tag, right, top + 8f, pTag)
+        val entete = (if (company.isNotBlank()) company.uppercase() else "MOMO FIN") +
+                     (if (r.partnerName.isNotBlank()) "  -  " + r.partnerName.uppercase() else "")
+        cv.drawText(entete, left, y, pHeader); y += 8f
+        cv.drawLine(left, y, right, y, ruleStrong); y += 20f
+        cv.drawText("RECU", left, y, pTitle)
+        cv.drawText("No ${r.clientId.takeLast(8)}", right - 150f, y - 10f, pSmall)
+        cv.drawText(df.format(Date(r.timestamp)), right - 150f, y, pSmall)
+        y += 22f
+        cv.drawText("CLIENT", left, y, pLabel); y += 13f
+        cv.drawText(r.clientName, left, y, pValBold); y += 24f
+        cv.drawText("OBJET", left, y, pLabel)
+        cv.drawText("MONTANT", left + 270f, y, pLabel); y += 14f
+        cv.drawText(r.objet, left, y, pVal)
+        cv.drawText("${nf.format(r.amount)} ${r.currency}", left + 270f, y + 2f, pBig); y += 22f
+        cv.drawLine(left, y, right, y, rule); y += 16f
+        cv.drawText("CONDITIONS", left, y, pLabel); y += 12f
+        var cond = if (r.conditions.isNotBlank()) r.conditions
+                   else "Aucune reclamation ne sera acceptee passe un delai de 48 heures. Tout achat effectue est sous l'entiere responsabilite du client."
+        cond = cond.replace(Regex("\\s+"), " ").trim()
+        if (cond.length > 300) cond = cond.substring(0, 297) + "..."
+        drawWrapped(cv, cond, left, y, right - left, 12f, pCond)
+        val sigY = top + 330f
+        if (cachet != null) {
+            val maxW = 110; val maxH = 60
+            val ratio = minOf(maxW.toFloat() / cachet.width, maxH.toFloat() / cachet.height)
+            val w = (cachet.width * ratio).toInt(); val h = (cachet.height * ratio).toInt()
+            val dst = Rect(right.toInt() - w, sigY.toInt() - h, right.toInt(), sigY.toInt())
+            cv.drawBitmap(cachet, null, dst, null)
+        }
+        cv.drawText("Le client (lu et approuve)", left, sigY + 16f, pSmall)
+        cv.drawText("Cachet & signature", right - 130f, sigY + 16f, pSmall)
     }
 
     /** Dessine un texte en l'enveloppant sur plusieurs lignes. Retourne le nouveau y. */
