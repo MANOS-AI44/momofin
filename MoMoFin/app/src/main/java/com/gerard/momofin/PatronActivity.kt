@@ -86,8 +86,10 @@ class PatronActivity : AppCompatActivity() {
             val others = all.filter { !it.isOwn }
             withContext(Dispatchers.Main) {
                 if (manual) Toast.makeText(this@PatronActivity, push.message, Toast.LENGTH_LONG).show()
-                // Restaurer le mien uniquement si rien en local (recuperation apres reinstallation)
-                if (!hadLocal && own.isNotEmpty()) store.replaceAllFromRemote(own)
+                // Carnet partage : apres un push reussi, le serveur contient mes saisies (cid stables)
+                // + celles ajoutees par l'admin (cid 'web_'). On fusionne en remplacant le local par le
+                // serveur (sans doublon grace aux cid). Si le push a echoue, on garde le local intact.
+                if (own.isNotEmpty() && (push.ok || !hadLocal)) store.replaceAllFromRemote(own)
                 renderOthers(others)
                 refresh()
             }

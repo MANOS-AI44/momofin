@@ -5,19 +5,23 @@ import android.content.Context
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
 
-class FolderStore(context: Context) : SQLiteOpenHelper(context, "patron_folders.db", null, 1) {
+class FolderStore(context: Context) : SQLiteOpenHelper(context, "patron_folders.db", null, 2) {
 
     companion object {
         const val T_FOLDER = "folders"
         const val T_ENTRY = "folder_entries"
     }
 
+    private fun newCid(prefix: String) =
+        prefix + "_" + System.currentTimeMillis() + "_" + (0..999999).random()
+
     override fun onCreate(db: SQLiteDatabase) {
         db.execSQL("""
             CREATE TABLE $T_FOLDER (
                 _id INTEGER PRIMARY KEY AUTOINCREMENT,
                 name TEXT NOT NULL,
-                created_at INTEGER NOT NULL
+                created_at INTEGER NOT NULL,
+                cid TEXT
             )
         """.trimIndent())
         db.execSQL("""
@@ -28,15 +32,21 @@ class FolderStore(context: Context) : SQLiteOpenHelper(context, "patron_folders.
                 amount REAL NOT NULL,
                 note TEXT,
                 ts INTEGER NOT NULL,
+                cid TEXT,
                 FOREIGN KEY(folder_id) REFERENCES $T_FOLDER(_id) ON DELETE CASCADE
             )
         """.trimIndent())
     }
 
     override fun onUpgrade(db: SQLiteDatabase, oldV: Int, newV: Int) {
-        db.execSQL("DROP TABLE IF EXISTS $T_ENTRY")
-        db.execSQL("DROP TABLE IF EXISTS $T_FOLDER")
-        onCreate(db)
+        // Migration non destructive : on ajoute la colonne cid et on attribue
+        // un identifiant stable aux donnees existantes (sans rien effacer).
+        if (oldV < 2) {
+            runCatching { db.execSQL("ALTER TABLE $T_FOLDER ADD COLUMN cid TEXT") }
+            runCatching { db.execSQL("ALTER TABLE $T_ENTRY ADD COLUMN cid TEXT") }
+            runCatching { db.execSQL("UPDATE $T_FOLDER SET cid = 'f_' || _id WHERE cid IS NULL") }
+            runCatching { db.execSQL("UPDATE $T_ENTRY SET cid = 'app_' || _id WHERE cid IS NULL") }
+        }
     }
 
     // ----- Folders -----
@@ -44,6 +54,7 @@ class FolderStore(context: Context) : SQLiteOpenHelper(context, "patron_folders.
         val cv = ContentValues().apply {
             put("name", name)
             put("created_at", System.currentTimeMillis())
+            put("cid", newCid("f"))
         }
         return writableDatabase.insert(T_FOLDER, null, cv)
     }
@@ -58,6 +69,11 @@ class FolderStore(context: Context) : SQLiteOpenHelper(context, "patron_folders.
         writableDatabase.delete(T_FOLDER, "_id=?", arrayOf(id.toString()))
     }
 
+    private fun cidOf(c: android.database.Cursor): String {
+        val i = c.getColumnIndex("cid")
+        return if (i >= 0) (c.getString(i) ?: "") else ""
+    }
+
     fun allFolders(): List<Folder> {
         val list = mutableListOf<Folder>()
         readableDatabase.query(T_FOLDER, null, null, null, null, null, "created_at DESC").use { c ->
@@ -65,7 +81,7 @@ class FolderStore(context: Context) : SQLiteOpenHelper(context, "patron_folders.
             val iName = c.getColumnIndexOrThrow("name")
             val iTs = c.getColumnIndexOrThrow("created_at")
             while (c.moveToNext()) {
-                list.add(Folder(c.getLong(iId), c.getString(iName) ?: "", c.getLong(iTs)))
+                list.add(Folder(c.getLong(iId), c.getString(iName) ?: "", c.getLong(iTs), cidOf(c)))
             }
         }
         return list
@@ -77,13 +93,14 @@ class FolderStore(context: Context) : SQLiteOpenHelper(context, "patron_folders.
             return Folder(
                 c.getLong(c.getColumnIndexOrThrow("_id")),
                 c.getString(c.getColumnIndexOrThrow("name")) ?: "",
-                c.getLong(c.getColumnIndexOrThrow("created_at"))
+                c.getLong(c.getColumnIndexOrThrow("created_at")),
+                cidOf(c)
             )
         }
     }
 
-    /** Restaure les comptes depuis le serveur : efface le local et recree
-     *  folders + entries avec leurs timestamps d'origine. */
+    /** Restaure/fusionne les comptes depuis le serveur : efface le local et recree
+     *  folders + entries en CONSERVANT leur identifiant stable (cid) pour eviter les doublons. */
     fun replaceAllFromRemote(folders: List<RailwayClient.RemoteFolder>) {
         val db = writableDatabase
         db.beginTransaction()
@@ -94,6 +111,7 @@ class FolderStore(context: Context) : SQLiteOpenHelper(context, "patron_folders.
                 val fcv = ContentValues().apply {
                     put("name", f.name)
                     put("created_at", if (f.createdAt > 0) f.createdAt else System.currentTimeMillis())
+                    put("cid", if (f.cid.isNotBlank()) f.cid else newCid("f"))
                 }
                 val fid = db.insert(T_FOLDER, null, fcv)
                 for (e in f.entries) {
@@ -103,6 +121,7 @@ class FolderStore(context: Context) : SQLiteOpenHelper(context, "patron_folders.
                         put("amount", e.amount)
                         put("note", e.note)
                         put("ts", if (e.ts > 0) e.ts else System.currentTimeMillis())
+                        put("cid", if (e.cid.isNotBlank()) e.cid else newCid("app"))
                     }
                     db.insert(T_ENTRY, null, ecv)
                 }
@@ -121,6 +140,7 @@ class FolderStore(context: Context) : SQLiteOpenHelper(context, "patron_folders.
             put("amount", amount)
             put("note", note)
             put("ts", System.currentTimeMillis())
+            put("cid", newCid("app"))
         }
         return writableDatabase.insert(T_ENTRY, null, cv)
     }
@@ -148,7 +168,8 @@ class FolderStore(context: Context) : SQLiteOpenHelper(context, "patron_folders.
                     type = runCatching { TxType.valueOf(c.getString(c.getColumnIndexOrThrow("type"))) }.getOrElse { TxType.INCONNU },
                     amount = c.getDouble(c.getColumnIndexOrThrow("amount")),
                     note = c.getString(c.getColumnIndexOrThrow("note")) ?: "",
-                    timestamp = c.getLong(c.getColumnIndexOrThrow("ts"))
+                    timestamp = c.getLong(c.getColumnIndexOrThrow("ts")),
+                    cid = cidOf(c)
                 ))
             }
         }

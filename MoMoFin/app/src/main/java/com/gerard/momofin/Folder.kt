@@ -3,7 +3,8 @@ package com.gerard.momofin
 data class Folder(
     val id: Long,
     val name: String,
-    val createdAt: Long
+    val createdAt: Long,
+    val cid: String = ""        // identifiant stable partage avec le serveur
 )
 
 data class FolderEntry(
@@ -12,5 +13,6 @@ data class FolderEntry(
     val type: TxType,    // RECU (= Entrée) ou SORTIE
     val amount: Double,
     val note: String,
-    val timestamp: Long
+    val timestamp: Long,
+    val cid: String = ""        // identifiant stable partage avec le serveur (app_… ou web_…)
 )

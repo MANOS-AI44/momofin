@@ -77,7 +77,7 @@ object RailwayClient {
                 val entriesArr = JSONArray()
                 for (e in store.entries(f.id)) {
                     entriesArr.put(JSONObject()
-                        .put("client_id", e.id.toString())
+                        .put("client_id", if (e.cid.isNotBlank()) e.cid else "app_" + e.id)
                         .put("type", e.type.name)
                         .put("amount", e.amount)
                         .put("note", e.note)
@@ -85,7 +85,7 @@ object RailwayClient {
                     )
                 }
                 arr.put(JSONObject()
-                    .put("client_id", f.id.toString())
+                    .put("client_id", if (f.cid.isNotBlank()) f.cid else "f_" + f.id)
                     .put("name", f.name)
                     .put("created_at", ISO.format(Date(f.createdAt)))
                     .put("entries", entriesArr)
@@ -206,9 +206,10 @@ object RailwayClient {
 
 
 
-    data class RemoteEntry(val type: String, val amount: Double, val note: String, val ts: Long)
+    data class RemoteEntry(val type: String, val amount: Double, val note: String, val ts: Long, val cid: String = "")
     data class RemoteFolder(
         val name: String,
+        val cid: String = "",
         val deviceLabel: String,
         val deviceCode: String,
         val isOwn: Boolean,
@@ -241,11 +242,12 @@ object RailwayClient {
                         "SORTIE" -> tS += amt
                     }
                     val tsE = try { ISO.parse(e.optString("ts"))?.time ?: 0L } catch (_: Exception) { 0L }
-                    parsed.add(RemoteEntry(typ, amt, e.optString("note", ""), tsE))
+                    parsed.add(RemoteEntry(typ, amt, e.optString("note", ""), tsE, e.optString("client_id", "")))
                 }
                 val createdAt = try { ISO.parse(o.optString("created_at"))?.time ?: 0L } catch (_: Exception) { 0L }
                 out.add(RemoteFolder(
                     name = o.optString("name", ""),
+                    cid = o.optString("client_id", ""),
                     deviceLabel = o.optString("device_label", "—"),
                     deviceCode = o.optString("device_code", ""),
                     isOwn = o.optBoolean("is_own", false),
