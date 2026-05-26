@@ -187,36 +187,30 @@ function generate(res, transactions, patron = [], meta = {}) {
     doc.end();
 }
 
-// --- Recu : dessine UNE copie compacte dans une zone commencant a `top` (hauteur ~360) ---
+// --- Recu : dessine UNE copie compacte commencant a `top`. La signature suit
+// directement les conditions (avec l'espace necessaire pour le cachet). ---
 function drawReceiptCopy(doc, r, meta, top, tag) {
     const left = MARGIN, right = PAGE_RIGHT;
-    let y = top;
 
-    // Etiquette exemplaire (coin haut droit)
-    doc.fontSize(8).fillColor('#9CA3AF').text(tag, left, y, { width: right - left, align: 'right', lineBreak: false });
-
-    // En-tete ENTREPRISE - PARTENAIRE
+    doc.fontSize(8).fillColor('#9CA3AF').text(tag, left, top, { width: right - left, align: 'right', lineBreak: false });
     const company = (meta.company || 'MoMo Fin').toUpperCase();
     const partner = (r.partner_name || '').toUpperCase();
     doc.fontSize(12).fillColor('#1565C0')
-        .text(partner ? `${company}  -  ${partner}` : company, left, y, { width: right - left - 90, lineBreak: false });
-    y += 18;
+        .text(partner ? `${company}  -  ${partner}` : company, left, top, { width: right - left - 100, lineBreak: false });
+    let y = top + 18;
     doc.moveTo(left, y).lineTo(right, y).lineWidth(1.5).strokeColor('#0D47A1').stroke();
     y += 8;
 
-    // Titre + reference + date
     doc.fontSize(14).fillColor('#0D47A1').text('REÇU', left, y, { lineBreak: false });
     const ref = String(r.client_id || r.id || '').slice(-8);
     doc.fontSize(8).fillColor('#555')
         .text(`N° ${ref}    ${new Date(r.ts).toLocaleString('fr-FR')}`, left, y + 3, { width: right - left, align: 'right', lineBreak: false });
     y += 22;
 
-    // Client
     doc.fontSize(8).fillColor('#6B7280').text('CLIENT', left, y, { lineBreak: false });
     doc.fontSize(11).fillColor('#111827').text(r.client_name || '—', left, y + 9, { width: right - left, lineBreak: false });
     y += 28;
 
-    // Objet (gauche) + Montant (droite) sur la meme ligne pour gagner de la place
     doc.fontSize(8).fillColor('#6B7280').text('OBJET', left, y, { lineBreak: false });
     doc.fontSize(11).fillColor('#111827').text(r.objet || '—', left, y + 9, { width: 240, lineBreak: false });
     doc.fontSize(8).fillColor('#6B7280').text('MONTANT', left + 270, y, { lineBreak: false });
@@ -225,45 +219,44 @@ function drawReceiptCopy(doc, r, meta, top, tag) {
     doc.moveTo(left, y).lineTo(right, y).lineWidth(1).strokeColor('#bbb').stroke();
     y += 6;
 
-    // Conditions (tronquees pour tenir dans une demi-page)
+    // Conditions : texte COMPLET (enveloppe), la position suivante depend de sa hauteur
     let cond = (r.conditions && r.conditions !== 'null' && String(r.conditions).trim())
         ? String(r.conditions)
         : "Aucune réclamation ne sera acceptée passé un délai de 48 heures. Tout achat effectué est sous l'entière responsabilité du client.";
-    cond = cond.replace(/\r\n?/g, '\n').replace(/\n{2,}/g, '\n').replace(/\s+/g, ' ').trim();
-    if (cond.length > 320) cond = cond.slice(0, 317) + '…';
+    cond = cond.replace(/\r\n?/g, '\n').replace(/\n{2,}/g, '\n').replace(/[ \t]+/g, ' ').trim();
+    if (cond.length > 700) cond = cond.slice(0, 697) + '…';
     doc.fontSize(8).fillColor('#6B7280').text('CONDITIONS', left, y, { lineBreak: false });
     y += 11;
-    doc.fontSize(7.5).fillColor('#374151').text(cond, left, y, { width: right - left, height: 60, ellipsis: true });
+    doc.fontSize(8).fillColor('#374151').text(cond, left, y, { width: right - left });
+    let endY = doc.y; // pdfkit a avance jusqu'a la fin des conditions
 
-    // Signatures en bas de la zone
-    const sigY = top + 296;
+    // Signature/cachet : juste apres les conditions, avec ~64pt d'espace pour le cachet
+    const sy = endY + 10;
     if (meta.cachet) {
-        try { doc.image(meta.cachet, right - 120, sigY - 14, { fit: [120, 70] }); } catch (e) {}
+        try { doc.image(meta.cachet, right - 120, sy, { fit: [120, 60] }); } catch (e) {}
     }
     doc.fontSize(8).fillColor('#555')
-        .text('Le client (lu et approuvé)', left, sigY + 50, { lineBreak: false })
-        .text('Cachet & signature', right - 140, sigY + 50, { width: 140, align: 'center', lineBreak: false });
+        .text('Le client (lu et approuvé)', left, sy + 60, { lineBreak: false })
+        .text('Cachet & signature', right - 140, sy + 60, { width: 140, align: 'center', lineBreak: false });
+    return sy + 74; // bas de la copie
 }
 
-// Genere un recu (A4) en DEUX exemplaires identiques sur la meme page :
-// un pour le client, un a conserver. Ligne de decoupe au milieu.
+// Genere un recu (A4) en DEUX exemplaires identiques sur la meme page.
 function generateReceipt(res, r, meta = {}) {
     const doc = new PDFDocument({ size: 'A4', margin: MARGIN });
     doc.pipe(res);
 
-    // Exemplaire du haut (client)
-    drawReceiptCopy(doc, r, meta, 36, 'EXEMPLAIRE CLIENT');
+    const bottom1 = drawReceiptCopy(doc, r, meta, 36, 'EXEMPLAIRE CLIENT');
 
-    // Ligne de decoupe au milieu
-    const mid = 408;
+    // Ligne de decoupe : au milieu, mais au moins sous la 1ere copie
+    const mid = Math.max(bottom1 + 14, 418);
     doc.save();
     doc.dash(4, { space: 3 }).moveTo(MARGIN, mid).lineTo(PAGE_RIGHT, mid).lineWidth(0.7).strokeColor('#999').stroke();
     doc.undash();
     doc.restore();
-    doc.fontSize(8).fillColor('#999').text('✂ - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -', MARGIN, mid - 9, { lineBreak: false });
+    doc.fontSize(8).fillColor('#999').text('- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -', MARGIN, mid - 9, { lineBreak: false });
 
-    // Exemplaire du bas (souche a garder)
-    drawReceiptCopy(doc, r, meta, 420, 'SOUCHE (à garder)');
+    drawReceiptCopy(doc, r, meta, mid + 12, 'SOUCHE (à garder)');
 
     doc.end();
 }
