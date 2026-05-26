@@ -21,13 +21,38 @@
     </p>
 </section>
 
+<section class="panel">
+    <h3>➕ Ajouter une entrée / sortie</h3>
+    <form method="POST" action="/comptes/<%= folder.id %>/entry" style="display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end;">
+        <div>
+            <label style="display:block; font-size:12px; color:#6B7280;">Type</label>
+            <select name="type" style="padding:8px; border:1px solid #D1D5DB; border-radius:6px;">
+                <option value="RECU">Entrée (reçu)</option>
+                <option value="SORTIE">Sortie (donné)</option>
+            </select>
+        </div>
+        <div>
+            <label style="display:block; font-size:12px; color:#6B7280;">Montant (FCFA)</label>
+            <input type="text" name="amount" inputmode="numeric" placeholder="ex : 50000" required
+                   style="padding:8px; border:1px solid #D1D5DB; border-radius:6px;">
+        </div>
+        <div style="flex:1; min-width:180px;">
+            <label style="display:block; font-size:12px; color:#6B7280;">Note (optionnel)</label>
+            <input type="text" name="note" placeholder="motif…"
+                   style="width:100%; padding:8px; border:1px solid #D1D5DB; border-radius:6px;">
+        </div>
+        <button type="submit" class="btn primary" style="padding:9px 18px;">Ajouter</button>
+    </form>
+    <p style="font-size:12px; color:#6B7280; margin-top:8px;">Vos ajouts apparaîtront aussi dans l'app de la boutique après synchronisation.</p>
+</section>
+
 <% if (entries.length === 0) { %>
     <p class="empty">Aucune saisie dans ce dossier.</p>
 <% } else { %>
     <section class="panel">
         <table>
             <thead>
-                <tr><th>Date</th><th>Type</th><th style="text-align:right;">Montant</th><th>Note</th></tr>
+                <tr><th>Date</th><th>Type</th><th style="text-align:right;">Montant</th><th>Note</th><th></th></tr>
             </thead>
             <tbody>
             <% entries.forEach(function(e) { %>
@@ -36,6 +61,11 @@
                     <td><span class="badge <%= e.type === 'RECU' ? 'recu' : 'sortie' %>"><%= e.type === 'RECU' ? 'Entrée' : 'Sortie' %></span></td>
                     <td style="text-align:right;"><strong><%= fmt(e.amount) %></strong></td>
                     <td><%= e.note || '' %></td>
+                    <td style="text-align:right;">
+                        <form method="POST" action="/comptes/<%= folder.id %>/entry/<%= e.id %>/supprimer" onsubmit="return confirm('Supprimer cette saisie ?');" style="margin:0;">
+                            <button type="submit" class="btn" style="padding:4px 10px; font-size:12px; background:#FEE2E2; color:#991B1B; border:none; border-radius:6px;">🗑️</button>
+                        </form>
+                    </td>
                 </tr>
             <% }); %>
             </tbody>

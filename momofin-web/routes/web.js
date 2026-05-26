@@ -658,6 +658,40 @@ router.get('/comptes/:id', adminOnly, async (req, res) => {
     res.render('compte-detail', { user: req.user, folder, entries, totalE, totalS, solde: totalE - totalS, fmt });
 });
 
+// Admin ajoute une entree/sortie sur le compte d'une boutique (carnet partage)
+router.post('/comptes/:id/entry', adminOnly, async (req, res) => {
+    const { rows } = await pool.query(
+        `SELECT f.id, f.device_id FROM folders f
+         JOIN devices d ON d.token = f.device_id AND d.user_id = $1
+         WHERE f.id = $2`, [req.user.id, req.params.id]
+    );
+    if (rows.length === 0) return res.status(404).send('Dossier introuvable.');
+    const type = (req.body.type === 'RECU') ? 'RECU' : 'SORTIE';
+    const amt = Number(String(req.body.amount || '').replace(/\s/g, '').replace(',', '.')) || 0;
+    if (amt > 0) {
+        const cid = 'web_' + Date.now();
+        await pool.query(
+            `INSERT INTO folder_entries (folder_id, device_id, client_id, type, amount, note, ts)
+             VALUES ($1, $2, $3, $4, $5, $6, NOW())`,
+            [rows[0].id, rows[0].device_id, cid, type, amt, String(req.body.note || '').substring(0, 500)]
+        );
+    }
+    res.redirect('/comptes/' + req.params.id);
+});
+
+// Admin supprime une entree d'un compte de boutique
+router.post('/comptes/:id/entry/:eid/supprimer', adminOnly, async (req, res) => {
+    const { rows } = await pool.query(
+        `SELECT f.id FROM folders f
+         JOIN devices d ON d.token = f.device_id AND d.user_id = $1
+         WHERE f.id = $2`, [req.user.id, req.params.id]
+    );
+    if (rows.length === 0) return res.status(404).send('Dossier introuvable.');
+    await pool.query('DELETE FROM folder_entries WHERE id = $1 AND folder_id = $2',
+        [req.params.eid, req.params.id]);
+    res.redirect('/comptes/' + req.params.id);
+});
+
 
 
 // Page publique : guide d'installation de l'APK

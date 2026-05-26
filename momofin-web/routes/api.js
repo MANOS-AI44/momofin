@@ -242,31 +242,47 @@ router.delete('/devices/:token', authDevice, async (req, res) => {
 router.post('/folders/sync', authDevice, async (req, res) => {
     const { folders } = req.body || {};
     if (!Array.isArray(folders)) return res.status(400).json({ error: 'folders array attendu' });
+    // Securite : ne JAMAIS effacer le serveur si l'app envoie une liste vide
+    if (folders.length === 0) return res.json({ ok: true, folders: 0, entries: 0, note: 'liste vide ignoree' });
     const conn = await pool.connect();
     try {
         await conn.query('BEGIN');
-        // Supprimer tous les folders du device (cascade supprime les entries)
-        await conn.query('DELETE FROM folders WHERE device_id = $1', [req.deviceToken]);
+        // Supprimer uniquement les dossiers de l'app qui ne sont plus dans le payload
+        const cids = folders.map(f => String(f.client_id || '')).filter(Boolean);
+        await conn.query(
+            `DELETE FROM folders WHERE device_id = $1 AND client_id <> ALL($2::text[])`,
+            [req.deviceToken, cids]
+        );
         let nbFolders = 0, nbEntries = 0;
         for (const f of folders) {
             const cid = String(f.client_id || '');
             if (!cid || !f.name) continue;
+            // Upsert du dossier (conserve l'id existant -> conserve les entrees web liees)
             const fr = await conn.query(
                 `INSERT INTO folders (device_id, client_id, name, created_at, updated_at)
                  VALUES ($1, $2, $3, COALESCE($4::timestamptz, NOW()), NOW())
+                 ON CONFLICT (device_id, client_id)
+                 DO UPDATE SET name = EXCLUDED.name, updated_at = NOW()
                  RETURNING id`,
                 [req.deviceToken, cid, String(f.name).substring(0, 200),
                  f.created_at ? new Date(f.created_at).toISOString() : null]
             );
             const folderId = fr.rows[0].id;
             nbFolders++;
+            // Effacer uniquement les entrees issues de l'APP (preserver celles ajoutees par l'admin web : client_id 'web_...')
+            await conn.query(
+                `DELETE FROM folder_entries WHERE folder_id = $1 AND (client_id IS NULL OR client_id NOT LIKE 'web\_%')`,
+                [folderId]
+            );
             for (const e of (f.entries || [])) {
                 if (!['RECU','SORTIE'].includes(e.type)) continue;
                 const amt = Number(e.amount);
                 if (!isFinite(amt) || amt <= 0) continue;
                 await conn.query(
                     `INSERT INTO folder_entries (folder_id, device_id, client_id, type, amount, note, ts)
-                     VALUES ($1, $2, $3, $4, $5, $6, COALESCE($7::timestamptz, NOW()))`,
+                     VALUES ($1, $2, $3, $4, $5, $6, COALESCE($7::timestamptz, NOW()))
+                     ON CONFLICT (folder_id, client_id)
+                     DO UPDATE SET type = EXCLUDED.type, amount = EXCLUDED.amount, note = EXCLUDED.note, ts = EXCLUDED.ts`,
                     [folderId, req.deviceToken, String(e.client_id || ''),
                      e.type, amt, String(e.note || '').substring(0, 500),
                      e.ts ? new Date(e.ts).toISOString() : null]
