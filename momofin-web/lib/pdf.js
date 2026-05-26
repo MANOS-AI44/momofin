@@ -229,9 +229,10 @@ function generateReceipt(res, r, meta = {}) {
     doc.moveTo(left, doc.y).lineTo(right, doc.y).strokeColor('#bbb').stroke();
     doc.moveDown(0.6);
 
-    const cond = (r.conditions && r.conditions !== 'null' && r.conditions.trim())
+    let cond = (r.conditions && r.conditions !== 'null' && r.conditions.trim())
         ? r.conditions
         : "Aucune réclamation ne sera acceptée passé un délai de 48 heures. Tout achat effectué est sous l'entière responsabilité du client.";
+    cond = String(cond).replace(/\r\n?/g, '\n').replace(/\n{3,}/g, '\n\n').trim();
     doc.fontSize(11).fillColor('#6B7280').text('CONDITIONS', left, doc.y);
     doc.fontSize(11).fillColor('#374151').text(cond, left, doc.y + 2, { width: right - left });
     doc.moveDown(1);
@@ -248,7 +249,7 @@ function generateReceipt(res, r, meta = {}) {
         .text('Cachet & signature', right - 150, sy + 110, { width: 150, align: 'center' });
 
     doc.fontSize(9).fillColor('#555')
-        .text('Généré par MoMo Fin - ' + new Date().toLocaleString('fr-FR'), left, 800);
+        .text('Généré par MoMo Fin - ' + new Date().toLocaleString('fr-FR'), left, 790, { lineBreak: false });
 
     doc.end();
 }
