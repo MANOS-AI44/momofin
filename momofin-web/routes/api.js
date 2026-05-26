@@ -242,8 +242,7 @@ router.delete('/devices/:token', authDevice, async (req, res) => {
 router.post('/folders/sync', authDevice, async (req, res) => {
     const { folders } = req.body || {};
     if (!Array.isArray(folders)) return res.status(400).json({ error: 'folders array attendu' });
-    const client = await req.pool.connect ? req.pool : require('../lib/db').pool;
-    const conn = await client.connect();
+    const conn = await pool.connect();
     try {
         await conn.query('BEGIN');
         // Supprimer tous les folders du device (cascade supprime les entries)

@@ -187,4 +187,70 @@ function generate(res, transactions, patron = [], meta = {}) {
     doc.end();
 }
 
-module.exports = { generate, dayKey, fmtNumber, phoneOpFromNum };
+// Genere un recu individuel (A4) : en-tete entreprise-partenaire, client, objet,
+// montant, conditions, cachet. Occupe au moins une demi-page.
+function generateReceipt(res, r, meta = {}) {
+    const doc = new PDFDocument({ size: 'A4', margin: MARGIN });
+    doc.pipe(res);
+
+    const company = (meta.company || 'MoMo Fin').toUpperCase();
+    const partner = (r.partner_name || '').toUpperCase();
+    const left = MARGIN;
+    const right = PAGE_RIGHT;
+
+    doc.fontSize(16).fillColor('#1565C0')
+        .text(partner ? `${company}  -  ${partner}` : company, left, 50);
+    doc.moveTo(left, doc.y + 4).lineTo(right, doc.y + 4).lineWidth(2).strokeColor('#0D47A1').stroke();
+    doc.lineWidth(1);
+    doc.moveDown(1.2);
+
+    const topY = doc.y;
+    doc.fontSize(22).fillColor('#0D47A1').text('REÇU', left, topY);
+    const ref = String(r.client_id || r.id || '').slice(-8);
+    doc.fontSize(10).fillColor('#555')
+        .text(`N° ${ref}`, right - 160, topY, { width: 160, align: 'right' })
+        .text(new Date(r.ts).toLocaleString('fr-FR'), right - 160, topY + 14, { width: 160, align: 'right' });
+    doc.moveDown(1.4);
+    doc.moveTo(left, doc.y).lineTo(right, doc.y).strokeColor('#bbb').stroke();
+    doc.moveDown(0.8);
+
+    doc.fontSize(11).fillColor('#6B7280').text('CLIENT', left, doc.y);
+    doc.fontSize(15).fillColor('#111827').text(r.client_name || '—', left, doc.y + 2);
+    doc.moveDown(0.8);
+
+    doc.fontSize(11).fillColor('#6B7280').text('OBJET', left, doc.y);
+    doc.fontSize(14).fillColor('#111827').text(r.objet || '—', left, doc.y + 2);
+    doc.moveDown(0.8);
+
+    doc.fontSize(11).fillColor('#6B7280').text('MONTANT', left, doc.y);
+    doc.fontSize(24).fillColor('#059669')
+        .text(`${fmtNumber(r.amount)} ${r.currency || 'FCFA'}`, left, doc.y + 2);
+    doc.moveDown(0.8);
+    doc.moveTo(left, doc.y).lineTo(right, doc.y).strokeColor('#bbb').stroke();
+    doc.moveDown(0.6);
+
+    const cond = (r.conditions && r.conditions !== 'null' && r.conditions.trim())
+        ? r.conditions
+        : "Aucune réclamation ne sera acceptée passé un délai de 48 heures. Tout achat effectué est sous l'entière responsabilité du client.";
+    doc.fontSize(11).fillColor('#6B7280').text('CONDITIONS', left, doc.y);
+    doc.fontSize(11).fillColor('#374151').text(cond, left, doc.y + 2, { width: right - left });
+    doc.moveDown(1);
+
+    if (doc.y < 470) doc.y = 470;
+
+    doc.moveTo(left, doc.y).lineTo(right, doc.y).strokeColor('#bbb').stroke();
+    let sy = doc.y + 16;
+    if (meta.cachet) {
+        try { doc.image(meta.cachet, right - 150, sy, { fit: [150, 100] }); } catch (e) {}
+    }
+    doc.fontSize(10).fillColor('#555')
+        .text('Le client (lu et approuvé)', left, sy + 110)
+        .text('Cachet & signature', right - 150, sy + 110, { width: 150, align: 'center' });
+
+    doc.fontSize(9).fillColor('#555')
+        .text('Généré par MoMo Fin - ' + new Date().toLocaleString('fr-FR'), left, 800);
+
+    doc.end();
+}
+
+module.exports = { generate, generateReceipt, dayKey, fmtNumber, phoneOpFromNum };

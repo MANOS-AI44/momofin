@@ -18,6 +18,7 @@ function adminOnly(req, res, next) {
 }
 const multer = require('multer');
 const { pool } = require('../lib/db');
+const pdf = require('../lib/pdf');
 
 const upload = multer({
     storage: multer.memoryStorage(),
@@ -160,6 +161,29 @@ router.get('/recus', adminOnly, async (req, res) => {
         montantTotal: total,
         company: req.user.name || (req.user.email ? req.user.email.split('@')[0] : 'Entreprise')
     });
+});
+
+// PDF d'un recu individuel (admin)
+router.get('/recus/:id/pdf', adminOnly, async (req, res) => {
+    const { rows } = await pool.query(
+        `SELECT r.id, r.client_id, r.partner_name, r.client_name, r.objet, r.conditions,
+                r.amount, r.currency, r.ts
+         FROM receipts r
+         JOIN devices d ON d.token = r.device_id AND d.user_id = $1
+         WHERE r.id = $2`,
+        [req.user.id, req.params.id]
+    );
+    if (rows.length === 0) return res.status(404).send('Reçu introuvable.');
+    const r = rows[0];
+    const { rows: u } = await pool.query(
+        'SELECT name, email, cachet_data FROM users WHERE id = $1', [req.user.id]
+    );
+    const company = u[0]?.name || (u[0]?.email ? u[0].email.split('@')[0] : 'MoMo Fin');
+    const cachet = u[0]?.cachet_data || null;
+    const safe = String(r.client_name || 'client').replace(/[^A-Za-z0-9_-]/g, '_');
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `inline; filename="Recu_${safe}.pdf"`);
+    pdf.generateReceipt(res, r, { company, cachet });
 });
 
 // Ajouter un objet + sa condition

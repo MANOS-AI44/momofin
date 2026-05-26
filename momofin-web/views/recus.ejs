@@ -23,6 +23,7 @@
                     <th>Objet</th>
                     <th style="text-align:right;">Montant</th>
                     <th>Date / Heure</th>
+                    <th></th>
                 </tr>
             </thead>
             <tbody>
@@ -33,10 +34,11 @@
                     <td><%= r.objet || '—' %></td>
                     <td style="text-align:right; color:#059669;"><strong><%= Number(r.amount || 0).toLocaleString('fr-FR') %> <%= r.currency || 'FCFA' %></strong></td>
                     <td style="color:#6B7280; font-size:12px;"><%= new Date(r.ts).toLocaleString('fr-FR') %></td>
+                    <td style="text-align:right;"><a href="/recus/<%= r.id %>/pdf" target="_blank" class="btn danger" style="padding:6px 12px; font-size:13px; text-decoration:none;">📄 PDF</a></td>
                 </tr>
                 <% if (r.conditions && r.conditions !== 'null') { %>
                 <tr>
-                    <td colspan="5" style="color:#6B7280; font-size:12px; padding-top:0; padding-bottom:10px;">📝 <%= r.conditions %></td>
+                    <td colspan="6" style="color:#6B7280; font-size:12px; padding-top:0; padding-bottom:10px;">📝 <%= r.conditions %></td>
                 </tr>
                 <% } %>
             <% }); %>
