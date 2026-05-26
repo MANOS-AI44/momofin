@@ -212,10 +212,11 @@ function drawReceiptCopy(doc, r, meta, top, tag) {
     y += 28;
 
     doc.fontSize(8).fillColor('#6B7280').text('OBJET', left, y, { lineBreak: false });
-    doc.fontSize(11).fillColor('#111827').text(r.objet || '—', left, y + 9, { width: 240, lineBreak: false });
-    doc.fontSize(8).fillColor('#6B7280').text('MONTANT', left + 270, y, { lineBreak: false });
-    doc.fontSize(16).fillColor('#059669').text(`${fmtNumber(r.amount)} ${r.currency || 'FCFA'}`, left + 270, y + 8, { width: right - left - 270, lineBreak: false });
-    y += 34;
+    doc.fontSize(11).fillColor('#111827').text(r.objet || '—', left, y + 10, { width: right - left, lineBreak: false });
+    y += 30;
+    doc.fontSize(8).fillColor('#6B7280').text('MONTANT', left, y, { lineBreak: false });
+    doc.fontSize(18).fillColor('#059669').text(`${fmtNumber(r.amount)} ${r.currency || 'FCFA'}`, left, y + 13, { width: right - left, lineBreak: false });
+    y += 42;
     doc.moveTo(left, y).lineTo(right, y).lineWidth(1).strokeColor('#bbb').stroke();
     y += 6;
 

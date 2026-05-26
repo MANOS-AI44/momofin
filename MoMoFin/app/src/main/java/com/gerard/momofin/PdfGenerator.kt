@@ -338,10 +338,10 @@ object PdfGenerator {
         y += 22f
         cv.drawText("CLIENT", left, y, pLabel); y += 13f
         cv.drawText(r.clientName, left, y, pValBold); y += 24f
-        cv.drawText("OBJET", left, y, pLabel)
-        cv.drawText("MONTANT", left + 270f, y, pLabel); y += 14f
-        cv.drawText(r.objet, left, y, pVal)
-        cv.drawText("${nf.format(r.amount)} ${r.currency}", left + 270f, y + 2f, pBig); y += 22f
+        cv.drawText("OBJET", left, y, pLabel); y += 14f
+        cv.drawText(r.objet, left, y, pVal); y += 26f
+        cv.drawText("MONTANT", left, y, pLabel); y += 18f
+        cv.drawText("${nf.format(r.amount)} ${r.currency}", left, y, pBig); y += 14f
         cv.drawLine(left, y, right, y, rule); y += 16f
         cv.drawText("CONDITIONS", left, y, pLabel); y += 12f
         var cond = if (r.conditions.isNotBlank()) r.conditions
