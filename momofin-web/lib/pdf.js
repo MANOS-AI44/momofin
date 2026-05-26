@@ -187,69 +187,83 @@ function generate(res, transactions, patron = [], meta = {}) {
     doc.end();
 }
 
-// Genere un recu individuel (A4) : en-tete entreprise-partenaire, client, objet,
-// montant, conditions, cachet. Occupe au moins une demi-page.
+// --- Recu : dessine UNE copie compacte dans une zone commencant a `top` (hauteur ~360) ---
+function drawReceiptCopy(doc, r, meta, top, tag) {
+    const left = MARGIN, right = PAGE_RIGHT;
+    let y = top;
+
+    // Etiquette exemplaire (coin haut droit)
+    doc.fontSize(8).fillColor('#9CA3AF').text(tag, left, y, { width: right - left, align: 'right', lineBreak: false });
+
+    // En-tete ENTREPRISE - PARTENAIRE
+    const company = (meta.company || 'MoMo Fin').toUpperCase();
+    const partner = (r.partner_name || '').toUpperCase();
+    doc.fontSize(12).fillColor('#1565C0')
+        .text(partner ? `${company}  -  ${partner}` : company, left, y, { width: right - left - 90, lineBreak: false });
+    y += 18;
+    doc.moveTo(left, y).lineTo(right, y).lineWidth(1.5).strokeColor('#0D47A1').stroke();
+    y += 8;
+
+    // Titre + reference + date
+    doc.fontSize(14).fillColor('#0D47A1').text('REÇU', left, y, { lineBreak: false });
+    const ref = String(r.client_id || r.id || '').slice(-8);
+    doc.fontSize(8).fillColor('#555')
+        .text(`N° ${ref}    ${new Date(r.ts).toLocaleString('fr-FR')}`, left, y + 3, { width: right - left, align: 'right', lineBreak: false });
+    y += 22;
+
+    // Client
+    doc.fontSize(8).fillColor('#6B7280').text('CLIENT', left, y, { lineBreak: false });
+    doc.fontSize(11).fillColor('#111827').text(r.client_name || '—', left, y + 9, { width: right - left, lineBreak: false });
+    y += 28;
+
+    // Objet (gauche) + Montant (droite) sur la meme ligne pour gagner de la place
+    doc.fontSize(8).fillColor('#6B7280').text('OBJET', left, y, { lineBreak: false });
+    doc.fontSize(11).fillColor('#111827').text(r.objet || '—', left, y + 9, { width: 240, lineBreak: false });
+    doc.fontSize(8).fillColor('#6B7280').text('MONTANT', left + 270, y, { lineBreak: false });
+    doc.fontSize(16).fillColor('#059669').text(`${fmtNumber(r.amount)} ${r.currency || 'FCFA'}`, left + 270, y + 8, { width: right - left - 270, lineBreak: false });
+    y += 34;
+    doc.moveTo(left, y).lineTo(right, y).lineWidth(1).strokeColor('#bbb').stroke();
+    y += 6;
+
+    // Conditions (tronquees pour tenir dans une demi-page)
+    let cond = (r.conditions && r.conditions !== 'null' && String(r.conditions).trim())
+        ? String(r.conditions)
+        : "Aucune réclamation ne sera acceptée passé un délai de 48 heures. Tout achat effectué est sous l'entière responsabilité du client.";
+    cond = cond.replace(/\r\n?/g, '\n').replace(/\n{2,}/g, '\n').replace(/\s+/g, ' ').trim();
+    if (cond.length > 320) cond = cond.slice(0, 317) + '…';
+    doc.fontSize(8).fillColor('#6B7280').text('CONDITIONS', left, y, { lineBreak: false });
+    y += 11;
+    doc.fontSize(7.5).fillColor('#374151').text(cond, left, y, { width: right - left, height: 60, ellipsis: true });
+
+    // Signatures en bas de la zone
+    const sigY = top + 296;
+    if (meta.cachet) {
+        try { doc.image(meta.cachet, right - 120, sigY - 14, { fit: [120, 70] }); } catch (e) {}
+    }
+    doc.fontSize(8).fillColor('#555')
+        .text('Le client (lu et approuvé)', left, sigY + 50, { lineBreak: false })
+        .text('Cachet & signature', right - 140, sigY + 50, { width: 140, align: 'center', lineBreak: false });
+}
+
+// Genere un recu (A4) en DEUX exemplaires identiques sur la meme page :
+// un pour le client, un a conserver. Ligne de decoupe au milieu.
 function generateReceipt(res, r, meta = {}) {
     const doc = new PDFDocument({ size: 'A4', margin: MARGIN });
     doc.pipe(res);
 
-    const company = (meta.company || 'MoMo Fin').toUpperCase();
-    const partner = (r.partner_name || '').toUpperCase();
-    const left = MARGIN;
-    const right = PAGE_RIGHT;
+    // Exemplaire du haut (client)
+    drawReceiptCopy(doc, r, meta, 36, 'EXEMPLAIRE CLIENT');
 
-    doc.fontSize(16).fillColor('#1565C0')
-        .text(partner ? `${company}  -  ${partner}` : company, left, 50);
-    doc.moveTo(left, doc.y + 4).lineTo(right, doc.y + 4).lineWidth(2).strokeColor('#0D47A1').stroke();
-    doc.lineWidth(1);
-    doc.moveDown(1.2);
+    // Ligne de decoupe au milieu
+    const mid = 408;
+    doc.save();
+    doc.dash(4, { space: 3 }).moveTo(MARGIN, mid).lineTo(PAGE_RIGHT, mid).lineWidth(0.7).strokeColor('#999').stroke();
+    doc.undash();
+    doc.restore();
+    doc.fontSize(8).fillColor('#999').text('✂ - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -', MARGIN, mid - 9, { lineBreak: false });
 
-    const topY = doc.y;
-    doc.fontSize(22).fillColor('#0D47A1').text('REÇU', left, topY);
-    const ref = String(r.client_id || r.id || '').slice(-8);
-    doc.fontSize(10).fillColor('#555')
-        .text(`N° ${ref}`, right - 160, topY, { width: 160, align: 'right' })
-        .text(new Date(r.ts).toLocaleString('fr-FR'), right - 160, topY + 14, { width: 160, align: 'right' });
-    doc.moveDown(1.4);
-    doc.moveTo(left, doc.y).lineTo(right, doc.y).strokeColor('#bbb').stroke();
-    doc.moveDown(0.8);
-
-    doc.fontSize(11).fillColor('#6B7280').text('CLIENT', left, doc.y);
-    doc.fontSize(15).fillColor('#111827').text(r.client_name || '—', left, doc.y + 2);
-    doc.moveDown(0.8);
-
-    doc.fontSize(11).fillColor('#6B7280').text('OBJET', left, doc.y);
-    doc.fontSize(14).fillColor('#111827').text(r.objet || '—', left, doc.y + 2);
-    doc.moveDown(0.8);
-
-    doc.fontSize(11).fillColor('#6B7280').text('MONTANT', left, doc.y);
-    doc.fontSize(24).fillColor('#059669')
-        .text(`${fmtNumber(r.amount)} ${r.currency || 'FCFA'}`, left, doc.y + 2);
-    doc.moveDown(0.8);
-    doc.moveTo(left, doc.y).lineTo(right, doc.y).strokeColor('#bbb').stroke();
-    doc.moveDown(0.6);
-
-    let cond = (r.conditions && r.conditions !== 'null' && r.conditions.trim())
-        ? r.conditions
-        : "Aucune réclamation ne sera acceptée passé un délai de 48 heures. Tout achat effectué est sous l'entière responsabilité du client.";
-    cond = String(cond).replace(/\r\n?/g, '\n').replace(/\n{3,}/g, '\n\n').trim();
-    doc.fontSize(11).fillColor('#6B7280').text('CONDITIONS', left, doc.y);
-    doc.fontSize(11).fillColor('#374151').text(cond, left, doc.y + 2, { width: right - left });
-    doc.moveDown(1);
-
-    if (doc.y < 470) doc.y = 470;
-
-    doc.moveTo(left, doc.y).lineTo(right, doc.y).strokeColor('#bbb').stroke();
-    let sy = doc.y + 16;
-    if (meta.cachet) {
-        try { doc.image(meta.cachet, right - 150, sy, { fit: [150, 100] }); } catch (e) {}
-    }
-    doc.fontSize(10).fillColor('#555')
-        .text('Le client (lu et approuvé)', left, sy + 110)
-        .text('Cachet & signature', right - 150, sy + 110, { width: 150, align: 'center' });
-
-    doc.fontSize(9).fillColor('#555')
-        .text('Généré par MoMo Fin - ' + new Date().toLocaleString('fr-FR'), left, 790, { lineBreak: false });
+    // Exemplaire du bas (souche a garder)
+    drawReceiptCopy(doc, r, meta, 420, 'SOUCHE (à garder)');
 
     doc.end();
 }
