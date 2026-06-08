@@ -72,7 +72,7 @@ class MainActivity : AppCompatActivity() {
 
         binding.txtAndroidVersion.text = "Téléphone : ${PermissionHelper.androidVersionLabel()}"
 
-        binding.btnRefresh.setOnClickListener { loadData() }
+        binding.btnRefresh.setOnClickListener { loadData(showStatus = true) }
         binding.btnPdf.setOnClickListener { generatePdf() }
         binding.btnPatron.setOnClickListener {
             startActivity(Intent(this, PatronActivity::class.java))
@@ -301,31 +301,50 @@ class MainActivity : AppCompatActivity() {
         )
     }
 
-    private fun loadData() {
+    private fun loadData(showStatus: Boolean = false) {
         CoroutineScope(Dispatchers.IO).launch {
-            val txs: List<Transaction> = if (Settings.isPrimaryDevice(this@MainActivity)) {
-                val raws = SmsSource.loadAll(this@MainActivity)
-                // Parse strict : ignore les SMS qui ne matchent aucun des 6 patterns canoniques
-                raws.mapNotNull {
-                    TransactionParser.parse(
-                        rawId = it.id,
-                        sender = it.sender,
-                        body = it.body,
-                        smsTimestamp = it.timestamp,
-                        operator = it.operator
+            var rawCount = 0
+            var fromServer = false
+            var errMsg = ""
+            val txs: List<Transaction> = try {
+                if (Settings.isPrimaryDevice(this@MainActivity)) {
+                    val raws = SmsSource.loadAll(this@MainActivity)
+                    rawCount = raws.size
+                    raws.mapNotNull {
+                        TransactionParser.parse(
+                            rawId = it.id,
+                            sender = it.sender,
+                            body = it.body,
+                            smsTimestamp = it.timestamp,
+                            operator = it.operator
+                        )
+                    }
+                } else {
+                    fromServer = true
+                    val pulled = RailwayClient.pullTransactionsAsTx(
+                        Settings.getUrl(this@MainActivity),
+                        Settings.getToken(this@MainActivity)
                     )
+                    rawCount = pulled.size
+                    pulled
                 }
-            } else {
-                // Sous-compte : on recupere les Transaction deja parsees cote serveur
-                RailwayClient.pullTransactionsAsTx(
-                    Settings.getUrl(this@MainActivity),
-                    Settings.getToken(this@MainActivity)
-                )
-            }
+            } catch (e: Exception) { errMsg = e.message ?: "erreur inconnue"; emptyList() }
+
             withContext(Dispatchers.Main) {
                 current = txs
                 refreshDateUi()
                 renderList()
+                if (showStatus) {
+                    val msg = when {
+                        errMsg.isNotBlank() -> "⚠️ Erreur : $errMsg"
+                        fromServer && txs.isEmpty() -> "⚠️ Aucune transaction recuperee du serveur. Verifiez la connexion ou le code d'appareil (Parametres)."
+                        fromServer -> "🌐 ${txs.size} transaction(s) recuperee(s) du serveur."
+                        rawCount == 0 -> "⚠️ Aucun SMS lu. Activez la permission « Lire SMS » dans Reglages > Apps > MoMo Fin > Autorisations."
+                        txs.isEmpty() -> "ℹ️ ${rawCount} SMS lus mais aucun reconnu comme transaction (parser strict Orange/MTN/MOOV)."
+                        else -> "✅ ${rawCount} SMS lus, ${txs.size} transaction(s) reconnue(s)."
+                    }
+                    Toast.makeText(this@MainActivity, msg, Toast.LENGTH_LONG).show()
+                }
             }
         }
     }
