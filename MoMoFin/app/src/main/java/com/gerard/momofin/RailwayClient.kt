@@ -208,6 +208,7 @@ object RailwayClient {
 
     data class RemoteEntry(val type: String, val amount: Double, val note: String, val ts: Long, val cid: String = "")
     data class RemoteFolder(
+        val id: Long = 0,
         val name: String,
         val cid: String = "",
         val deviceLabel: String,
@@ -246,6 +247,7 @@ object RailwayClient {
                 }
                 val createdAt = try { ISO.parse(o.optString("created_at"))?.time ?: 0L } catch (_: Exception) { 0L }
                 out.add(RemoteFolder(
+                    id = o.optLong("id", 0),
                     name = o.optString("name", ""),
                     cid = o.optString("client_id", ""),
                     deviceLabel = o.optString("device_label", "—"),
@@ -261,6 +263,20 @@ object RailwayClient {
         } catch (e: Exception) {
             emptyList()
         }
+    }
+
+    /** Admin app : ajoute une entree dans le dossier d'une autre boutique du meme proprietaire. */
+    fun addEntryToFolder(baseUrl: String, token: String, folderId: Long, type: String, amount: Double, note: String): Result {
+        return try {
+            val body = JSONObject()
+                .put("type", type)
+                .put("amount", amount)
+                .put("note", note)
+                .toString()
+            val (code, resp) = httpPost("$baseUrl/api/folders/$folderId/entry", token, body)
+            if (code in 200..299) Result(true, "✅ Saisie ajoutee")
+            else Result(false, "HTTP $code — $resp")
+        } catch (e: Exception) { Result(false, "Erreur reseau : ${e.message}") }
     }
 
     data class RemoteReceipt(val clientId: String, val partnerName: String, val clientName: String,

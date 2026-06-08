@@ -236,6 +236,32 @@ router.delete('/devices/:token', authDevice, async (req, res) => {
 
 
 
+// === Admin app : ajout d'une entree sur le dossier d'une AUTRE boutique du meme user ===
+router.post('/folders/:folderId/entry', authDevice, async (req, res) => {
+    const fid = req.params.folderId;
+    const { rows: fr } = await pool.query(
+        'SELECT id, device_id FROM folders WHERE id = $1', [fid]
+    );
+    if (fr.length === 0) return res.status(404).json({ error: 'folder introuvable' });
+    // Verifier que l'appareil appelant et le proprietaire du dossier appartiennent au meme utilisateur
+    const { rows: ur } = await pool.query(
+        `SELECT 1 FROM devices d1 JOIN devices d2 ON d1.user_id = d2.user_id
+         WHERE d1.token = $1 AND d2.token = $2`,
+        [req.deviceToken, fr[0].device_id]
+    );
+    if (ur.length === 0) return res.status(403).json({ error: 'acces refuse' });
+    const t = (req.body.type === 'RECU') ? 'RECU' : 'SORTIE';
+    const amt = Number(req.body.amount) || 0;
+    if (!isFinite(amt) || amt <= 0) return res.status(400).json({ error: 'montant invalide' });
+    const cid = 'web_' + Date.now();
+    await pool.query(
+        `INSERT INTO folder_entries (folder_id, device_id, client_id, type, amount, note, ts)
+         VALUES ($1, $2, $3, $4, $5, $6, NOW())`,
+        [fid, fr[0].device_id, cid, t, amt, String(req.body.note || '').substring(0, 500)]
+    );
+    res.json({ ok: true, client_id: cid });
+});
+
 // === Sync des dossiers Mes Comptes (folders) — push depuis l'app ===
 // Body: { folders: [{ client_id, name, created_at, entries: [{ client_id, type, amount, note, ts }] }] }
 // Strategie : REPLACE complet pour ce device (suppression + insertion). Idempotent.

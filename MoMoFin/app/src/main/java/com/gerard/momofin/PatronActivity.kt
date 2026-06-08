@@ -3,6 +3,7 @@ package com.gerard.momofin
 import android.app.AlertDialog
 import android.content.Intent
 import android.os.Bundle
+import android.text.InputType
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -284,7 +285,54 @@ class PatronActivity : AppCompatActivity() {
         AlertDialog.Builder(this)
             .setTitle(folder.name)
             .setMessage(android.text.Html.fromHtml(sb.toString(), android.text.Html.FROM_HTML_MODE_COMPACT))
+            .setNeutralButton("➕ Ajouter une saisie") { _, _ -> askAddOtherEntry(folder) }
             .setPositiveButton("Fermer", null)
+            .show()
+    }
+
+    /** Admin : formulaire pour ajouter une entree/sortie sur le compte d'une AUTRE boutique. */
+    private fun askAddOtherEntry(folder: RailwayClient.RemoteFolder) {
+        if (folder.id <= 0L) {
+            Toast.makeText(this, "Ce dossier ne peut pas etre modifie (id manquant — synchronisez puis reessayez)", Toast.LENGTH_LONG).show()
+            return
+        }
+        if (!Settings.isConfigured(this)) {
+            Toast.makeText(this, "Configurez d'abord le serveur (Parametres)", Toast.LENGTH_LONG).show()
+            return
+        }
+        val pad = (16 * resources.displayMetrics.density).toInt()
+        val layout = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(pad, pad/2, pad, 0) }
+        val typeRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+        val btnEntree = android.widget.RadioButton(this).apply { text = "Entrée"; isChecked = true }
+        val btnSortie = android.widget.RadioButton(this).apply { text = "Sortie" }
+        val rg = android.widget.RadioGroup(this).apply {
+            orientation = android.widget.RadioGroup.HORIZONTAL
+            addView(btnEntree); addView(btnSortie)
+        }
+        typeRow.addView(rg)
+        val edtAmount = EditText(this).apply { hint = "Montant (FCFA)"; inputType = InputType.TYPE_CLASS_NUMBER }
+        val edtNote = EditText(this).apply { hint = "Note (optionnel)"; setSingleLine() }
+        layout.addView(typeRow); layout.addView(edtAmount); layout.addView(edtNote)
+        AlertDialog.Builder(this)
+            .setTitle("Ajouter chez ${folder.deviceLabel}")
+            .setMessage("Ajout dans le compte « ${folder.name} »")
+            .setView(layout)
+            .setPositiveButton("Ajouter") { _, _ ->
+                val type = if (btnSortie.isChecked) "SORTIE" else "RECU"
+                val amt = edtAmount.text.toString().replace(" ", "").replace(",", ".").toDoubleOrNull() ?: 0.0
+                if (amt <= 0) { Toast.makeText(this, "Montant invalide", Toast.LENGTH_SHORT).show(); return@setPositiveButton }
+                val note = edtNote.text.toString().trim()
+                Toast.makeText(this, "Envoi…", Toast.LENGTH_SHORT).show()
+                val url = Settings.getUrl(this); val token = Settings.getToken(this)
+                CoroutineScope(Dispatchers.IO).launch {
+                    val r = RailwayClient.addEntryToFolder(url, token, folder.id, type, amt, note)
+                    withContext(Dispatchers.Main) {
+                        Toast.makeText(this@PatronActivity, r.message, Toast.LENGTH_LONG).show()
+                        if (r.ok) syncNow(manual = false)
+                    }
+                }
+            }
+            .setNegativeButton("Annuler", null)
             .show()
     }
 
