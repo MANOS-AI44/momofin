@@ -95,7 +95,9 @@ object SmsSource {
                 while (c.moveToNext()) {
                     val sender = c.getString(iAddr) ?: continue
                     val body = c.getString(iBody) ?: continue
-                    if (!MomoFilter.isMomoSms(sender, body)) continue
+                    // On ne filtre PLUS ici : le parser strict decidera.
+                    // Cela evite de rejeter par erreur un vrai SMS Momo dont l'expediteur
+                    // ne fait pas partie de la liste connue (ex : code court 1WIN3).
                     list.add(Raw(
                         id = c.getLong(iId), sender = sender, body = body,
                         timestamp = c.getLong(iDate),
@@ -105,6 +107,30 @@ object SmsSource {
             }
         } catch (_: Exception) {}
         return list
+    }
+
+    data class Diag(
+        val notifCount: Int,
+        val inboxCount: Int,
+        val hasReadSms: Boolean,
+        val hasNotifAccess: Boolean
+    )
+
+    /** Diagnostique l'etat de la capture SMS (pour expliquer pourquoi rien n'apparait). */
+    fun diagnose(context: Context): Diag {
+        val notif = try { NotificationStore(context).all().size } catch (_: Exception) { 0 }
+        val hasRead = ContextCompat.checkSelfPermission(
+            context, android.Manifest.permission.READ_SMS
+        ) == PackageManager.PERMISSION_GRANTED
+        val inbox = if (hasRead) try {
+            var n = 0
+            context.contentResolver.query(
+                Telephony.Sms.Inbox.CONTENT_URI, arrayOf(Telephony.Sms._ID), null, null, null
+            )?.use { c -> n = c.count }
+            n
+        } catch (_: Exception) { 0 } else 0
+        val hasNotif = PermissionHelper.hasNotificationAccess(context)
+        return Diag(notif, inbox, hasRead, hasNotif)
     }
 }
 

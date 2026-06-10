@@ -335,13 +335,20 @@ class MainActivity : AppCompatActivity() {
                 refreshDateUi()
                 renderList()
                 if (showStatus) {
-                    val msg = when {
-                        errMsg.isNotBlank() -> "⚠️ Erreur : $errMsg"
-                        fromServer && txs.isEmpty() -> "⚠️ Aucune transaction recuperee du serveur. Verifiez la connexion ou le code d'appareil (Parametres)."
-                        fromServer -> "🌐 ${txs.size} transaction(s) recuperee(s) du serveur."
-                        rawCount == 0 -> "⚠️ Aucun SMS lu. Activez la permission « Lire SMS » dans Reglages > Apps > MoMo Fin > Autorisations."
-                        txs.isEmpty() -> "ℹ️ ${rawCount} SMS lus mais aucun reconnu comme transaction (parser strict Orange/MTN/MOOV)."
-                        else -> "✅ ${rawCount} SMS lus, ${txs.size} transaction(s) reconnue(s)."
+                    val msg = if (fromServer) {
+                        if (errMsg.isNotBlank()) "⚠️ Erreur : $errMsg"
+                        else if (txs.isEmpty()) "⚠️ Aucune transaction recuperee du serveur. Verifiez la connexion / code d'appareil (Parametres)."
+                        else "🌐 ${txs.size} transaction(s) recuperee(s) du serveur."
+                    } else {
+                        val d = SmsSource.diagnose(this@MainActivity)
+                        val problems = mutableListOf<String>()
+                        if (!d.hasReadSms) problems.add("• Permission Lire SMS : NON accordee")
+                        if (!d.hasNotifAccess) problems.add("• Acces aux notifications : NON active (necessaire Android 12+)")
+                        val head = if (errMsg.isNotBlank()) "⚠️ Erreur : $errMsg\n"
+                            else if (txs.isEmpty()) "⚠️ Aucune transaction reconnue\n"
+                            else "✅ ${txs.size} transaction(s) reconnue(s)\n"
+                        val body = "Boite SMS : ${d.inboxCount}  •  Notifications captees : ${d.notifCount}"
+                        head + body + (if (problems.isNotEmpty()) "\n\n" + problems.joinToString("\n") + "\n\nOuvrez Parametres > Autorisations" else "")
                     }
                     Toast.makeText(this@MainActivity, msg, Toast.LENGTH_LONG).show()
                 }
