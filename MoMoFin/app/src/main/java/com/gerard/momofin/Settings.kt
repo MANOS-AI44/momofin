@@ -8,6 +8,7 @@ object Settings {
     private const val K_URL = "railway_url"
     private const val K_TOKEN = "railway_token"
     private const val K_LAST_SYNC = "last_sync_ts"
+    private const val K_LAST_INBOX_ID = "last_inbox_id"
     private const val K_ASKED_PERMS = "asked_perms"
     private const val K_IS_ADMIN = "is_admin"
 
@@ -76,5 +77,13 @@ object Settings {
     fun logout(c: Context) {
         c.getSharedPreferences(PREF, Context.MODE_PRIVATE).edit()
             .remove(K_URL).remove(K_TOKEN).remove(K_LAST_SYNC).apply()
+    }
+
+    fun getLastInboxId(c: Context): Long =
+        c.getSharedPreferences(PREF, Context.MODE_PRIVATE).getLong(K_LAST_INBOX_ID, 0L)
+
+    fun setLastInboxId(c: Context, id: Long) {
+        c.getSharedPreferences(PREF, Context.MODE_PRIVATE).edit()
+            .putLong(K_LAST_INBOX_ID, id).apply()
     }
 }

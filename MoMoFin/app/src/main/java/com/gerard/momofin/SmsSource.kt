@@ -109,6 +109,77 @@ object SmsSource {
         return list
     }
 
+    data class ScanResult(val processed: Int, val matched: Int, val newInCache: Int, val errMsg: String = "")
+
+    /**
+     * Scan INCREMENTAL de la boite SMS : ne lit que les SMS nouveaux depuis le dernier scan
+     * (via Settings.lastInboxId). Parse en streaming -> insert dans le cache. Aucun build de
+     * liste en RAM : on traite SMS par SMS. Robuste pour des dizaines de milliers de SMS.
+     */
+    fun scanInboxIntoCache(context: Context, cache: TransactionCache): ScanResult {
+        if (ContextCompat.checkSelfPermission(
+                context, android.Manifest.permission.READ_SMS
+            ) != PackageManager.PERMISSION_GRANTED
+        ) return ScanResult(0, 0, 0, "permission_sms_refusee")
+
+        val lastId = Settings.getLastInboxId(context)
+        var processed = 0; var matched = 0; var newOnes = 0
+        var maxId = lastId
+        val projection = arrayOf(
+            Telephony.Sms._ID, Telephony.Sms.ADDRESS, Telephony.Sms.BODY, Telephony.Sms.DATE
+        )
+        try {
+            context.contentResolver.query(
+                Telephony.Sms.Inbox.CONTENT_URI, projection,
+                "${Telephony.Sms._ID} > ?", arrayOf(lastId.toString()),
+                "${Telephony.Sms._ID} ASC"
+            )?.use { c ->
+                val iId = c.getColumnIndexOrThrow(Telephony.Sms._ID)
+                val iAddr = c.getColumnIndexOrThrow(Telephony.Sms.ADDRESS)
+                val iBody = c.getColumnIndexOrThrow(Telephony.Sms.BODY)
+                val iDate = c.getColumnIndexOrThrow(Telephony.Sms.DATE)
+                while (c.moveToNext()) {
+                    processed++
+                    val id = c.getLong(iId); if (id > maxId) maxId = id
+                    val sender = c.getString(iAddr) ?: continue
+                    val body = c.getString(iBody) ?: continue
+                    val ts = c.getLong(iDate)
+                    val op = MomoFilter.detectOperator(sender, body)
+                    val tx = try {
+                        TransactionParser.parse(id, sender, body, ts, op)
+                    } catch (_: Throwable) { null } ?: continue
+                    matched++
+                    if (cache.insert(tx)) newOnes++
+                }
+            }
+            if (maxId > lastId) Settings.setLastInboxId(context, maxId)
+        } catch (e: OutOfMemoryError) {
+            if (maxId > lastId) Settings.setLastInboxId(context, maxId)
+            return ScanResult(processed, matched, newOnes, "memoire saturee a ${processed} SMS")
+        } catch (e: Exception) {
+            return ScanResult(processed, matched, newOnes, e.message ?: "erreur scan inbox")
+        }
+        return ScanResult(processed, matched, newOnes)
+    }
+
+    /** Scan les SMS captes via NotificationListener (NotificationStore) -> cache. Tres rapide. */
+    fun scanNotificationsIntoCache(context: Context, cache: TransactionCache): ScanResult {
+        var processed = 0; var matched = 0; var newOnes = 0
+        try {
+            for (r in NotificationStore(context).all()) {
+                processed++
+                val tx = try {
+                    TransactionParser.parse(r.id, r.sender, r.body, r.timestamp, r.operator)
+                } catch (_: Throwable) { null } ?: continue
+                matched++
+                if (cache.insert(tx)) newOnes++
+            }
+        } catch (e: Throwable) {
+            return ScanResult(processed, matched, newOnes, e.message ?: "erreur scan notifs")
+        }
+        return ScanResult(processed, matched, newOnes)
+    }
+
     data class Diag(
         val notifCount: Int,
         val inboxCount: Int,

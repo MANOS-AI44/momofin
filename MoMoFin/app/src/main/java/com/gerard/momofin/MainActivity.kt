@@ -302,23 +302,28 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun loadData(showStatus: Boolean = false) {
+        // Affichage IMMEDIAT depuis le cache (rien a parser : robuste meme avec des milliers de SMS)
+        val cache = TransactionCache(this)
+        val cached = try { cache.all() } catch (_: Throwable) { emptyList() }
+        if (Settings.isPrimaryDevice(this) && cached.isNotEmpty()) {
+            current = cached
+            refreshDateUi(); renderList()
+        }
+
         CoroutineScope(Dispatchers.IO).launch {
             var rawCount = 0
             var fromServer = false
             var errMsg = ""
+            var rInbox = SmsSource.ScanResult(0, 0, 0)
+            var rNotif = SmsSource.ScanResult(0, 0, 0)
             val txs: List<Transaction> = try {
                 if (Settings.isPrimaryDevice(this@MainActivity)) {
-                    val raws = SmsSource.loadAll(this@MainActivity)
-                    rawCount = raws.size
-                    raws.mapNotNull {
-                        TransactionParser.parse(
-                            rawId = it.id,
-                            sender = it.sender,
-                            body = it.body,
-                            smsTimestamp = it.timestamp,
-                            operator = it.operator
-                        )
-                    }
+                    // Scan INCREMENTAL en streaming -> ajoute au cache. Pas de liste en RAM.
+                    rNotif = SmsSource.scanNotificationsIntoCache(this@MainActivity, cache)
+                    rInbox = SmsSource.scanInboxIntoCache(this@MainActivity, cache)
+                    val refreshed = cache.all()
+                    rawCount = rInbox.processed + rNotif.processed
+                    refreshed
                 } else {
                     fromServer = true
                     val pulled = RailwayClient.pullTransactionsAsTx(
@@ -328,7 +333,7 @@ class MainActivity : AppCompatActivity() {
                     rawCount = pulled.size
                     pulled
                 }
-            } catch (e: Exception) { errMsg = e.message ?: "erreur inconnue"; emptyList() }
+            } catch (e: Throwable) { errMsg = e.message ?: "erreur"; emptyList() }
 
             withContext(Dispatchers.Main) {
                 current = txs
@@ -344,11 +349,15 @@ class MainActivity : AppCompatActivity() {
                         val problems = mutableListOf<String>()
                         if (!d.hasReadSms) problems.add("• Permission Lire SMS : NON accordee")
                         if (!d.hasNotifAccess) problems.add("• Acces aux notifications : NON active (necessaire Android 12+)")
-                        val head = if (errMsg.isNotBlank()) "⚠️ Erreur : $errMsg\n"
-                            else if (txs.isEmpty()) "⚠️ Aucune transaction reconnue\n"
-                            else "✅ ${txs.size} transaction(s) reconnue(s)\n"
-                        val body = "Boite SMS : ${d.inboxCount}  •  Notifications captees : ${d.notifCount}"
-                        head + body + (if (problems.isNotEmpty()) "\n\n" + problems.joinToString("\n") + "\n\nOuvrez Parametres > Autorisations" else "")
+                        val sb = StringBuilder()
+                        if (errMsg.isNotBlank()) sb.append("⚠️ ").append(errMsg).append("\n")
+                        sb.append("📦 Cache : ${txs.size} transaction(s)")
+                        sb.append("\n➕ Nouveau : ${rInbox.newInCache} (boite, ${rInbox.processed} SMS scan.)")
+                        if (rInbox.errMsg.isNotBlank()) sb.append(" — ").append(rInbox.errMsg)
+                        sb.append(", ${rNotif.newInCache} (notif.)")
+                        sb.append("\n📥 Boite SMS totale : ${d.inboxCount}")
+                        if (problems.isNotEmpty()) sb.append("\n\n").append(problems.joinToString("\n"))
+                        sb.toString()
                     }
                     Toast.makeText(this@MainActivity, msg, Toast.LENGTH_LONG).show()
                 }
