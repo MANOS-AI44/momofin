@@ -1,0 +1,24 @@
+const {test}=require('node:test');
+const assert=require('node:assert/strict');
+const path=require('node:path');
+const express=require('express');
+test('anonymous visitors get the public page and APK without authentication middleware',async t=>{
+ const app=express();
+ app.set('view engine','ejs'); app.set('views',path.join(__dirname,'../views'));
+ app.use(require('../routes/downloads'));
+ app.use((req,res)=>res.status(401).send('Authentication required'));
+ const server=app.listen(0,'127.0.0.1');
+ await new Promise(resolve=>server.on('listening',resolve));
+ t.after(()=>new Promise(resolve=>server.close(resolve)));
+ const base='http://127.0.0.1:'+server.address().port;
+ const page=await fetch(base+'/telecharger',{headers:{Cookie:'session=expired'}});
+ assert.equal(page.status,200);assert.equal(page.headers.get('set-cookie'),null);
+ const html=await page.text();assert.match(html,/Aucun compte nécessaire/);
+ assert.match(html,/href="\/telecharger\/android.apk"/);
+ const apk=await fetch(base+'/telecharger/android.apk',{redirect:'manual'});
+ assert.equal(apk.status,302);
+ assert.equal(apk.headers.get('location'),'https://github.com/MANOS-AI44/momofin/releases/download/v1.1.0-preview.2/MoMoFin-test.apk');
+ assert.equal(apk.headers.get('cache-control'),'no-store');
+ const alias=await fetch(base+'/apk',{redirect:'manual'});
+ assert.equal(alias.headers.get('location'),'/telecharger');
+});

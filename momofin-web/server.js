@@ -42,6 +42,8 @@ app.use('/api/', rateLimit({
     legacyHeaders: false
 }));
 
+app.use(require('./routes/downloads'));
+
 // Middleware qui attache req.user si un cookie session existe (non bloquant)
 app.use(users.attachUser);
 
