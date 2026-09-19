@@ -16,8 +16,16 @@ test('anonymous visitors get the public page and APK without authentication midd
  const html=await page.text();assert.match(html,/Aucun compte nécessaire/);
  assert.match(html,/href="\/telecharger\/android.apk"/);
  const apk=await fetch(base+'/telecharger/android.apk',{redirect:'manual'});
- assert.equal(apk.status,302);
- assert.equal(apk.headers.get('location'),'https://github.com/MANOS-AI44/momofin/releases/download/v1.1.0-preview.2/MoMoFin-test.apk');
+ assert.equal(apk.status,200);
+ assert.equal(apk.headers.get('location'),null);
+ assert.match(apk.headers.get('content-disposition'),/attachment; filename="MoMoFin-test.apk"/);
+ assert.match(apk.headers.get('content-type'),/application\/vnd.android.package-archive/);
+ const bytes=Buffer.from(await apk.arrayBuffer());
+ assert.equal(bytes.length,6127174);
+ assert.equal(require('node:crypto').createHash('sha256').update(bytes).digest('hex'),'7d244cfc4518a3c9e720360bd8057ce6373720899ce2d57eb40096cc516da58f');
+ const partial=await fetch(base+'/telecharger/android.apk',{headers:{Range:'bytes=0-3'}});
+ assert.equal(partial.status,206);
+ assert.equal((await partial.arrayBuffer()).byteLength,4);
  assert.equal(apk.headers.get('cache-control'),'no-store');
  const alias=await fetch(base+'/apk',{redirect:'manual'});
  assert.equal(alias.headers.get('location'),'/telecharger');
